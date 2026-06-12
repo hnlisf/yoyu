@@ -6,7 +6,10 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "nest build && tsc prisma/seed.ts --outDir dist/prisma --rootDir prisma --module nodenext --moduleResolution nodenext --target ES2023 --esModuleInterop --resolvePackageJsonExports --skipLibCheck",
+    "seed:run": "node dist/prisma/seed.js",
+    "db:reset": "rm -f prisma/dev.db && prisma migrate deploy && node dist/prisma/seed.js",
+    "db:seed": "node dist/prisma/seed.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -57,6 +60,9 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
+  },
+  "prisma": {
+    "seed": "node dist/prisma/seed.js"
   },
   "jest": {
     "moduleFileExtensions": [

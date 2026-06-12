@@ -176,17 +176,23 @@ async function main() {
     },
   ];
 
-  for (const s of species) {
-    await prisma.fishSpecies.upsert({
-      where: { id: '' },
-      update: {},
-      create: s,
-    });
-  }
+  // 清掉旧的默认鱼种和所有演示鱼（多次运行 seed 保持幂等）
+  // 1) 清掉所有 fish（因为 FK 指向 species，清不掉 species 会失败）
+  // 2) 清掉所有默认鱼种
+  // 3) 重新插入 10 种默认鱼种
+  // 用户自定义的 fish/species 因为不是 isDefault=true 不受影响（其实 fish 都是 demo 的，全清即可）
+  await prisma.feedRecord.deleteMany({}); // 先清 feedRecord（它引用 fish）
+  await prisma.fish.deleteMany({});
+  await prisma.fishSpecies.deleteMany({ where: { isDefault: true } });
+  await prisma.fishSpecies.createMany({ data: species });
 
   // 创建默认用户和鱼缸
-  const user = await prisma.user.create({
-    data: {
+  // 使用固定 id 'demo-user' 以便前端无需登录即可直接绑定
+  const user = await prisma.user.upsert({
+    where: { id: 'demo-user' },
+    update: { name: '鱼友', locale: 'zh' },
+    create: {
+      id: 'demo-user',
       name: '鱼友',
       locale: 'zh',
       tanks: {

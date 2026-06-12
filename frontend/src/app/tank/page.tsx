@@ -5,7 +5,9 @@ import { useTranslations } from 'next-intl';
 import { api, useApi, FishTank, Fish } from '@/lib/api';
 
 const TANK_ID_KEY = 'fishgrow.tankId';
-const USER_ID = 'demo-user'; // MVP: single local user
+// MVP: hardcoded demo user. Backend creates this user on first tank create,
+// or the seed already has a user with fish. We always pass it on first POST.
+const USER_ID = 'demo-user';
 
 function getStoredTankId(): string | null {
   if (typeof window === 'undefined') return null;
@@ -65,10 +67,20 @@ export default function TankPage() {
   const [size, setSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [busy, setBusy] = useState(false);
 
-  // Init: hydrate tankId from localStorage on mount
+  // Init: hydrate tankId from localStorage. If absent, look up the demo
+  // user's existing tanks (the seed creates one) and adopt it.
   useEffect(() => {
     const id = getStoredTankId();
-    if (id) setTankId(id);
+    if (id) { setTankId(id); return; }
+    (async () => {
+      try {
+        const tanks = await api<FishTank[]>(`/api/fish-tanks?userId=${USER_ID}`);
+        if (tanks.length) {
+          setStoredTankId(tanks[0].id);
+          setTankId(tanks[0].id);
+        }
+      } catch { /* ignore — user can still create manually */ }
+    })();
   }, []);
 
   const { data: tank, loading, refetch } = useApi<FishTank>(tankId ? `/api/fish-tanks/${tankId}` : null);
