@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #5BA9C7;
+  --color-secondary: #F4E4C1;
+  --color-accent: #FF7F50;
+}
+
+html, body {
+  font-family: 'Inter', 'Source Han Sans CN', 'Noto Sans JP', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #2F4858;
+}
+
+[lang='zh'] body { font-family: 'Source Han Sans CN', 'Noto Sans SC', system-ui, sans-serif; }
+[lang='en'] body { font-family: 'Inter', system-ui, sans-serif; }
+[lang='ja'] body { font-family: 'Noto Sans JP', system-ui, sans-serif; }
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-medium transition-all shadow-sm;
+  }
+  .btn-primary {
+    @apply btn bg-water-400 text-white hover:bg-water-500 active:scale-95;
+  }
+  .btn-secondary {
+    @apply btn bg-sand-100 text-water-600 hover:bg-sand-200 active:scale-95;
+  }
+  .btn-accent {
+    @apply btn bg-coral-500 text-white hover:bg-coral-600 active:scale-95;
+  }
+  .card {
+    @apply rounded-3xl bg-white/70 backdrop-blur p-5 shadow-sm;
+  }
+  .input {
+    @apply w-full rounded-xl border border-water-200 bg-white/80 px-4 py-2.5 outline-none focus:border-water-400 focus:ring-2 focus:ring-water-200;
+  }
+  .label {
+    @apply block text-sm font-medium text-water-600 mb-1.5;
+  }
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .badge-ideal { @apply badge bg-green-100 text-green-700; }
+  .badge-ok    { @apply badge bg-yellow-100 text-yellow-700; }
+  .badge-poor  { @apply badge bg-red-100 text-red-700; }
+}

@@ -1,0 +1,112 @@
+{
+  "appName": "フィッシュグロウ",
+  "tagline": "あなたの仮想魚仲間",
+  "nav": {
+    "home": "ホーム",
+    "tank": "水槽",
+    "species": "魚種",
+    "reminders": "通知",
+    "weather": "天気"
+  },
+  "home": {
+    "welcome": "フィッシュグロウへようこそ",
+    "intro": "ここで最初の魚を育て、稚魚から成魚まで成長を見守ります。",
+    "startButton": "育成を始める",
+    "tankButton": "水槽を開く",
+    "features": {
+      "species": { "title": "10 種類の魚", "desc": "金魚、錦鯉、グッピーなど" },
+      "weather": { "title": "天気に連動", "desc": "地域の天気に基づく餌やり提案" },
+      "reminder": { "title": "スマート通知", "desc": "餌やり・換水・掃除を忘れずに" }
+    }
+  },
+  "tank": {
+    "title": "私の水槽",
+    "empty": "まだ水槽がありません。下のボタンで作成してください。",
+    "createButton": "新しい水槽",
+    "name": "水槽名",
+    "size": "サイズ",
+    "sizeSmall": "小型",
+    "sizeMedium": "中型",
+    "sizeLarge": "大型",
+    "temp": "水温",
+    "ph": "pH",
+    "cleanliness": "清潔度",
+    "oxygen": "酸素量",
+    "fish": "魚",
+    "noFish": "水槽は空です。魚を選びましょう。",
+    "addFish": "魚を追加",
+    "feedAll": "全部に餌やり",
+    "tankStatus": "水槽の状態",
+    "weather": "現在の天気"
+  },
+  "species": {
+    "title": "魚種図鑑",
+    "subtitle": "育てる魚を選んでください",
+    "addCustom": "カスタム魚種を追加",
+    "customName": "魚種名",
+    "tempRange": "適性水温",
+    "phRange": "適性 pH",
+    "growthDays": "成長期間",
+    "feedFreq": "餌やり頻度",
+    "freqDaily": "1 日 1 回",
+    "freqTwice": "1 日 2 回",
+    "freq2Days": "2 日に 1 回",
+    "selectButton": "これを選ぶ",
+    "feedNow": "餌をやる"
+  },
+  "fish": {
+    "stage": {
+      "fry": "稚魚",
+      "juvenile": "幼魚",
+      "subadult": "亜成魚",
+      "adult": "成魚"
+    },
+    "growth": "成長度",
+    "health": "健康度",
+    "nutrition": "満腹度",
+    "feed": "餌やり",
+    "rename": "名前変更",
+    "age": "飼育日数",
+    "days": "日"
+  },
+  "weather": {
+    "title": "今日の天気",
+    "adviceTitle": "餌やり提案",
+    "ideal": "最適",
+    "ok": "まあまあ",
+    "poor": "不適",
+    "loading": "読み込み中…",
+    "temp": "気温",
+    "feels": "体感",
+    "humidity": "湿度",
+    "wind": "風速",
+    "enableNotif": "ブラウザ通知を有効化",
+    "locationTitle": "現在地"
+  },
+  "reminders": {
+    "title": "通知センター",
+    "empty": "通知はありません",
+    "type": {
+      "feed": "餌やり",
+      "water_change": "換水",
+      "clean": "掃除"
+    },
+    "dueAt": "期限",
+    "done": "完了",
+    "markDone": "完了にする",
+    "delete": "削除",
+    "createAll": "デフォルト通知を生成"
+  },
+  "common": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "confirm": "確認",
+    "loading": "読み込み中…",
+    "error": "エラーが発生しました",
+    "retry": "再試行",
+    "back": "戻る",
+    "language": "言語",
+    "create": "作成"
+  }
+}

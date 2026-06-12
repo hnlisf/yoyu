@@ -1,0 +1,112 @@
+{
+  "appName": "FishGrow",
+  "tagline": "Your virtual fish companion",
+  "nav": {
+    "home": "Home",
+    "tank": "My Tank",
+    "species": "Species",
+    "reminders": "Reminders",
+    "weather": "Weather"
+  },
+  "home": {
+    "welcome": "Welcome to FishGrow",
+    "intro": "Raise your first fish here and watch it grow from fry to adult.",
+    "startButton": "Start raising",
+    "tankButton": "Open my tank",
+    "features": {
+      "species": { "title": "10 species", "desc": "Goldfish, Koi, Guppy and more" },
+      "weather": { "title": "Weather aware", "desc": "Personalized feeding advice" },
+      "reminder": { "title": "Smart reminders", "desc": "Never miss feeding, water change, or cleaning" }
+    }
+  },
+  "tank": {
+    "title": "My Tank",
+    "empty": "No tank yet. Create your first fish tank below.",
+    "createButton": "New tank",
+    "name": "Tank name",
+    "size": "Size",
+    "sizeSmall": "Small",
+    "sizeMedium": "Medium",
+    "sizeLarge": "Large",
+    "temp": "Temp",
+    "ph": "pH",
+    "cleanliness": "Cleanliness",
+    "oxygen": "Oxygen",
+    "fish": "Fish",
+    "noFish": "Tank is empty. Go pick a fish.",
+    "addFish": "Add fish",
+    "feedAll": "Feed all",
+    "tankStatus": "Tank status",
+    "weather": "Current weather"
+  },
+  "species": {
+    "title": "Species Library",
+    "subtitle": "Pick a fish to start raising",
+    "addCustom": "Add custom species",
+    "customName": "Species name",
+    "tempRange": "Temperature range",
+    "phRange": "pH range",
+    "growthDays": "Growth period",
+    "feedFreq": "Feeding frequency",
+    "freqDaily": "Once daily",
+    "freqTwice": "Twice daily",
+    "freq2Days": "Every 2 days",
+    "selectButton": "Choose this",
+    "feedNow": "Feed now"
+  },
+  "fish": {
+    "stage": {
+      "fry": "Fry",
+      "juvenile": "Juvenile",
+      "subadult": "Subadult",
+      "adult": "Adult"
+    },
+    "growth": "Growth",
+    "health": "Health",
+    "nutrition": "Nutrition",
+    "feed": "Feed",
+    "rename": "Rename",
+    "age": "Age",
+    "days": "days"
+  },
+  "weather": {
+    "title": "Today's weather",
+    "adviceTitle": "Feeding advice",
+    "ideal": "Ideal",
+    "ok": "OK",
+    "poor": "Poor",
+    "loading": "Loading…",
+    "temp": "Temp",
+    "feels": "Feels like",
+    "humidity": "Humidity",
+    "wind": "Wind",
+    "enableNotif": "Enable browser notifications",
+    "locationTitle": "Your location"
+  },
+  "reminders": {
+    "title": "Reminders",
+    "empty": "No reminders",
+    "type": {
+      "feed": "Feed",
+      "water_change": "Water change",
+      "clean": "Clean"
+    },
+    "dueAt": "Due",
+    "done": "Done",
+    "markDone": "Mark done",
+    "delete": "Delete",
+    "createAll": "Generate default reminders"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "back": "Back",
+    "language": "Language",
+    "create": "Create"
+  }
+}

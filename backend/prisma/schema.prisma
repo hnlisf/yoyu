@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String   @default("鱼友")
+  locale    String   @default("zh") // zh, en, ja
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tanks     FishTank[]
+  reminders Reminder[]
+
+  @@map("users")
+}
+
+model FishSpecies {
+  id          String @id @default(uuid())
+  nameI18n    String @map("name_i18n") // JSONB: {"zh":"金鱼","en":"Goldfish","ja":"金魚"}
+  descI18n    String @map("description_i18n") // JSONB
+  tempMin     Float  @map("temp_min")
+  tempMax     Float  @map("temp_max")
+  phMin       Float  @map("ph_min")
+  phMax       Float  @map("ph_max")
+  growthDays  Int    @map("growth_days") // 成长周期（天）
+  feedFreq    String @map("feed_freq") // daily / twice_daily / every_2_days
+  stages      String // JSONB: [{"name":"鱼苗","days":7},...]
+  color       String @default("#5BA9C7")
+  isDefault   Boolean @default(false) @map("is_default")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  fish        Fish[]
+
+  @@map("fish_species")
+}
+
+model FishTank {
+  id          String @id @default(uuid())
+  userId      String @map("user_id")
+  name        String @default("我的鱼缸")
+  size        String @default("medium") // small/medium/large
+  temp        Float  @default(24.0)
+  cleanliness Float  @default(100.0) @map("cleanliness") // 0-100
+  oxygen      Float  @default(100.0) // 0-100
+  ph          Float  @default(7.0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User   @relation(fields: [userId], references: [id])
+  fish        Fish[]
+
+  @@map("fish_tanks")
+}
+
+model Fish {
+  id          String @id @default(uuid())
+  tankId      String @map("tank_id")
+  speciesId   String @map("species_id")
+  name        String @default("")
+  birthday    DateTime @default(now())
+  stage       String @default("fry") // fry -> juvenile -> subadult -> adult
+  growth      Float  @default(0.0) // 0-100 成长度
+  health      Float  @default(100.0) // 0-100
+  nutrition   Float  @default(100.0) // 0-100
+  lastFedAt   DateTime? @map("last_fed_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tank        FishTank @relation(fields: [tankId], references: [id], onDelete: Cascade)
+  species     FishSpecies @relation(fields: [speciesId], references: [id])
+  feedRecords FeedRecord[]
+
+  @@map("fish")
+}
+
+model FeedRecord {
+  id        String   @id @default(uuid())
+  fishId    String   @map("fish_id")
+  fedAt     DateTime @default(now()) @map("fed_at")
+  amount    String   @default("normal") // small/normal/large
+
+  fish      Fish     @relation(fields: [fishId], references: [id], onDelete: Cascade)
+
+  @@map("feed_records")
+}
+
+model Reminder {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      String   // feed / water_change / clean
+  titleI18n String   @map("title_i18n") // JSONB
+  dueAt     DateTime @map("due_at")
+  isDone    Boolean  @default(false) @map("is_done")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("reminders")
+}
+
+model WeatherCache {
+  id        String   @id @default(uuid())
+  lat       Float
+  lon       Float
+  data      String   // JSONB 天气数据
+  cachedAt  DateTime @default(now()) @map("cached_at")
+
+  @@index([lat, lon])
+  @@map("weather_cache")
+}

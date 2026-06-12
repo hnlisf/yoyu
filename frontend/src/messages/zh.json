@@ -1,0 +1,112 @@
+{
+  "appName": "鱼成长",
+  "tagline": "陪伴你的虚拟鱼缸",
+  "nav": {
+    "home": "首页",
+    "tank": "我的鱼缸",
+    "species": "鱼种",
+    "reminders": "提醒",
+    "weather": "天气"
+  },
+  "home": {
+    "welcome": "欢迎来到鱼成长",
+    "intro": "在这里养成你的第一条鱼，观察它从鱼苗慢慢长大。",
+    "startButton": "开始养成",
+    "tankButton": "查看鱼缸",
+    "features": {
+      "species": { "title": "10 种鱼可选", "desc": "金鱼、锦鲤、孔雀鱼等多种观赏鱼" },
+      "weather": { "title": "天气联动", "desc": "根据当地天气给出投喂建议" },
+      "reminder": { "title": "智能提醒", "desc": "换水、喂食、清理不再忘记" }
+    }
+  },
+  "tank": {
+    "title": "我的鱼缸",
+    "empty": "还没有鱼缸，点击下方按钮创建你的第一个鱼缸",
+    "createButton": "新建鱼缸",
+    "name": "鱼缸名称",
+    "size": "鱼缸大小",
+    "sizeSmall": "小型",
+    "sizeMedium": "中型",
+    "sizeLarge": "大型",
+    "temp": "水温",
+    "ph": "pH 值",
+    "cleanliness": "清洁度",
+    "oxygen": "含氧量",
+    "fish": "鱼儿",
+    "noFish": "缸里还没有鱼，去选一条吧",
+    "addFish": "添加鱼",
+    "feedAll": "一键投喂",
+    "tankStatus": "鱼缸状态",
+    "weather": "当前天气"
+  },
+  "species": {
+    "title": "鱼种图鉴",
+    "subtitle": "选择一条鱼开始养成",
+    "addCustom": "自定义鱼种",
+    "customName": "鱼种名称",
+    "tempRange": "适宜水温",
+    "phRange": "适宜 pH",
+    "growthDays": "成长周期",
+    "feedFreq": "投喂频率",
+    "freqDaily": "每天 1 次",
+    "freqTwice": "每天 2 次",
+    "freq2Days": "每 2 天 1 次",
+    "selectButton": "选择这条",
+    "feedNow": "投喂一次"
+  },
+  "fish": {
+    "stage": {
+      "fry": "鱼苗",
+      "juvenile": "幼鱼",
+      "subadult": "亚成鱼",
+      "adult": "成鱼"
+    },
+    "growth": "成长度",
+    "health": "健康度",
+    "nutrition": "饱食度",
+    "feed": "投喂",
+    "rename": "重命名",
+    "age": "鱼龄",
+    "days": "天"
+  },
+  "weather": {
+    "title": "今日天气",
+    "adviceTitle": "投喂建议",
+    "ideal": "适宜",
+    "ok": "一般",
+    "poor": "不宜",
+    "loading": "加载中…",
+    "temp": "气温",
+    "feels": "体感",
+    "humidity": "湿度",
+    "wind": "风速",
+    "enableNotif": "开启浏览器通知",
+    "locationTitle": "当前位置"
+  },
+  "reminders": {
+    "title": "提醒中心",
+    "empty": "暂无提醒",
+    "type": {
+      "feed": "投喂",
+      "water_change": "换水",
+      "clean": "清理"
+    },
+    "dueAt": "到期",
+    "done": "已完成",
+    "markDone": "标为已完成",
+    "delete": "删除",
+    "createAll": "生成默认提醒"
+  },
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "confirm": "确认",
+    "loading": "加载中…",
+    "error": "出错了",
+    "retry": "重试",
+    "back": "返回",
+    "language": "语言",
+    "create": "创建"
+  }
+}
