@@ -50,6 +50,9 @@
 | **SQLite** | 3.x | Prisma 内置驱动，**无需**独立安装 |
 | **操作系统** | macOS / Linux / Windows（推荐 WSL） | WSL 在 Windows 上获得最佳兼容性 |
 
+> ⚠️ **首次部署必须创建 `backend/.env` 文件**（参考 `backend/.env.example`）。  
+> 后端的 `prisma generate` 在没有 `.env` 时会校验 `DATABASE_URL` 失败，导致 9 个 TS 编译错误（`TS2305` / `TS7006`）。从模板复制即可：`cp backend/.env.example backend/.env`。
+
 快速检查：
 
 ```bash
@@ -66,6 +69,7 @@ ss -tlnp | grep -E ':3000|:3001'   # 端口应空闲
 # 1) 后端
 git clone https://github.com/hnlisf/fishgrow.git
 cd fishgrow/backend
+cp .env.example .env        # 首次部署必须（Windows PowerShell: copy .env.example .env）
 npm install
 npm run build                  # nest build + tsc 编译 seed.ts
 npx prisma migrate deploy      # 应用数据库迁移
