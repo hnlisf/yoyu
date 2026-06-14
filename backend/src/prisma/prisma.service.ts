@@ -8,8 +8,12 @@ function resolveDatabaseUrl(): string {
   if (!raw.startsWith('file:')) return raw;
   const filePath = raw.replace(/^file:/, '');
   if (path.isAbsolute(filePath)) return raw;
-  // Resolve relative to project root (where nest-cli.json / package.json lives)
-  return `file:${path.resolve(process.cwd(), filePath)}`;
+  // Resolve relative to prisma/schema.prisma's directory (matches Prisma CLI's
+  // resolution rule). Without this, CLI and runtime end up writing to different
+  // files (CLI -> backend/prisma/dev.db, runtime -> backend/dev.db) and the
+  // backend sees an empty database.
+  const schemaDir = path.resolve(process.cwd(), 'prisma');
+  return `file:${path.resolve(schemaDir, filePath)}`;
 }
 
 @Injectable()
