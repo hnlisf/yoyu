@@ -1,56 +1,74 @@
 /** @type {import('tailwindcss').Config} */
+// FishGrow v4 Design System — Deep Sea + Liquid Glass
+// Source: design-system-mapping.md (Tomas, 2026-06-17)
 module.exports = {
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
   theme: {
     extend: {
       colors: {
-        water: {
-          50: '#EAF6FA',
-          100: '#CFEAF2',
-          200: '#A9D7E6',
-          300: '#7FC0D5',
-          400: '#5BA9C7',  // primary
-          500: '#3F8DAD',
-          600: '#2F6F8A',
-        },
-        sand: {
-          50: '#FBF6EC',
-          100: '#F4E4C1',  // secondary
-          200: '#EAD09A',
-        },
-        coral: {
-          400: '#FFA078',
-          500: '#FF7F50',  // accent
-          600: '#E45F30',
-        },
+        // Backgrounds
+        deep: '#0a1f2e',
+        card: '#0f2a3d',
+        // Glass (Tailwind v3 doesn't allow rgba on bg; exposed via CSS vars)
+        glass: 'rgba(255,255,255,0.08)',
+        'glass-border': 'rgba(255,255,255,0.15)',
+        // Accents
+        accent: '#7dd3fc',
+        'accent-aux': '#38bdf8',
+        'accent-orange': '#fb923c',
+        'accent-gold': '#fde68a',
+        // Text
+        'text-primary': '#e0f2fe',
+        'text-secondary': '#94a3b8',
+        // States
+        warning: '#fbbf24',
+        success: '#4ade80',
       },
       fontFamily: {
-        zh: ['"Source Han Sans CN"', '"Noto Sans SC"', 'system-ui', 'sans-serif'],
-        en: ['Inter', 'system-ui', 'sans-serif'],
-        ja: ['"Noto Sans JP"', 'system-ui', 'sans-serif'],
+        sans: [
+          '-apple-system',
+          'Inter',
+          '"PingFang SC"',
+          '"Noto Sans SC"',
+          '"Noto Sans JP"',
+          'system-ui',
+          'sans-serif',
+        ],
+      },
+      fontWeight: {
+        light: '300',
+        regular: '400',
       },
       backgroundImage: {
-        'water-gradient': 'linear-gradient(180deg, #EAF6FA 0%, #CFEAF2 50%, #A9D7E6 100%)',
-        'fishbowl': 'radial-gradient(ellipse at center top, rgba(255,255,255,0.5) 0%, rgba(91,169,199,0.4) 70%, rgba(63,141,173,0.6) 100%)',
+        'deep-sea': 'radial-gradient(ellipse at top, #0f2a3d, #0a1f2e 70%)',
+        'deep-sea-soft': 'linear-gradient(180deg, #0f2a3d 0%, #0a1f2e 100%)',
+      },
+      boxShadow: {
+        'glow-accent': '0 0 6px rgba(125,211,252,0.5)',
+        'glow-success': '0 0 8px rgba(74,222,128,0.5)',
+        'glow-orange': '0 0 8px rgba(251,146,60,0.5)',
+        'glow-gold': '0 0 8px rgba(253,230,138,0.5)',
       },
       animation: {
-        swim: 'swim 8s ease-in-out infinite',
-        'swim-slow': 'swim 14s ease-in-out infinite',
+        swim: 'swim 10s ease-in-out infinite',
+        'swim-fast': 'swim 6s ease-in-out infinite',
         float: 'float 4s ease-in-out infinite',
         bubble: 'bubble 6s linear infinite',
       },
       keyframes: {
         swim: {
           '0%, 100%': { transform: 'translateX(0) translateY(0) rotate(-2deg)' },
-          '50%': { transform: 'translateX(20px) translateY(-15px) rotate(2deg)' },
+          '25%': { transform: 'translateX(15px) translateY(-8px) rotate(1deg)' },
+          '50%': { transform: 'translateX(8px) translateY(-12px) rotate(-1deg)' },
+          '75%': { transform: 'translateX(-5px) translateY(-6px) rotate(2deg)' },
         },
         float: {
           '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-8px)' },
+          '50%': { transform: 'translateY(-6px)' },
         },
         bubble: {
           '0%': { transform: 'translateY(0) scale(0.5)', opacity: '0.7' },
-          '100%': { transform: 'translateY(-200px) scale(1)', opacity: '0' },
+          '100%': { transform: 'translateY(-150px) scale(1)', opacity: '0' },
         },
       },
     },

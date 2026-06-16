@@ -4,11 +4,12 @@ import { getLocale, getMessages } from 'next-intl/server';
 import { cookies } from 'next/headers';
 import './globals.css';
 import Header from '@/components/Header';
+import { NavBar } from '@/components/nav/NavBar';
 import { LocaleProvider } from '@/components/LocaleProvider';
 
 export const metadata: Metadata = {
-  title: 'FishGrow - 鱼成长',
-  description: 'Virtual fish pet game',
+  title: 'FishGrow · Liquid Glass',
+  description: 'Virtual fish pet game — v4 liquid glass design',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -19,11 +20,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={locale}>
-      <body className="bg-water-gradient min-h-screen">
+      <body className="bg-deep-sea min-h-screen">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <LocaleProvider locale={locale}>
             <Header />
-            <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+            <main className="mx-auto max-w-5xl px-4 py-6 pb-28 page-enter">
+              {children}
+            </main>
+            <NavBar />
           </LocaleProvider>
         </NextIntlClientProvider>
       </body>
