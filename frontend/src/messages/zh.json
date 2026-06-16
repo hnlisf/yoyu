@@ -6,7 +6,9 @@
     "tank": "我的鱼缸",
     "species": "鱼种",
     "reminders": "提醒",
-    "weather": "天气"
+    "weather": "天气",
+    "stats": "统计",
+    "profile": "我的"
   },
   "home": {
     "welcome": "欢迎来到鱼成长",
@@ -18,6 +20,34 @@
       "weather": { "title": "天气联动", "desc": "根据当地天气给出投喂建议" },
       "reminder": { "title": "智能提醒", "desc": "换水、喂食、清理不再忘记" }
     }
+  },
+  "tanks": {
+    "home": {
+      "title": "我的鱼缸",
+      "subtitle": "共 {count} 个鱼缸",
+      "empty": "还没有鱼缸，点击下方按钮创建你的第一个鱼缸",
+      "createButton": "新建鱼缸",
+      "createTitle": "新建鱼缸",
+      "healthy": "健康",
+      "ok": "一般",
+      "attention": "需关注",
+      "cleanliness": "清洁度"
+    }
+  },
+  "tankDetail": {
+    "feedAll": "一键投喂",
+    "feedAllDone": "投喂成功",
+    "waterChange": "换水",
+    "waterChanged": "换水成功",
+    "treat": "治疗",
+    "statusTitle": "鱼缸状态",
+    "cleanliness": "清洁度",
+    "oxygen": "含氧量",
+    "temp": "水温",
+    "fish": "鱼儿",
+    "noFish": "缸里还没有鱼",
+    "notFound": "未找到该鱼缸",
+    "sizeLabel": "尺寸 {size}"
   },
   "tank": {
     "title": "我的鱼缸",
@@ -39,6 +69,46 @@
     "feedAll": "一键投喂",
     "tankStatus": "鱼缸状态",
     "weather": "当前天气"
+  },
+  "growth": {
+    "backToTank": "返回鱼缸",
+    "notFound": "未找到该鱼",
+    "daysInTank": "入缸 {count} 天",
+    "nutrition": "饱食度",
+    "health": "健康度",
+    "mood": "心情",
+    "stage": "成长阶段",
+    "feedHistory": "投喂记录"
+  },
+  "stats": {
+    "title": "统计中心",
+    "subtitle": "数据驱动的养护体验",
+    "totalDays": "累计天数",
+    "totalFish": "鱼数量",
+    "feedCount": "喂食次数",
+    "waterChange": "换水次数",
+    "treatCount": "治疗次数",
+    "achievementCount": "成就数",
+    "unitDay": "天",
+    "unitCount": "次",
+    "weeklyChart": "本周活动",
+    "achievements": "成就徽章",
+    "unlocked": "已达成",
+    "locked": "未达成"
+  },
+  "profile": {
+    "myTanks": "我的鱼缸",
+    "myFish": "我的鱼",
+    "unlockedSpecies": "解锁鱼种",
+    "favorites": "收藏鱼种",
+    "settings": "设置",
+    "notifLabel": "推送通知",
+    "notifDesc": "投喂/换水/治疗到期提醒",
+    "languageLabel": "语言",
+    "languageDesc": "切换界面语言",
+    "languageValue": "中文",
+    "aboutLabel": "关于",
+    "aboutDesc": "FishGrow v4 · Liquid Glass"
   },
   "species": {
     "title": "鱼种图鉴",
