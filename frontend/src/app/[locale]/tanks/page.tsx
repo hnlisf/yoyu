@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { api, FishTank, Fish } from '@/lib/api';
+import { useTankStore } from '@/lib/stores/tankStore';
 import { FishAvatar } from '@/components/fish';
 import { slugToVariant } from '@/components/fish/types';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -19,8 +20,14 @@ const USER_ID = 'demo-user';
 export default function TanksHomePage() {
   const t = useTranslations('tanks.home');
   const tCommon = useTranslations('common');
-  const [tanks, setTanks] = useState<FishTank[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Pull the cached list of tanks from the global store so the bottom-nav
+  // and detail page share the same source of truth.
+  const tanks = useTankStore((s) => s.tanks);
+  const setTanks = useTankStore((s) => s.setTanks);
+  const setLoading = useTankStore((s) => s.setLoading);
+  const storeError = useTankStore((s) => s.error);
+  const upsertTank = useTankStore((s) => s.upsertTank);
+  const [loading, setLocalLoading] = useState(tanks.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('My Tank');
@@ -32,9 +39,11 @@ export default function TanksHomePage() {
     let cancelled = false;
     (async () => {
       try {
+        setLoading(true);
         const data = await api<FishTank[]>(`/api/fish-tanks?userId=${USER_ID}`);
         if (cancelled) return;
         setTanks(data);
+        setLocalLoading(false);
         // Fetch first fish of each tank in parallel to show a representative avatar.
         const fishEntries = await Promise.all(
           data.map(async (tk) => {
@@ -55,7 +64,7 @@ export default function TanksHomePage() {
       } catch (e: any) {
         if (!cancelled) setError(e.message ?? 'load error');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setLocalLoading(false);
       }
     })();
     return () => {
@@ -72,19 +81,17 @@ export default function TanksHomePage() {
       });
       setCreating(false);
       setName('My Tank');
-      // Re-fetch
-      setLoading(true);
+      // Re-fetch and store the new tank.
       const data = await api<FishTank[]>(`/api/fish-tanks?userId=${USER_ID}`);
       setTanks(data);
     } catch (e: any) {
       alert('Create failed: ' + e.message);
     } finally {
       setBusy(false);
-      setLoading(false);
     }
   };
 
-  if (loading && !tanks) {
+  if (loading && tanks.length === 0) {
     return <p className="text-text-secondary text-sm font-light">{tCommon('loading')}</p>;
   }
 
@@ -100,7 +107,7 @@ export default function TanksHomePage() {
     );
   }
 
-  const isEmpty = !tanks || tanks.length === 0;
+  const isEmpty = tanks.length === 0;
 
   return (
     <div className="space-y-5">
@@ -108,7 +115,7 @@ export default function TanksHomePage() {
         <div>
           <h1 className="text-2xl font-light text-text-primary tracking-wide">{t('title')}</h1>
           <p className="text-xs text-text-secondary font-light mt-1">
-            {t('subtitle', { count: tanks?.length ?? 0 })}
+            {t('subtitle', { count: tanks.length })}
           </p>
         </div>
       </header>
@@ -123,7 +130,7 @@ export default function TanksHomePage() {
         </GlassCard>
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
-          {tanks!.map((tk) => {
+          {tanks.map((tk) => {
             const repFish = representativeFishByTank[tk.id];
             const variant = slugToVariant(repFish?.species?.id);
             const stage = repFish?.stage ?? 'subadult';
