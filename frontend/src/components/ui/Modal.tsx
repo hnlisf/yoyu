@@ -5,13 +5,14 @@ import { ReactNode, useEffect } from 'react';
 interface ModalProps {
   open: boolean;
   onClose: () => void;
+  title?: string;
   children: ReactNode;
 }
 
 /**
  * Centered glass modal. Clicking backdrop closes.
  */
-export function Modal({ open, onClose, children }: ModalProps) {
+export function Modal({ open, onClose, title, children }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -34,7 +35,10 @@ export function Modal({ open, onClose, children }: ModalProps) {
         role="dialog"
         aria-modal="true"
       >
-        <div className="glass-modal">{children}</div>
+        <div className="glass-modal">
+          {title && <h3 className="text-text-primary font-light mb-2">{title}</h3>}
+          {children}
+        </div>
       </div>
     </>
   );
