@@ -5,5 +5,5 @@ import { redirect } from '@/i18n/routing';
 // preserving the current locale.
 export default async function Home() {
   const locale = await getLocale();
-  redirect({ href: '/tank', locale });
+  redirect({ href: '/tanks', locale });
 }

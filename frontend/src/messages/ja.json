@@ -1,12 +1,15 @@
 {
   "appName": "フィッシュグロウ",
+  "brandName": "FG",
   "tagline": "あなたの仮想魚仲間",
   "nav": {
     "home": "ホーム",
     "tank": "水槽",
     "species": "魚種",
     "reminders": "通知",
-    "weather": "天気"
+    "weather": "天気",
+    "stats": "統計",
+    "profile": "マイページ"
   },
   "home": {
     "welcome": "フィッシュグロウへようこそ",
@@ -16,8 +19,41 @@
     "features": {
       "species": { "title": "10 種類の魚", "desc": "金魚、錦鯉、グッピーなど" },
       "weather": { "title": "天気に連動", "desc": "地域の天気に基づく餌やり提案" },
-      "reminder": { "title": "スマート通知", "desc": "餌やり・換水・掃除を忘れずに" }
+      "reminders": { "title": "スマート通知", "desc": "餌やり・換水・掃除を忘れずに" }
     }
+  },
+  "tanks": {
+    "home": {
+      "title": "私の水槽",
+      "subtitle": "合計 {count} 個の水槽",
+      "empty": "まだ水槽がありません。下のボタンで作成してください。",
+      "createButton": "新規水槽",
+      "createTitle": "新しい水槽",
+      "name": "水槽名",
+      "size": "水槽サイズ",
+      "sizeSmall": "小型",
+      "sizeMedium": "中型",
+      "sizeLarge": "大型",
+      "healthy": "良好",
+      "ok": "普通",
+      "attention": "要手入れ",
+      "cleanliness": "清潔度"
+    }
+  },
+  "tankDetail": {
+    "feedAll": "全部に餌やり",
+    "feedAllDone": "餌やり完了",
+    "waterChange": "換水",
+    "waterChanged": "換水しました",
+    "treat": "治療",
+    "statusTitle": "水槽の状態",
+    "cleanliness": "清潔度",
+    "oxygen": "酸素量",
+    "temp": "水温",
+    "fish": "魚",
+    "noFish": "水槽は空です",
+    "notFound": "水槽が見つかりません",
+    "sizeLabel": "サイズ {size}"
   },
   "tank": {
     "title": "私の水槽",
@@ -39,6 +75,52 @@
     "feedAll": "全部に餌やり",
     "tankStatus": "水槽の状態",
     "weather": "現在の天気"
+  },
+  "tankNames": {
+    "我的鱼缸": "私の水槽",
+    "客厅大缸": "リビング大型水槽",
+    "书房小缸": "書斎小型水槽",
+    "阳台中缸": "ベランダ中型水槽"
+  },
+  "growth": {
+    "backToTank": "水槽に戻る",
+    "notFound": "魚が見つかりません",
+    "daysInTank": "飼育 {count} 日",
+    "nutrition": "満腹度",
+    "health": "健康度",
+    "mood": "気分",
+    "stage": "成長段階",
+    "feedHistory": "餌やり履歴"
+  },
+  "stats": {
+    "title": "統計センター",
+    "subtitle": "データで育てる",
+    "totalDays": "総日数",
+    "totalFish": "魚数",
+    "feedCount": "餌やり",
+    "waterChange": "換水",
+    "treatCount": "治療",
+    "achievementCount": "実績",
+    "unitDay": "日",
+    "unitCount": "回",
+    "weeklyChart": "週間アクティビティ",
+    "achievements": "実績",
+    "unlocked": "解除済み",
+    "locked": "未解除"
+  },
+  "profile": {
+    "myTanks": "私の水槽",
+    "myFish": "私の魚",
+    "unlockedSpecies": "魚種数",
+    "favorites": "お気に入り",
+    "settings": "設定",
+    "notifLabel": "通知",
+    "notifDesc": "餌やり・換水・治療の通知を受け取る",
+    "languageLabel": "言語",
+    "languageDesc": "インターフェース言語を切り替える",
+    "languageValue": "日本語",
+    "aboutLabel": "バージョン情報",
+    "aboutDesc": "FishGrow v4 · リキッドグラス"
   },
   "species": {
     "title": "魚種図鑑",

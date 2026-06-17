@@ -1,0 +1,175 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
+import { api, FishTank, Fish } from '@/lib/api';
+import { FishAvatar } from '@/components/fish';
+import { slugToVariant } from '@/components/fish/types';
+import { GlassCard } from '@/components/ui/GlassCard';
+import { Tag } from '@/components/ui/Tag';
+import { Switch } from '@/components/ui/Switch';
+
+const USER_ID = 'demo-user';
+
+export default function ProfilePage() {
+  const t = useTranslations('profile');
+  const [tanks, setTanks] = useState<FishTank[]>([]);
+  const [allFish, setAllFish] = useState<Fish[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notif, setNotif] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const t0 = await api<FishTank[]>(`/api/fish-tanks?userId=${USER_ID}`);
+        if (cancelled) return;
+        setTanks(t0);
+        const fishLists = await Promise.all(
+          t0.map((tk) => api<Fish[]>(`/api/fish?tankId=${tk.id}`).catch(() => []))
+        );
+        if (cancelled) return;
+        setAllFish(fishLists.flat());
+      } catch {
+        // tolerate error
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // De-dup fish by species id for favorites
+  const seen = new Set<string>();
+  const favoriteFish = allFish.filter((f) => {
+    const key = f.species?.id ?? f.id;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  // Count distinct species
+  const speciesUnlocked = new Set(allFish.map((f) => f.species?.id ?? f.id)).size;
+
+  return (
+    <div className="space-y-5">
+      {/* Avatar section */}
+      <GlassCard className="text-center py-8 relative overflow-hidden">
+        <div
+          className="absolute inset-0 bg-gradient-to-br from-accent/15 to-accent-gold/10"
+          aria-hidden
+        />
+        <div className="relative z-10">
+          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-accent to-accent-aux flex items-center justify-center mb-3 shadow-glow-accent">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#0a1f2e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="9" r="3.5" />
+              <path d="M5 20c1-3 4-5 7-5s6 2 7 5" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-light text-text-primary">Demo User</h1>
+          <Tag variant="gold" className="mt-2">
+            Lv. 5
+          </Tag>
+        </div>
+      </GlassCard>
+
+      {/* Profile stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <GlassCard className="text-center py-4">
+          <p className="text-2xl text-accent font-light tabular-nums">{tanks.length}</p>
+          <p className="text-[11px] text-text-secondary font-light mt-1">{t('myTanks')}</p>
+        </GlassCard>
+        <GlassCard className="text-center py-4">
+          <p className="text-2xl text-accent font-light tabular-nums">{allFish.length}</p>
+          <p className="text-[11px] text-text-secondary font-light mt-1">{t('myFish')}</p>
+        </GlassCard>
+        <GlassCard className="text-center py-4">
+          <p className="text-2xl text-accent-gold font-light tabular-nums">
+            {speciesUnlocked}<span className="text-sm text-text-secondary"> / 5</span>
+          </p>
+          <p className="text-[11px] text-text-secondary font-light mt-1">{t('unlockedSpecies')}</p>
+        </GlassCard>
+      </div>
+
+      {/* Favorites */}
+      {favoriteFish.length > 0 && (
+        <GlassCard>
+          <h2 className="text-sm font-normal text-text-primary mb-3">{t('favorites')}</h2>
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+            {favoriteFish.map((f) => (
+              <Link
+                key={f.id}
+                href={`/growth/${f.id}`}
+                className="flex-shrink-0 w-24"
+              >
+                <GlassCard hover className="text-center py-3">
+                  <div className="flex justify-center mb-2">
+                    <FishAvatar
+                      variant={slugToVariant(f.species?.name ?? f.species?.id)}
+                      stage={f.stage}
+                      size={56}
+                      animated={false}
+                    />
+                  </div>
+                  <p className="text-[11px] text-text-primary truncate">
+                    {f.species?.name ?? f.name}
+                  </p>
+                </GlassCard>
+              </Link>
+            ))}
+          </div>
+        </GlassCard>
+      )}
+
+      {/* Settings */}
+      <GlassCard className="space-y-3">
+        <h2 className="text-sm font-normal text-text-primary">{t('settings')}</h2>
+
+        <SettingRow
+          label={t('notifLabel')}
+          desc={t('notifDesc')}
+          control={<Switch checked={notif} onChange={setNotif} />}
+        />
+        <SettingRow
+          label={t('languageLabel')}
+          desc={t('languageDesc')}
+          control={
+            <Tag variant="primary" className="text-[11px]">
+              {t('languageValue')}
+            </Tag>
+          }
+        />
+        <SettingRow
+          label={t('aboutLabel')}
+          desc={t('aboutDesc')}
+          control={<span className="text-accent text-xs">›</span>}
+        />
+      </GlassCard>
+
+      {loading && <p className="text-text-secondary text-xs font-light">…</p>}
+    </div>
+  );
+}
+
+function SettingRow({
+  label,
+  desc,
+  control,
+}: {
+  label: string;
+  desc: string;
+  control: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between py-1.5 border-b border-glass-border last:border-0">
+      <div className="flex-1 min-w-0 pr-3">
+        <p className="text-sm text-text-primary font-light">{label}</p>
+        <p className="text-[10px] text-text-secondary font-light mt-0.5">{desc}</p>
+      </div>
+      {control}
+    </div>
+  );
+}

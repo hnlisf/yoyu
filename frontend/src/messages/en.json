@@ -1,12 +1,15 @@
 {
   "appName": "FishGrow",
+  "brandName": "FishGrow",
   "tagline": "Your virtual fish companion",
   "nav": {
     "home": "Home",
     "tank": "My Tank",
     "species": "Species",
     "reminders": "Reminders",
-    "weather": "Weather"
+    "weather": "Weather",
+    "stats": "Stats",
+    "profile": "Profile"
   },
   "home": {
     "welcome": "Welcome to FishGrow",
@@ -18,6 +21,39 @@
       "weather": { "title": "Weather aware", "desc": "Personalized feeding advice" },
       "reminder": { "title": "Smart reminders", "desc": "Never miss feeding, water change, or cleaning" }
     }
+  },
+  "tanks": {
+    "home": {
+      "title": "My Tanks",
+      "subtitle": "{count} tanks in total",
+      "empty": "No tank yet. Tap below to create your first aquarium.",
+      "createButton": "New Tank",
+      "createTitle": "New Tank",
+      "name": "Tank name",
+      "size": "Tank size",
+      "sizeSmall": "Small",
+      "sizeMedium": "Medium",
+      "sizeLarge": "Large",
+      "healthy": "Healthy",
+      "ok": "Okay",
+      "attention": "Needs Attention",
+      "cleanliness": "Cleanliness"
+    }
+  },
+  "tankDetail": {
+    "feedAll": "Feed All",
+    "feedAllDone": "Feed complete",
+    "waterChange": "Water Change",
+    "waterChanged": "Water changed",
+    "treat": "Treat",
+    "statusTitle": "Tank Status",
+    "cleanliness": "Cleanliness",
+    "oxygen": "Oxygen",
+    "temp": "Temp",
+    "fish": "Fish",
+    "noFish": "Tank is empty",
+    "notFound": "Tank not found",
+    "sizeLabel": "Size {size}"
   },
   "tank": {
     "title": "My Fish Tank",
@@ -39,6 +75,52 @@
     "feedAll": "Feed all",
     "tankStatus": "Tank status",
     "weather": "Current weather"
+  },
+  "tankNames": {
+    "我的鱼缸": "My Tank",
+    "客厅大缸": "Living Room Tank",
+    "书房小缸": "Study Room Tank",
+    "阳台中缸": "Balcony Tank"
+  },
+  "growth": {
+    "backToTank": "Back to tank",
+    "notFound": "Fish not found",
+    "daysInTank": "{count} days in tank",
+    "nutrition": "Nutrition",
+    "health": "Health",
+    "mood": "Mood",
+    "stage": "Stage",
+    "feedHistory": "Feed History"
+  },
+  "stats": {
+    "title": "Stats Center",
+    "subtitle": "Data-driven care",
+    "totalDays": "Total Days",
+    "totalFish": "Fish",
+    "feedCount": "Feeds",
+    "waterChange": "Water Changes",
+    "treatCount": "Treats",
+    "achievementCount": "Achievements",
+    "unitDay": "days",
+    "unitCount": "x",
+    "weeklyChart": "Weekly Activity",
+    "achievements": "Achievements",
+    "unlocked": "Unlocked",
+    "locked": "Locked"
+  },
+  "profile": {
+    "myTanks": "My Tanks",
+    "myFish": "My Fish",
+    "unlockedSpecies": "Species",
+    "favorites": "Favorites",
+    "settings": "Settings",
+    "notifLabel": "Notifications",
+    "notifDesc": "Reminders for feed / water change / treat",
+    "languageLabel": "Language",
+    "languageDesc": "Switch interface language",
+    "languageValue": "English",
+    "aboutLabel": "About",
+    "aboutDesc": "FishGrow v4 · Liquid Glass"
   },
   "species": {
     "title": "Species Library",
