@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Toast } from '@/components/ui/Toast';
 import { Icon } from '@/components/ui/Icon';
+import { useTranslateTankName } from '@/lib/i18n/tankName';
 
 interface PageProps {
   params: { id: string };
@@ -26,6 +27,7 @@ export default function TankDetailPage({ params }: PageProps) {
   const t = useTranslations('tankDetail');
   const tf = useTranslations('fish.stage');
   const tCommon = useTranslations('common');
+  const tName = useTranslateTankName();
   const [tank, setTank] = useState<FishTank | null>(null);
   const [fishList, setFishList] = useState<Fish[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,7 +105,7 @@ export default function TankDetailPage({ params }: PageProps) {
           >
             ← {tCommon('back')}
           </Link>
-          <h1 className="text-2xl font-light text-text-primary tracking-wide">{tank.name}</h1>
+          <h1 className="text-2xl font-light text-text-primary tracking-wide">{tName(tank.name)}</h1>
           <p className="text-xs text-text-secondary font-light mt-1">
             {tkSize(tank.size, t)}
           </p>

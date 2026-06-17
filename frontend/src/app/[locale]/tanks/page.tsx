@@ -15,12 +15,14 @@ import { FAB } from '@/components/ui/FAB';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Input } from '@/components/ui/Input';
 import { Icon } from '@/components/ui/Icon';
+import { useTranslateTankName } from '@/lib/i18n/tankName';
 
 const USER_ID = 'demo-user';
 
 export default function TanksHomePage() {
   const t = useTranslations('tanks.home');
   const tCommon = useTranslations('common');
+  const tName = useTranslateTankName();
   // Pull the cached list of tanks from the global store so the bottom-nav
   // and detail page share the same source of truth.
   const tanks = useTankStore((s) => s.tanks);
@@ -148,7 +150,7 @@ export default function TanksHomePage() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <h2 className="text-base font-normal text-text-primary truncate">
-                        {tk.name}
+                        {tName(tk.name)}
                       </h2>
                       <p className="text-[11px] font-light text-text-secondary">
                         {tk.temp.toFixed(1)}°C · pH {tk.ph.toFixed(1)}
