@@ -108,7 +108,7 @@ export default function ProfilePage() {
                 <GlassCard hover className="text-center py-3">
                   <div className="flex justify-center mb-2">
                     <FishAvatar
-                      variant={slugToVariant(f.species?.id)}
+                      variant={slugToVariant(f.species?.name ?? f.species?.id)}
                       stage={f.stage}
                       size={56}
                       animated={false}

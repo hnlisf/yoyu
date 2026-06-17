@@ -13,6 +13,7 @@ import {
 } from '@/lib/api/mock';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Tag } from '@/components/ui/Tag';
+import { Icon } from '@/components/ui/Icon';
 import { WeeklyBarChart } from '@/components/stats/WeeklyBarChart';
 
 const USER_ID = 'demo-user';
@@ -96,8 +97,11 @@ export default function StatsPage() {
               }`}
               title={a.description}
             >
-              <span className="text-2xl mb-1.5" aria-hidden>
-                {a.icon}
+              <span
+                className={`mb-1.5 ${a.unlocked ? 'text-accent' : 'text-text-secondary'}`}
+                aria-hidden
+              >
+                <Icon name={a.icon} size={26} />
               </span>
               <p className="text-[11px] font-normal text-text-primary leading-tight">{a.name}</p>
               {a.unlocked ? (

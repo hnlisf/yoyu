@@ -37,11 +37,21 @@ export interface WeeklyDatum {
   treat: number;
 }
 
+export type AchievementIcon =
+  | 'bubble'
+  | 'fish'
+  | 'water'
+  | 'trophy'
+  | 'feed'
+  | 'add'
+  | 'edit'
+  | 'health';
+
 export interface Achievement {
   id: string;
   name: string;
   description: string;
-  icon: string;
+  icon: AchievementIcon;
   unlocked: boolean;
   unlockedAt?: string;
 }
@@ -90,14 +100,14 @@ export function mockWeekly(): WeeklyDatum[] {
 }
 
 export const mockAchievements: Achievement[] = [
-  { id: 'a1', name: 'First Tank', description: 'Create your first tank', icon: '🪼', unlocked: true, unlockedAt: '2026-05-02' },
-  { id: 'a2', name: 'Fish Whisperer', description: 'Raise 5 fish to adulthood', icon: '🐠', unlocked: true, unlockedAt: '2026-05-20' },
-  { id: 'a3', name: 'Hydration Hero', description: 'Complete 10 water changes', icon: '💧', unlocked: true, unlockedAt: '2026-06-01' },
-  { id: 'a4', name: 'Month Strong', description: 'Keep fish alive for 30 days', icon: '🏆', unlocked: true, unlockedAt: '2026-06-10' },
-  { id: 'a5', name: 'Century Feeder', description: 'Feed your fish 100 times', icon: '🍤', unlocked: true, unlockedAt: '2026-06-12' },
-  { id: 'a6', name: 'Tank Master', description: 'Run 3 tanks simultaneously', icon: '🏝️', unlocked: false },
-  { id: 'a7', name: 'Species Sage', description: 'Collect all 5 base species', icon: '📖', unlocked: false },
-  { id: 'a8', name: 'Legendary Caretaker', description: '100 days of perfect health', icon: '👑', unlocked: false },
+  { id: 'a1', name: 'First Tank', description: 'Create your first tank', icon: 'bubble', unlocked: true, unlockedAt: '2026-05-02' },
+  { id: 'a2', name: 'Fish Whisperer', description: 'Raise 5 fish to adulthood', icon: 'fish', unlocked: true, unlockedAt: '2026-05-20' },
+  { id: 'a3', name: 'Hydration Hero', description: 'Complete 10 water changes', icon: 'water', unlocked: true, unlockedAt: '2026-06-01' },
+  { id: 'a4', name: 'Month Strong', description: 'Keep fish alive for 30 days', icon: 'trophy', unlocked: true, unlockedAt: '2026-06-10' },
+  { id: 'a5', name: 'Century Feeder', description: 'Feed your fish 100 times', icon: 'feed', unlocked: true, unlockedAt: '2026-06-12' },
+  { id: 'a6', name: 'Tank Master', description: 'Run 3 tanks simultaneously', icon: 'add', unlocked: false },
+  { id: 'a7', name: 'Species Sage', description: 'Collect all 5 base species', icon: 'edit', unlocked: false },
+  { id: 'a8', name: 'Legendary Caretaker', description: '100 days of perfect health', icon: 'health', unlocked: false },
 ];
 
 /** Map a Fish to its fish_species.id for mock lookups. */

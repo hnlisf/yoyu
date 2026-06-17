@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { api, FishTank, Fish } from '@/lib/api';
@@ -11,9 +11,10 @@ import { Tag } from '@/components/ui/Tag';
 import { Button } from '@/components/ui/Button';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Toast } from '@/components/ui/Toast';
+import { Icon } from '@/components/ui/Icon';
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 /**
@@ -21,7 +22,7 @@ interface PageProps {
  * below are status bars, water quality cards, action buttons, and species chips.
  */
 export default function TankDetailPage({ params }: PageProps) {
-  const { id } = use(params);
+  const { id } = params;
   const t = useTranslations('tankDetail');
   const tf = useTranslations('fish.stage');
   const tCommon = useTranslations('common');
@@ -138,7 +139,7 @@ export default function TankDetailPage({ params }: PageProps) {
                 style={{ animationDelay: `${i * 0.4}s` }}
               >
                 <FishAvatar
-                  variant={slugToVariant(f.species?.id)}
+                  variant={slugToVariant(f.species?.name ?? f.species?.id)}
                   stage={f.stage}
                   size={80}
                   animated={false}
@@ -186,13 +187,13 @@ export default function TankDetailPage({ params }: PageProps) {
       {/* Action buttons */}
       <div className="grid grid-cols-3 gap-3">
         <Button variant="accent" onClick={feedAll} disabled={busy || !fishList.length}>
-          🍤 {t('feedAll')}
+          <Icon name="feed" size={14} /> {t('feedAll')}
         </Button>
         <Button variant="primary" onClick={waterChange} disabled={busy}>
-          💧 {t('waterChange')}
+          <Icon name="water" size={14} /> {t('waterChange')}
         </Button>
         <Button variant="ghost" disabled>
-          💊 {t('treat')}
+          <Icon name="treat" size={14} /> {t('treat')}
         </Button>
       </div>
 
@@ -202,7 +203,7 @@ export default function TankDetailPage({ params }: PageProps) {
           <h2 className="text-sm font-normal text-text-primary">{t('fish')}</h2>
           <div className="space-y-2">
             {fishList.map((f) => {
-              const variant = slugToVariant(f.species?.id);
+              const variant = slugToVariant(f.species?.name ?? f.species?.id);
               return (
                 <Link
                   key={f.id}
@@ -219,8 +220,12 @@ export default function TankDetailPage({ params }: PageProps) {
                     </p>
                   </div>
                   <div className="flex gap-1">
-                    <Tag variant="success">💚 {Math.round(f.health)}</Tag>
-                    <Tag variant="gold">🍤 {Math.round(f.nutrition)}</Tag>
+                    <Tag variant="success">
+                      <Icon name="health" size={11} /> {Math.round(f.health)}
+                    </Tag>
+                    <Tag variant="gold">
+                      <Icon name="feed" size={11} /> {Math.round(f.nutrition)}
+                    </Tag>
                   </div>
                 </Link>
               );

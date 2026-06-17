@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { api, Fish } from '@/lib/api';
@@ -11,13 +11,14 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { Tag } from '@/components/ui/Tag';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { GrowthChart } from '@/components/growth/GrowthChart';
+import { Icon } from '@/components/ui/Icon';
 
 interface PageProps {
-  params: Promise<{ fishId: string }>;
+  params: { fishId: string };
 }
 
 export default function FishGrowthPage({ params }: PageProps) {
-  const { fishId } = use(params);
+  const { fishId } = params;
   const t = useTranslations('growth');
   const tf = useTranslations('fish.stage');
   const [fish, setFish] = useState<Fish | null>(null);
@@ -57,7 +58,7 @@ export default function FishGrowthPage({ params }: PageProps) {
     );
   }
 
-  const variant = slugToVariant(fish.species?.id);
+  const variant = slugToVariant(fish.species?.name ?? fish.species?.id);
   const days = Math.max(
     1,
     Math.floor((Date.now() - new Date(fish.birthday).getTime()) / 86400000)
@@ -84,8 +85,12 @@ export default function FishGrowthPage({ params }: PageProps) {
           </p>
           <div className="mt-2 flex gap-1.5">
             <Tag variant="primary">{tf(fish.stage)}</Tag>
-            <Tag variant="gold">🍤 {Math.round(fish.nutrition)}</Tag>
-            <Tag variant="success">💚 {Math.round(fish.health)}</Tag>
+            <Tag variant="gold">
+              <Icon name="feed" size={11} /> {Math.round(fish.nutrition)}
+            </Tag>
+            <Tag variant="success">
+              <Icon name="health" size={11} /> {Math.round(fish.health)}
+            </Tag>
           </div>
         </div>
       </GlassCard>

@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/Button';
 import { FAB } from '@/components/ui/FAB';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Input } from '@/components/ui/Input';
+import { Icon } from '@/components/ui/Icon';
 
 const USER_ID = 'demo-user';
 
@@ -122,7 +123,9 @@ export default function TanksHomePage() {
 
       {isEmpty ? (
         <GlassCard hover className="text-center py-12">
-          <div className="text-5xl mb-3 opacity-80">🫧</div>
+          <div className="flex justify-center mb-4 text-accent opacity-80">
+            <Icon name="bubble" size={48} />
+          </div>
           <p className="text-sm text-text-primary font-light mb-5">{t('empty')}</p>
           <Button variant="primary" onClick={() => setCreating(true)}>
             {t('createButton')}
@@ -132,7 +135,7 @@ export default function TanksHomePage() {
         <div className="grid sm:grid-cols-2 gap-4">
           {tanks.map((tk) => {
             const repFish = representativeFishByTank[tk.id];
-            const variant = slugToVariant(repFish?.species?.id);
+            const variant = slugToVariant(repFish?.species?.name ?? repFish?.species?.id);
             const stage = repFish?.stage ?? 'subadult';
             const waterScore = Math.round((tk.cleanliness + tk.oxygen) / 2);
             const waterVariant =
@@ -156,8 +159,9 @@ export default function TanksHomePage() {
 
                   <div className="flex items-center justify-between">
                     <Tag variant={waterVariant}>{waterLabel}</Tag>
-                    <span className="text-[11px] font-light text-text-secondary">
-                      🐟 {tk.fish?.length ?? '—'}
+                    <span className="inline-flex items-center gap-1 text-[11px] font-light text-text-secondary">
+                      <Icon name="fishCount" size={13} />
+                      {tk.fish?.length ?? '—'}
                     </span>
                   </div>
 
