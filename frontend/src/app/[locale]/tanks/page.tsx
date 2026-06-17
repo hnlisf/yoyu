@@ -132,7 +132,7 @@ export default function TanksHomePage() {
           </Button>
         </GlassCard>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-2 gap-4 pb-20">
           {tanks.map((tk) => {
             const repFish = representativeFishByTank[tk.id];
             const variant = slugToVariant(repFish?.species?.name ?? repFish?.species?.id);

@@ -80,17 +80,17 @@ export default function StatsPage() {
       {/* Weekly bar chart */}
       <GlassCard>
         <h2 className="text-sm font-normal text-text-primary mb-3">{t('weeklyChart')}</h2>
-        <WeeklyBarChart data={weekly} metric="feed" height={180} />
+        <WeeklyBarChart data={weekly} metric="feed" height={160} />
       </GlassCard>
 
-      {/* Achievements */}
+      {/* Achievements — horizontal scroll on mobile to keep above fixed tab bar */}
       <GlassCard>
         <h2 className="text-sm font-normal text-text-primary mb-3">{t('achievements')}</h2>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
           {achievements.map((a) => (
             <div
               key={a.id}
-              className={`flex flex-col items-center text-center p-3 rounded-xl border transition ${
+              className={`flex flex-col items-center text-center p-3 rounded-xl border transition shrink-0 w-24 snap-start ${
                 a.unlocked
                   ? 'bg-glass border-glass-border'
                   : 'bg-glass/30 border-glass-border opacity-50'
@@ -103,7 +103,7 @@ export default function StatsPage() {
               >
                 <Icon name={a.icon} size={26} />
               </span>
-              <p className="text-[11px] font-normal text-text-primary leading-tight">{a.name}</p>
+              <p className="text-[11px] font-normal text-text-primary leading-tight whitespace-nowrap">{a.name}</p>
               {a.unlocked ? (
                 <Tag variant="success" className="mt-1.5">
                   {t('unlocked')}

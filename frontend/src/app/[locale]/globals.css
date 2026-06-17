@@ -374,11 +374,11 @@ body {
     }
   }
 
-  /* FAB */
+  /* FAB — sits above the fixed bottom tab bar so it never overlaps content. */
   .fab {
     position: fixed;
     right: 24px;
-    bottom: 88px;
+    bottom: 104px;
     width: 56px;
     height: 56px;
     border-radius: 9999px;

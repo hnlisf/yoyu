@@ -164,10 +164,10 @@ function SettingRow({
   control: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-glass-border last:border-0">
+    <div className="flex items-center justify-between py-1.5 border-b border-glass-border last:border-0">
       <div className="flex-1 min-w-0 pr-3">
         <p className="text-sm text-text-primary font-light">{label}</p>
-        <p className="text-[11px] text-text-secondary font-light mt-0.5">{desc}</p>
+        <p className="text-[10px] text-text-secondary font-light mt-0.5">{desc}</p>
       </div>
       {control}
     </div>
