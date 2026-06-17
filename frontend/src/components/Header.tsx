@@ -24,16 +24,16 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-30 backdrop-blur-xl bg-deep/80 border-b border-glass-border">
       <div className="mx-auto max-w-5xl flex items-center justify-between gap-2 px-3 py-2.5">
-        <Link href="/tanks" className="flex items-center gap-2 group shrink-0">
-          <span className="text-2xl" aria-hidden="true">
+        <Link href="/tanks" className="flex items-center gap-2 group shrink-0 min-w-0">
+          <span className="text-2xl shrink-0" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7dd3fc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 12c2-3 5-5 8-5s6 2 8 5c-2 3-5 5-8 5s-6-2-8-5z" />
               <circle cx="14" cy="11" r="1" fill="#7dd3fc" stroke="none" />
               <path d="M22 12l-2-2M22 12l-2 2" />
             </svg>
           </span>
-          <span className="text-base font-light text-text-primary group-hover:text-accent transition whitespace-nowrap">
-            {t('appName')}
+          <span className="text-sm font-light text-text-primary group-hover:text-accent transition whitespace-nowrap max-w-[80px] truncate">
+            {t('brandName')}
           </span>
         </Link>
         <nav className="flex items-center gap-0.5 flex-1 justify-end min-w-0">
