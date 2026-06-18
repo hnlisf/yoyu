@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useApi, api, FishSpecies } from '@/lib/api';
+import { FishAvatar } from '@/components/fish/FishAvatar';
+import { slugToVariant } from '@/components/fish/types';
 
 const STORAGE_KEY = 'fishgrow.tankId';
 
@@ -82,7 +84,9 @@ export default function SpeciesPage() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {species?.map((sp) => (
           <div key={sp.id} className="card hover:shadow-md transition">
-            <div className="h-20 rounded-2xl mb-3" style={{ background: `linear-gradient(135deg, ${sp.color}55, ${sp.color}aa)` }} />
+            <div className="h-20 rounded-2xl mb-3 bg-water-50 flex items-center justify-center">
+              <FishAvatar variant={slugToVariant(sp.name)} size={64} animated={false} />
+            </div>
             <h3 className="font-semibold text-water-600 text-lg">{sp.name}</h3>
             <p className="text-sm text-water-500 mt-1 line-clamp-2">{sp.description}</p>
             <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
