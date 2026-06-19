@@ -2,13 +2,85 @@
 
 import { useEffect, useState } from 'react';
 
+/**
+ * Map backend error messages → user-friendly Chinese text.
+ * The backend stays untouched; all error translation happens here.
+ */
+const ERROR_MESSAGE_MAP: Array<{ pattern: RegExp; zh: string; en: string }> = [
+  {
+    pattern: /too soon to feed/i,
+    zh: '还没到投喂时间呢，再等等吧~',
+    en: 'Not time to feed yet, please wait a bit~',
+  },
+  {
+    pattern: /fish tank not found/i,
+    zh: '鱼缸不存在或已被删除',
+    en: 'Tank not found or has been deleted',
+  },
+  {
+    pattern: /fish not found/i,
+    zh: '鱼不存在或已被移除',
+    en: 'Fish not found or has been removed',
+  },
+  {
+    pattern: /fish species not found/i,
+    zh: '鱼种不存在',
+    en: 'Fish species not found',
+  },
+  {
+    pattern: /lat\/lon must be numbers/i,
+    zh: '位置参数错误',
+    en: 'Invalid location parameters',
+  },
+  {
+    pattern: /userId required/i,
+    zh: '用户信息缺失',
+    en: 'User information missing',
+  },
+];
+
+/**
+ * Try to parse a JSON error response from the backend and produce a
+ * user-friendly message. Falls back to the raw text if it can't be parsed.
+ */
+function humanizeError(responseText: string): string {
+  // Attempt to parse JSON (NestJS errors are JSON)
+  let message = responseText;
+  try {
+    const parsed = JSON.parse(responseText);
+    message = parsed.message || responseText;
+  } catch {
+    // Not JSON — use raw text
+  }
+
+  // Check against known patterns
+  for (const entry of ERROR_MESSAGE_MAP) {
+    if (entry.pattern.test(message)) {
+      // For now return Chinese (the app's primary audience).
+      // In a full i18n solution, we'd detect the current locale.
+      return entry.zh;
+    }
+  }
+
+  // If the parsed message looks like English, give a friendly fallback
+  if (/^[a-zA-Z\s.!?,:;()]+$/.test(message) && message.length < 200) {
+    return `操作失败：${message}`;
+  }
+
+  // Last resort: generic error
+  return '操作失败，请稍后再试';
+}
+
 // Helper: client-side API calls go to /api (rewritten by Next.js to backend)
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
   });
-  if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+  if (!res.ok) {
+    const rawText = await res.text();
+    throw new Error(humanizeError(rawText));
+  }
   return res.json() as Promise<T>;
 }
 
