@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FishTank } from '@prisma/client';
 import { FishSpeciesService } from '../fish-species/fish-species.service';
+import { FishService } from '../fish/fish.service';
 
 export interface CreateFishTankDto {
   userId?: string;
@@ -25,6 +26,7 @@ export class FishTanksService {
   constructor(
     private prisma: PrismaService,
     private speciesService: FishSpeciesService,
+    private fishService: FishService,
   ) {}
 
   async findAllByUser(userId: string, lang = 'zh'): Promise<any[]> {
@@ -60,14 +62,39 @@ export class FishTanksService {
     const userId = data.userId
       ? await this.ensureUser(data.userId)
       : await this.createDemoUser();
-    return this.prisma.fishTank.create({
-      data: {
-        userId,
-        name: data.name ?? '我的鱼缸',
-        size: data.size ?? 'medium',
-        temp: data.temp ?? 24.0,
-        ph: data.ph ?? 7.0,
-      },
+
+    // Use a transaction so tank + fish are created atomically
+    return this.prisma.$transaction(async (tx) => {
+      const tank = await tx.fishTank.create({
+        data: {
+          userId,
+          name: data.name ?? '我的鱼缸',
+          size: data.size ?? 'medium',
+          temp: data.temp ?? 24.0,
+          ph: data.ph ?? 7.0,
+        },
+      });
+
+      // Pick a random default species to seed the tank with one fish
+      const defaultSpecies = await tx.fishSpecies.findFirst({
+        where: { isDefault: true },
+      });
+
+      if (defaultSpecies) {
+        await tx.fish.create({
+          data: {
+            tankId: tank.id,
+            speciesId: defaultSpecies.id,
+            name: '',
+            stage: 'fry',
+            growth: 0,
+            health: 100,
+            nutrition: 100,
+          },
+        });
+      }
+
+      return tank;
     });
   }
 
@@ -78,9 +105,6 @@ export class FishTanksService {
   }
 
   private async createDemoUser(): Promise<string> {
-    // MVP single-user mode: always reuse the most-recent user if any,
-    // otherwise create a fresh one. This makes the app feel like a personal
-    // local app without requiring login.
     const latest = await this.prisma.user.findFirst({ orderBy: { createdAt: 'desc' } });
     if (latest) return latest.id;
     return (await this.prisma.user.create({ data: {} })).id;

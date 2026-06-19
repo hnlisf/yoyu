@@ -3,15 +3,17 @@ import { FishTanksService } from './fish-tanks.service';
 /**
  * Unit tests for FishTanksService.
  *
- * We mock the PrismaService and FishSpeciesService so we can exercise the
- * business logic (create/update/tick) without a real database.
+ * We mock the PrismaService, FishSpeciesService, and FishService so we can
+ * exercise the business logic (create/update/tick) without a real database.
  */
 describe('FishTanksService', () => {
   let svc: FishTanksService;
   let prisma: any;
   let speciesService: any;
+  let fishService: any;
 
   beforeEach(() => {
+    // Build a mock prisma that supports $transaction (pass-through)
     prisma = {
       fishTank: {
         findMany: jest.fn(),
@@ -21,14 +23,23 @@ describe('FishTanksService', () => {
         update: jest.fn(),
         delete: jest.fn(),
       },
+      fishSpecies: {
+        findFirst: jest.fn().mockResolvedValue({ id: 's-goldfish' }),
+      },
+      fish: {
+        create: jest.fn(),
+      },
       user: {
         findUnique: jest.fn(),
         findFirst: jest.fn(),
         create: jest.fn(),
       },
+      // $transaction calls the callback with the same prisma mock
+      $transaction: jest.fn((cb: any) => cb(prisma)),
     };
     speciesService = { toI18n: jest.fn((s: any, lang: string) => ({ ...s, lang })) };
-    svc = new FishTanksService(prisma, speciesService);
+    fishService = { create: jest.fn() };
+    svc = new FishTanksService(prisma, speciesService, fishService);
   });
 
   describe('findAllByUser', () => {
@@ -113,6 +124,23 @@ describe('FishTanksService', () => {
         size: 'medium',
         temp: 24.0,
         ph: 7.0,
+      });
+    });
+
+    it('creates a fish alongside the tank', async () => {
+      prisma.user.findFirst.mockResolvedValue({ id: 'u1' });
+      prisma.fishTank.create.mockResolvedValue({ id: 't1', userId: 'u1' });
+      await svc.create({});
+      // fish should be created with the new tank id
+      expect(prisma.fish.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          tankId: 't1',
+          speciesId: 's-goldfish',
+          stage: 'fry',
+          growth: 0,
+          health: 100,
+          nutrition: 100,
+        }),
       });
     });
   });

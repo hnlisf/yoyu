@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 import { api, FishTank, Fish } from '@/lib/api';
 import { useTankStore } from '@/lib/stores/tankStore';
 import { FishAvatar } from '@/components/fish';
@@ -23,6 +23,7 @@ export default function TanksHomePage() {
   const t = useTranslations('tanks.home');
   const tCommon = useTranslations('common');
   const tName = useTranslateTankName();
+  const router = useRouter();
   // Pull the cached list of tanks from the global store so the bottom-nav
   // and detail page share the same source of truth.
   const tanks = useTankStore((s) => s.tanks);
@@ -78,7 +79,7 @@ export default function TanksHomePage() {
   const createTank = async () => {
     setBusy(true);
     try {
-      await api('/api/fish-tanks', {
+      const created = await api<FishTank>('/api/fish-tanks', {
         method: 'POST',
         body: JSON.stringify({ userId: USER_ID, name, size }),
       });
@@ -87,6 +88,10 @@ export default function TanksHomePage() {
       // Re-fetch and store the new tank.
       const data = await api<FishTank[]>(`/api/fish-tanks?userId=${USER_ID}`);
       setTanks(data);
+      // Auto-redirect to the tank detail page so the user sees the fish
+      if (created?.id) {
+        router.push(`/tanks/${created.id}`);
+      }
     } catch (e: any) {
       alert('Create failed: ' + e.message);
     } finally {
