@@ -2,22 +2,28 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/routing';
+import { Link, useRouter, usePathname } from '@/i18n/routing';
 import { api, FishTank, Fish } from '@/lib/api';
 import { FishAvatar } from '@/components/fish';
 import { slugToVariant } from '@/components/fish/types';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Tag } from '@/components/ui/Tag';
 import { Switch } from '@/components/ui/Switch';
+import { Button } from '@/components/ui/Button';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 
 const USER_ID = 'demo-user';
+const LOCALES = ['zh', 'en', 'ja'] as const;
 
 export default function ProfilePage() {
   const t = useTranslations('profile');
+  const router = useRouter();
+  const pathname = usePathname();
   const [tanks, setTanks] = useState<FishTank[]>([]);
   const [allFish, setAllFish] = useState<Fish[]>([]);
   const [loading, setLoading] = useState(true);
   const [notif, setNotif] = useState(true);
+  const [langOpen, setLangOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +59,16 @@ export default function ProfilePage() {
 
   // Count distinct species
   const speciesUnlocked = new Set(allFish.map((f) => f.species?.id ?? f.id)).size;
+
+  const changeLocale = (locale: string) => {
+    // Persist to cookie for next-intl detection
+    document.cookie = `locale=${locale};path=/;max-age=${365 * 24 * 60 * 60}`;
+    // Navigate to the same page with new locale
+    router.push(pathname, { locale: locale as 'zh' | 'en' | 'ja' });
+  };
+
+  // Get language label from i18n
+  const languages = t.raw('languages') as Record<string, string>;
 
   return (
     <div className="space-y-5">
@@ -137,9 +153,14 @@ export default function ProfilePage() {
           label={t('languageLabel')}
           desc={t('languageDesc')}
           control={
-            <Tag variant="primary" className="text-[11px]">
-              {t('languageValue')}
-            </Tag>
+            <button
+              onClick={() => setLangOpen(true)}
+              className="focus:outline-none"
+            >
+              <Tag variant="primary" className="text-[11px] cursor-pointer hover:opacity-80 transition">
+                {t('languageValue')}
+              </Tag>
+            </button>
           }
         />
         <SettingRow
@@ -148,6 +169,28 @@ export default function ProfilePage() {
           control={<span className="text-accent text-xs">›</span>}
         />
       </GlassCard>
+
+      {/* Language picker BottomSheet */}
+      <BottomSheet
+        open={langOpen}
+        onClose={() => setLangOpen(false)}
+        title={t('languageLabel')}
+      >
+        <div className="space-y-2">
+          {LOCALES.map((loc) => (
+            <Button
+              key={loc}
+              variant="ghost"
+              onClick={() => changeLocale(loc)}
+              className="w-full justify-start text-left"
+            >
+              <span className="text-sm text-text-primary font-light">
+                {languages?.[loc] ?? loc}
+              </span>
+            </Button>
+          ))}
+        </div>
+      </BottomSheet>
 
       {loading && <p className="text-text-secondary text-xs font-light">…</p>}
     </div>

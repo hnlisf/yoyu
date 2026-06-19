@@ -119,6 +119,11 @@
     "languageLabel": "Language",
     "languageDesc": "Switch interface language",
     "languageValue": "English",
+    "languages": {
+      "zh": "中文",
+      "en": "English",
+      "ja": "日本語"
+    },
     "aboutLabel": "About",
     "aboutDesc": "FishGrow v4 · Liquid Glass"
   },

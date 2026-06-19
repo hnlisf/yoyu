@@ -119,6 +119,11 @@
     "languageLabel": "言語",
     "languageDesc": "インターフェース言語を切り替える",
     "languageValue": "日本語",
+    "languages": {
+      "zh": "中文",
+      "en": "English",
+      "ja": "日本語"
+    },
     "aboutLabel": "バージョン情報",
     "aboutDesc": "FishGrow v4 · リキッドグラス"
   },
