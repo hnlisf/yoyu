@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 // YoYu v4 Design System — Deep Sea + Liquid Glass
-// Source: design-system-mapping.md (Tomas, 2026-06-17)
+// Source: architecture v3 (Tomas, 2026-06-20)
 module.exports = {
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
   theme: {
@@ -9,9 +9,12 @@ module.exports = {
         // Backgrounds
         deep: '#0a1f2e',
         card: '#0f2a3d',
-        // Glass (Tailwind v3 doesn't allow rgba on bg; exposed via CSS vars)
+        // Glass
         glass: 'rgba(255,255,255,0.08)',
         'glass-border': 'rgba(255,255,255,0.15)',
+        // Brand
+        'brand-primary': '#7dd3fc',
+        'brand-accent': '#38bdf8',
         // Accents
         accent: '#7dd3fc',
         'accent-aux': '#38bdf8',
