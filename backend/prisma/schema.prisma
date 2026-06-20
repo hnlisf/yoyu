@@ -114,3 +114,14 @@ model WeatherCache {
   @@index([lat, lon])
   @@map("weather_cache")
 }
+
+model UserPreference {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  city      String?
+  lat       Float?
+  lng       Float?
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_preferences")
+}
