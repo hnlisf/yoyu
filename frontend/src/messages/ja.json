@@ -1,7 +1,7 @@
 {
-  "appName": "フィッシュグロウ",
-  "brandName": "FG",
-  "tagline": "あなたの仮想魚仲間",
+  "appName": "ヨユ",
+  "brandName": "ヨユ",
+  "tagline": "あなたの魚を育てよう",
   "nav": {
     "home": "ホーム",
     "tank": "水槽",
@@ -12,7 +12,7 @@
     "profile": "マイページ"
   },
   "home": {
-    "welcome": "フィッシュグロウへようこそ",
+    "welcome": "ヨユへようこそ",
     "intro": "ここで最初の魚を育て、稚魚から成魚まで成長を見守ります。",
     "startButton": "育成を始める",
     "tankButton": "水槽を開く",
@@ -125,7 +125,7 @@
       "ja": "日本語"
     },
     "aboutLabel": "バージョン情報",
-    "aboutDesc": "FishGrow v4 · リキッドグラス"
+    "aboutDesc": "ヨユ v4 · リキッドグラス"
   },
   "species": {
     "title": "魚種図鑑",

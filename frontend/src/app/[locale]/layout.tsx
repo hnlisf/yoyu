@@ -8,7 +8,7 @@ import { NavBar } from '@/components/nav/NavBar';
 import { LocaleProvider } from '@/components/LocaleProvider';
 
 export const metadata: Metadata = {
-  title: 'FishGrow · Liquid Glass',
+  title: 'YoYu · Liquid Glass',
   description: 'Virtual fish pet game — v4 liquid glass design',
 };
 

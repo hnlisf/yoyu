@@ -10,7 +10,7 @@ async function bootstrap() {
 
   // Swagger / OpenAPI
   const config = new DocumentBuilder()
-    .setTitle('FishGrow API')
+    .setTitle('YoYu API')
     .setDescription('Virtual fish pet game - MVP backend')
     .setVersion('1.0.0')
     .addTag('fish-species', 'Fish species library + custom species')
@@ -26,7 +26,7 @@ async function bootstrap() {
 
   const port = parseInt(process.env.PORT ?? '3000', 10);
   await app.listen(port, '0.0.0.0');
-  console.log(`FishGrow backend running on http://0.0.0.0:${port}`);
+  console.log(`YoYu backend running on http://0.0.0.0:${port}`);
   console.log(`Swagger docs:  http://0.0.0.0:${port}/api/docs`);
 }
 bootstrap();

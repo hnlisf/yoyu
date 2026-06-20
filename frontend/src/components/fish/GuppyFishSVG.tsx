@@ -10,7 +10,7 @@ interface GuppyFishSVGProps {
 /**
  * Guppy — streamlined body + huge fan tail, blue→purple→orange 3-stop gradient.
  * Key detail: tail-root bridge gradient connects body to tail seamlessly.
- * Source: FishGrow_UI_Design_v4_FishSVG_v1_20260617.html (P1 v2).
+ * Source: YoYu_UI_Design_v4_FishSVG_v1_20260617.html (P1 v2).
  */
 export function GuppyFishSVG({ size, className }: GuppyFishSVGProps) {
   const uid = useId().replace(/:/g, '_');

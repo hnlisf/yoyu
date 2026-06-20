@@ -1,5 +1,5 @@
 'use client';
-// TEMP demo page for Ada's FishGrow v4.1 test — shows all 5 fish variants + UI Kit
+// TEMP demo page for Ada's YoYu v4.1 test — shows all 5 fish variants + UI Kit
 import { FishAvatar, FISH_VARIANTS, slugToVariant } from '@/components/fish';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';

@@ -10,7 +10,7 @@ interface BettaFishSVGProps {
 /**
  * Betta — short fat body + silky flowing tail, blue-violet → purple → pink
  * gradient. Key detail: tail-root bridge connects body to silk tail.
- * Source: FishGrow_UI_Design_v4_FishSVG_v1_20260617.html (P1 v2).
+ * Source: YoYu_UI_Design_v4_FishSVG_v1_20260617.html (P1 v2).
  */
 export function BettaFishSVG({ size, className }: BettaFishSVGProps) {
   const uid = useId().replace(/:/g, '_');

@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-// FishGrow v4 Design System — Deep Sea + Liquid Glass
+// YoYu v4 Design System — Deep Sea + Liquid Glass
 // Source: design-system-mapping.md (Tomas, 2026-06-17)
 module.exports = {
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],

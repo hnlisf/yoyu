@@ -10,7 +10,7 @@ interface TetraFishSVGProps {
 /**
  * Tetra — small, compact body + tiny triangle tail, neon blue→red gradient
  * with rainbow stripe side-line. Schooling-friendly small fish.
- * Source: FishGrow_UI_Design_v4_FishSVG_v1_20260617.html (P1 v2).
+ * Source: YoYu_UI_Design_v4_FishSVG_v1_20260617.html (P1 v2).
  */
 export function TetraFishSVG({ size, className }: TetraFishSVGProps) {
   const uid = useId().replace(/:/g, '_');
