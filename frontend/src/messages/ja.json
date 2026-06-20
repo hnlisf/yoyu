@@ -125,7 +125,13 @@
       "ja": "日本語"
     },
     "aboutLabel": "バージョン情報",
-    "aboutDesc": "ヨユ v4 · リキッドグラス"
+    "aboutDesc": "ヨユ v4 · リキッドグラス",
+    "cityLabel": "都市設定",
+    "cityDesc": "地域の天気と水温アドバイスを表示",
+    "citySet": "設定",
+    "citySave": "保存",
+    "cityCurrent": "現在",
+    "cityPlaceholder": "都市名を入力、例「東京」"
   },
   "species": {
     "title": "魚種図鑑",

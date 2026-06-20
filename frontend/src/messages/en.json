@@ -125,7 +125,13 @@
       "ja": "日本語"
     },
     "aboutLabel": "About",
-    "aboutDesc": "YoYu v4 · Liquid Glass"
+    "aboutDesc": "YoYu v4 · Liquid Glass",
+    "cityLabel": "City",
+    "cityDesc": "Set your city for local weather & water temp advice",
+    "citySet": "Set",
+    "citySave": "Save",
+    "cityCurrent": "Current",
+    "cityPlaceholder": "Enter city, e.g. \"Tokyo\""
   },
   "species": {
     "title": "Species Library",

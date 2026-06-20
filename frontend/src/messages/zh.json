@@ -125,7 +125,13 @@
       "ja": "日本語"
     },
     "aboutLabel": "关于",
-    "aboutDesc": "鱼鱼 v4 · Liquid Glass"
+    "aboutDesc": "鱼鱼 v4 · Liquid Glass",
+    "cityLabel": "城市设置",
+    "cityDesc": "设置城市以获取当地天气和水温建议",
+    "citySet": "设置",
+    "citySave": "保存",
+    "cityCurrent": "当前",
+    "cityPlaceholder": "输入城市名，如\"北京\""
   },
   "species": {
     "title": "鱼种图鉴",
