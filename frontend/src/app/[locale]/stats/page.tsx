@@ -63,8 +63,8 @@ export default function StatsPage() {
         <p className="text-xs text-text-secondary font-light mt-1">{t('subtitle')}</p>
       </header>
 
-      {/* Core data cards (2x3) */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Core data cards — 3 on mobile, 6 on desktop */}
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
         <StatCard label={t('totalDays')} value={summary.totalDays} unit={t('unitDay')} />
         <StatCard label={t('totalFish')} value={summary.totalFish} unit={t('unitCount')} />
         <StatCard label={t('feedCount')} value={summary.feedCount} unit={t('unitCount')} />

@@ -114,12 +114,12 @@ export default function ProfilePage() {
       {favoriteFish.length > 0 && (
         <GlassCard>
           <h2 className="text-sm font-normal text-text-primary mb-3">{t('favorites')}</h2>
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
             {favoriteFish.map((f) => (
               <Link
                 key={f.id}
                 href={`/growth/${f.id}`}
-                className="flex-shrink-0 w-24"
+                className="flex-shrink-0 w-24 p-1"
               >
                 <GlassCard hover className="text-center py-3">
                   <div className="flex justify-center mb-2">

@@ -24,7 +24,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <NextIntlClientProvider locale={locale} messages={messages}>
           <LocaleProvider locale={locale}>
             <Header />
-            <main className="mx-auto max-w-5xl px-4 py-6 pb-40 page-enter">
+            <main className="mx-auto max-w-5xl xl:max-w-7xl px-4 py-6 pb-40 page-enter overflow-x-hidden">
               {children}
             </main>
             <NavBar />

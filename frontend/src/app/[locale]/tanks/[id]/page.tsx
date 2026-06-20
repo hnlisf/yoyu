@@ -132,7 +132,7 @@ export default function TankDetailPage({ params }: PageProps) {
         />
 
         {fishList.length > 0 ? (
-          <div className="relative z-10 flex flex-wrap gap-4 items-end justify-center py-8">
+          <div className="relative z-10 flex flex-wrap gap-4 items-end justify-center py-8 md:gap-6 xl:gap-8">
             {fishList.map((f, i) => (
               <Link
                 key={f.id}
