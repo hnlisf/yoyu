@@ -50,6 +50,33 @@ export class WeatherService {
     return { ...live, source: 'live' };
   }
 
+  /**
+   * Get weather by city name (geocoding → weather).
+   */
+  async getWeatherByCity(city: string): Promise<WeatherData | null> {
+    const coords = await this.geocodeCity(city);
+    if (!coords) return null;
+    return this.getWeather(coords.lat, coords.lon);
+  }
+
+  /**
+   * Geocode city name to coordinates using Open-Meteo Geocoding API.
+   */
+  async geocodeCity(city: string): Promise<{ lat: number; lon: number } | null> {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh`;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) return null;
+      const json: any = await resp.json();
+      const result = json.results?.[0];
+      if (!result) return null;
+      return { lat: result.latitude, lon: result.longitude };
+    } catch {
+      this.logger.warn(`Geocoding failed for city: ${city}`);
+      return null;
+    }
+  }
+
   private async fetchLive(lat: number, lon: number): Promise<WeatherData> {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m`;
     const resp = await fetch(url);

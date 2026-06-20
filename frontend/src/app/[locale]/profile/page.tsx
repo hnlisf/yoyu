@@ -24,6 +24,10 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [notif, setNotif] = useState(true);
   const [langOpen, setLangOpen] = useState(false);
+  const [city, setCity] = useState('');
+  const [cityInput, setCityInput] = useState('');
+  const [cityOpen, setCityOpen] = useState(false);
+  const [citySaving, setCitySaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,6 +51,34 @@ export default function ProfilePage() {
       cancelled = true;
     };
   }, []);
+
+  // Load user city preference
+  useEffect(() => {
+    api<{ city?: string }>(`/api/user/preferences?userId=${USER_ID}`)
+      .then((pref) => {
+        if (pref?.city) {
+          setCity(pref.city);
+          setCityInput(pref.city);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const saveCity = async () => {
+    setCitySaving(true);
+    try {
+      await api(`/api/user/preferences`, {
+        method: 'PUT',
+        body: JSON.stringify({ userId: USER_ID, city: cityInput }),
+      });
+      setCity(cityInput);
+      setCityOpen(false);
+    } catch {
+      // ignore
+    } finally {
+      setCitySaving(false);
+    }
+  };
 
   // De-dup fish by species id for favorites
   const seen = new Set<string>();
@@ -114,12 +146,12 @@ export default function ProfilePage() {
       {favoriteFish.length > 0 && (
         <GlassCard>
           <h2 className="text-sm font-normal text-text-primary mb-3">{t('favorites')}</h2>
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
             {favoriteFish.map((f) => (
               <Link
                 key={f.id}
                 href={`/growth/${f.id}`}
-                className="flex-shrink-0 w-24"
+                className="flex-shrink-0 w-24 p-1"
               >
                 <GlassCard hover className="text-center py-3">
                   <div className="flex justify-center mb-2">
@@ -164,6 +196,20 @@ export default function ProfilePage() {
           }
         />
         <SettingRow
+          label={t('cityLabel') || '城市设置'}
+          desc={city ? `${t('cityCurrent') || '当前'}: ${city}` : (t('cityDesc') || '设置城市以获取当地天气')}
+          control={
+            <button
+              onClick={() => { setCityInput(city); setCityOpen(true); }}
+              className="focus:outline-none"
+            >
+              <Tag variant="gold" className="text-[11px] cursor-pointer hover:opacity-80 transition">
+                {city || (t('citySet') || '设置')}
+              </Tag>
+            </button>
+          }
+        />
+        <SettingRow
           label={t('aboutLabel')}
           desc={t('aboutDesc')}
           control={<span className="text-accent text-xs">›</span>}
@@ -189,6 +235,41 @@ export default function ProfilePage() {
               </span>
             </Button>
           ))}
+        </div>
+      </BottomSheet>
+
+      {/* City picker BottomSheet */}
+      <BottomSheet
+        open={cityOpen}
+        onClose={() => setCityOpen(false)}
+        title={t('cityLabel') || '城市设置'}
+      >
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <input
+              className="input flex-1"
+              value={cityInput}
+              onChange={(e) => setCityInput(e.target.value)}
+              placeholder={t('cityPlaceholder') || '输入城市名，如"北京"'}
+              onKeyDown={(e) => e.key === 'Enter' && saveCity()}
+            />
+            <Button variant="accent" onClick={saveCity} disabled={citySaving || !cityInput.trim()}>
+              {citySaving ? '...' : (t('citySave') || '保存')}
+            </Button>
+          </div>
+          {/* Quick city suggestions */}
+          <div className="flex flex-wrap gap-2">
+            {['北京', '上海', '广州', '深圳', '杭州', '成都', '东京', 'New York'].map((c) => (
+              <Tag
+                key={c}
+                variant="neutral"
+                className="cursor-pointer hover:bg-glass transition"
+                onClick={() => { setCityInput(c); }}
+              >
+                {c}
+              </Tag>
+            ))}
+          </div>
         </div>
       </BottomSheet>
 

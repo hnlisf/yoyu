@@ -17,7 +17,7 @@ interface PageProps {
   params: { fishId: string };
 }
 
-export default function FishGrowthPage({ params }: PageProps) {
+export default function YoYuthPage({ params }: PageProps) {
   const { fishId } = params;
   const t = useTranslations('growth');
   const tf = useTranslations('fish.stage');

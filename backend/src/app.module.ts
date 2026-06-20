@@ -9,6 +9,7 @@ import { WeatherModule } from './weather/weather.module';
 import { LocationModule } from './location/location.module';
 import { FeedingAdviceModule } from './feeding-advice/feeding-advice.module';
 import { RemindersModule } from './reminders/reminders.module';
+import { PreferencesModule } from './preferences/preferences.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { RemindersModule } from './reminders/reminders.module';
     LocationModule,
     FeedingAdviceModule,
     RemindersModule,
+    PreferencesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

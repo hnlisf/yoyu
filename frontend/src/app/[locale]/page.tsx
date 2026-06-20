@@ -1,9 +1,19 @@
-import { getLocale } from 'next-intl/server';
-import { redirect } from '@/i18n/routing';
+import HomeHero from '@/components/home/HomeHero';
+import RecommendedFish from '@/components/home/RecommendedFish';
+import QuickEntries from '@/components/home/QuickEntries';
+import Announcement from '@/components/home/Announcement';
 
-// Redirect from the locale root (e.g. /, /en, /ja) to the tank page,
-// preserving the current locale.
-export default async function Home() {
-  const locale = await getLocale();
-  redirect({ href: '/tanks', locale });
+/**
+ * Home page — brand hero + recommended fish + quick entries + announcement
+ * Architecture v3: component tree replacing old redirect pattern
+ */
+export default function HomePage() {
+  return (
+    <div className="space-y-2">
+      <Announcement />
+      <HomeHero />
+      <RecommendedFish />
+      <QuickEntries />
+    </div>
+  );
 }

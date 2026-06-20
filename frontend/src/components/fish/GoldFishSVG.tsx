@@ -9,7 +9,7 @@ interface GoldFishSVGProps {
 
 /**
  * Goldfish — round head tumor + short round double-layer tail, orange-red gradient.
- * Source: FishGrow_UI_Design_v4_FishSVG_v1_20260617.html (P1 v2).
+ * Source: YoYu_UI_Design_v4_FishSVG_v1_20260617.html (P1 v2).
  * Gradient IDs are namespaced via React.useId() to avoid collisions across
  * multiple SVG instances on the same page.
  */

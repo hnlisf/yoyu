@@ -10,7 +10,7 @@ interface AngelFishSVGProps {
 /**
  * Angelfish — triangular side profile + silver body + gold stripes + long
  * thread-like fins. Same-color gradient connects body to tail fin.
- * Source: FishGrow_UI_Design_v4_FishSVG_v1_20260617.html (P1 v2).
+ * Source: YoYu_UI_Design_v4_FishSVG_v1_20260617.html (P1 v2).
  */
 export function AngelFishSVG({ size, className }: AngelFishSVGProps) {
   const uid = useId().replace(/:/g, '_');

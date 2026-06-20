@@ -1,7 +1,7 @@
 {
-  "appName": "FishGrow",
-  "brandName": "FishGrow",
-  "tagline": "Your virtual fish companion",
+  "appName": "YoYu",
+  "brandName": "YoYu",
+  "tagline": "Raise a fish that's yours",
   "nav": {
     "home": "Home",
     "tank": "My Tank",
@@ -12,7 +12,7 @@
     "profile": "Profile"
   },
   "home": {
-    "welcome": "Welcome to FishGrow",
+    "welcome": "Welcome to YoYu",
     "intro": "Raise your first fish here and watch it grow from fry to adult.",
     "startButton": "Start raising",
     "tankButton": "Open my tank",
@@ -125,7 +125,13 @@
       "ja": "日本語"
     },
     "aboutLabel": "About",
-    "aboutDesc": "FishGrow v4 · Liquid Glass"
+    "aboutDesc": "YoYu v4 · Liquid Glass",
+    "cityLabel": "City",
+    "cityDesc": "Set your city for local weather & water temp advice",
+    "citySet": "Set",
+    "citySave": "Save",
+    "cityCurrent": "Current",
+    "cityPlaceholder": "Enter city, e.g. \"Tokyo\""
   },
   "species": {
     "title": "Species Library",

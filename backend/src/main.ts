@@ -2,15 +2,17 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './common/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // Swagger / OpenAPI
   const config = new DocumentBuilder()
-    .setTitle('FishGrow API')
+    .setTitle('YoYu API')
     .setDescription('Virtual fish pet game - MVP backend')
     .setVersion('1.0.0')
     .addTag('fish-species', 'Fish species library + custom species')
@@ -26,7 +28,7 @@ async function bootstrap() {
 
   const port = parseInt(process.env.PORT ?? '3000', 10);
   await app.listen(port, '0.0.0.0');
-  console.log(`FishGrow backend running on http://0.0.0.0:${port}`);
+  console.log(`YoYu backend running on http://0.0.0.0:${port}`);
   console.log(`Swagger docs:  http://0.0.0.0:${port}/api/docs`);
 }
 bootstrap();

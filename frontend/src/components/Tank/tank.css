@@ -1,0 +1,190 @@
+/**
+ * v5.0 Fish swim animation styles using CSS offset-path.
+ * Includes Safari 15- fallback and performance degradation support.
+ *
+ * Usage:
+ *   - .fish-swim: applies offset-path animation (dynamic inline style for --swim-path, --swim-duration)
+ *   - .fish-swim-reverse: flips the fish horizontally
+ *   - .fish-float: fallback float animation (Safari 15- / degraded)
+ */
+
+/* ============================================================
+ * Modern: offset-path swim (Chrome/Edge/Firefox/Safari 16+)
+ * ============================================================ */
+@supports (offset-path: path('M 0 0')) {
+  .fish-swim {
+    animation-name: swim-along;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    offset-distance: 0%;
+  }
+
+  /* Reverse direction for visual variety */
+  .fish-swim-reverse {
+    animation-direction: reverse;
+  }
+
+  @keyframes swim-along {
+    0% {
+      offset-distance: 0%;
+    }
+    100% {
+      offset-distance: 100%;
+    }
+  }
+}
+
+/* ============================================================
+ * Fallback: float up-down (Safari 15- / performance degraded)
+ * ============================================================ */
+@supports not (offset-path: path('M 0 0')) {
+  .fish-swim {
+    animation: fallback-float 4s ease-in-out infinite alternate;
+  }
+
+  .fish-float-fast {
+    animation: fallback-float 2.5s ease-in-out infinite alternate;
+  }
+
+  .fish-float-slow {
+    animation: fallback-float 6s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes fallback-float {
+  0% {
+    transform: translateY(0) translateX(0);
+  }
+  50% {
+    transform: translateY(-10px) translateX(6px);
+  }
+  100% {
+    transform: translateY(2px) translateX(-4px);
+  }
+}
+
+/* ============================================================
+ * Perf degraded float (applied when fish count > threshold)
+ * ============================================================ */
+.fish-float-degraded {
+  animation: float-simple 3s ease-in-out infinite alternate;
+}
+
+@keyframes float-simple {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-8px);
+  }
+}
+
+/* ============================================================
+ * Horizontal flip for direction change
+ * ============================================================ */
+.fish-facing-left {
+  transform: scaleX(1);
+}
+
+.fish-facing-right {
+  transform: scaleX(-1);
+}
+
+/* ============================================================
+ * Swim container — relative positioning for offset-path
+ * ============================================================ */
+.swim-stage {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+  overflow: hidden;
+}
+
+.swim-fish-wrapper {
+  position: absolute;
+  width: 80px;
+  height: 48px;
+  will-change: offset-distance, transform;
+}
+
+/* ============================================================
+ * Feeding food particle
+ * ============================================================ */
+.food-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fde68a;
+  box-shadow: 0 0 4px rgba(253, 230, 138, 0.6);
+  animation: food-fall 2s ease-in forwards;
+}
+
+@keyframes food-fall {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(250px);
+    opacity: 0;
+  }
+}
+
+/* ============================================================
+ * Eating mouth animation (2-3 keyframes, 600ms)
+ * ============================================================ */
+.fish-eating {
+  animation: eat-bounce 0.3s ease-in-out 2;
+}
+
+@keyframes eat-bounce {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.7);
+  }
+}
+
+/* ============================================================
+ * Done state: body sink + bubble
+ * ============================================================ */
+.fish-done {
+  animation: done-sink 2s ease-out forwards;
+}
+
+@keyframes done-sink {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(20px);
+    opacity: 0.7;
+  }
+}
+
+.fish-bubble {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  animation: bubble-up 1.5s ease-out forwards;
+}
+
+@keyframes bubble-up {
+  0% {
+    transform: translateY(0) scale(0.5);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-60px) scale(1.2);
+    opacity: 0;
+  }
+}

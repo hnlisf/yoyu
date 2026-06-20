@@ -24,7 +24,7 @@ export class LocationService {
 
     try {
       const resp = await fetch(`https://ipapi.co/${ip}/json/`, {
-        headers: { 'User-Agent': 'FishGrow-MVP/1.0' },
+        headers: { 'User-Agent': 'YoYu-MVP/1.0' },
       });
       if (!resp.ok) {
         this.logger.warn(`ipapi.co returned ${resp.status} for ${ip}`);

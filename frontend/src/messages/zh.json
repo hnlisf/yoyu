@@ -1,7 +1,7 @@
 {
-  "appName": "鱼成长",
-  "brandName": "鱼成长",
-  "tagline": "陪伴你的虚拟鱼缸",
+  "appName": "鱼鱼",
+  "brandName": "鱼鱼",
+  "tagline": "养一条属于你的小鱼",
   "nav": {
     "home": "首页",
     "tank": "我的鱼缸",
@@ -12,7 +12,7 @@
     "profile": "我的"
   },
   "home": {
-    "welcome": "欢迎来到鱼成长",
+    "welcome": "欢迎来到鱼鱼",
     "intro": "在这里养成你的第一条鱼，观察它从鱼苗慢慢长大。",
     "startButton": "开始养成",
     "tankButton": "查看鱼缸",
@@ -125,7 +125,13 @@
       "ja": "日本語"
     },
     "aboutLabel": "关于",
-    "aboutDesc": "FishGrow v4 · Liquid Glass"
+    "aboutDesc": "鱼鱼 v4 · Liquid Glass",
+    "cityLabel": "城市设置",
+    "cityDesc": "设置城市以获取当地天气和水温建议",
+    "citySet": "设置",
+    "citySave": "保存",
+    "cityCurrent": "当前",
+    "cityPlaceholder": "输入城市名，如\"北京\""
   },
   "species": {
     "title": "鱼种图鉴",

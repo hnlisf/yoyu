@@ -1,0 +1,119 @@
+/**
+ * v5.0 Weather background themes for fish tank.
+ * 4 themes: sunny / cloudy / rainy / snowy
+ * Switched via className on the tank container.
+ * CSS transition: 200ms for smooth switching.
+ */
+
+.tank-bg--sunny {
+  background: linear-gradient(
+    180deg,
+    rgba(135, 206, 235, 0.25) 0%,
+    rgba(255, 248, 220, 0.15) 50%,
+    rgba(15, 42, 61, 0.5) 100%
+  );
+  transition: background 0.2s ease;
+}
+
+/* Sun rays effect */
+.tank-bg--sunny::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 70% 20%,
+    rgba(255, 248, 220, 0.2) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.tank-bg--cloudy {
+  background: linear-gradient(
+    180deg,
+    rgba(192, 192, 192, 0.25) 0%,
+    rgba(232, 232, 232, 0.1) 50%,
+    rgba(15, 42, 61, 0.5) 100%
+  );
+  transition: background 0.2s ease;
+}
+
+.tank-bg--rainy {
+  background: linear-gradient(
+    180deg,
+    rgba(74, 85, 104, 0.4) 0%,
+    rgba(45, 55, 72, 0.3) 50%,
+    rgba(10, 31, 46, 0.6) 100%
+  );
+  transition: background 0.2s ease;
+}
+
+/* Rain drops animation */
+.tank-bg--rainy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 40px,
+    rgba(255, 255, 255, 0.06) 40px,
+    rgba(255, 255, 255, 0.06) 41px
+  );
+  animation: rain-fall 0.5s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes rain-fall {
+  0% {
+    background-position-y: 0;
+  }
+  100% {
+    background-position-y: 40px;
+  }
+}
+
+.tank-bg--snowy {
+  background: linear-gradient(
+    180deg,
+    rgba(240, 248, 255, 0.25) 0%,
+    rgba(224, 247, 250, 0.15) 50%,
+    rgba(15, 42, 61, 0.5) 100%
+  );
+  transition: background 0.2s ease;
+}
+
+/* Snow particles */
+.tank-bg--snowy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+      2px 2px at 30px 40px,
+      rgba(255, 255, 255, 0.7),
+      transparent
+    ),
+    radial-gradient(2px 2px at 80px 120px, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(3px 3px at 150px 60px, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(2px 2px at 220px 180px, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 300px 90px, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(2px 2px at 400px 150px, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(3px 3px at 500px 30px, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 550px 200px, rgba(255, 255, 255, 0.6), transparent);
+  animation: snow-drift 8s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes snow-drift {
+  0% {
+    transform: translateY(-20px);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(280px);
+    opacity: 0;
+  }
+}
