@@ -4,7 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { FishTank } from '@prisma/client';
+import { FishTank, Prisma } from '@prisma/client';
 import { FishSpeciesService } from '../fish-species/fish-species.service';
 import { FishService } from '../fish/fish.service';
 
@@ -81,38 +81,49 @@ export class FishTanksService {
     }
 
     // Use a transaction so tank + fish are created atomically
-    return this.prisma.$transaction(async (tx) => {
-      const tank = await tx.fishTank.create({
-        data: {
-          userId,
-          name: tankName,
-          size: data.size ?? 'medium',
-          temp: data.temp ?? 24.0,
-          ph: data.ph ?? 7.0,
-        },
-      });
-
-      // Pick a random default species to seed the tank with one fish
-      const defaultSpecies = await tx.fishSpecies.findFirst({
-        where: { isDefault: true },
-      });
-
-      if (defaultSpecies) {
-        await tx.fish.create({
+    // DB unique constraint catches concurrent race condition that service check misses
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const tank = await tx.fishTank.create({
           data: {
-            tankId: tank.id,
-            speciesId: defaultSpecies.id,
-            name: '',
-            stage: 'fry',
-            growth: 0,
-            health: 100,
-            nutrition: 100,
+            userId,
+            name: tankName,
+            size: data.size ?? 'medium',
+            temp: data.temp ?? 24.0,
+            ph: data.ph ?? 7.0,
           },
         });
-      }
 
-      return tank;
-    });
+        // Pick a random default species to seed the tank with one fish
+        const defaultSpecies = await tx.fishSpecies.findFirst({
+          where: { isDefault: true },
+        });
+
+        if (defaultSpecies) {
+          await tx.fish.create({
+            data: {
+              tankId: tank.id,
+              speciesId: defaultSpecies.id,
+              name: '',
+              stage: 'fry',
+              growth: 0,
+              health: 100,
+              nutrition: 100,
+            },
+          });
+        }
+
+        return tank;
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new ConflictException({
+          error: 'DUPLICATE_TANK_NAME',
+          message: `你已经有一个叫「${tankName}」的鱼缸了`,
+        });
+      }
+      throw e;
+    }
   }
 
   private async ensureUser(userId: string): Promise<string> {

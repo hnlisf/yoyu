@@ -55,6 +55,7 @@ model FishTank {
   user        User   @relation(fields: [userId], references: [id])
   fish        Fish[]
 
+  @@unique([userId, name])
   @@map("fish_tanks")
 }
 
