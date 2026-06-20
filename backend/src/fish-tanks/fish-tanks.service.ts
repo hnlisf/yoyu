@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FishTank } from '@prisma/client';
 import { FishSpeciesService } from '../fish-species/fish-species.service';
@@ -63,12 +67,25 @@ export class FishTanksService {
       ? await this.ensureUser(data.userId)
       : await this.createDemoUser();
 
+    const tankName = data.name ?? '我的鱼缸';
+
+    // MBE.1: prevent duplicate tank names for the same user
+    const existing = await this.prisma.fishTank.findFirst({
+      where: { userId, name: tankName },
+    });
+    if (existing) {
+      throw new ConflictException({
+        error: 'DUPLICATE_TANK_NAME',
+        message: `你已经有一个叫「${tankName}」的鱼缸了`,
+      });
+    }
+
     // Use a transaction so tank + fish are created atomically
     return this.prisma.$transaction(async (tx) => {
       const tank = await tx.fishTank.create({
         data: {
           userId,
-          name: data.name ?? '我的鱼缸',
+          name: tankName,
           size: data.size ?? 'medium',
           temp: data.temp ?? 24.0,
           ph: data.ph ?? 7.0,
