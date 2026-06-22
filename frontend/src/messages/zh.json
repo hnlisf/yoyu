@@ -1,6 +1,6 @@
 {
-  "appName": "鱼鱼",
-  "brandName": "鱼鱼",
+  "appName": "悠鱼",
+  "brandName": "悠鱼",
   "tagline": "养一条属于你的小鱼",
   "nav": {
     "home": "首页",
@@ -12,7 +12,7 @@
     "profile": "我的"
   },
   "home": {
-    "welcome": "欢迎来到鱼鱼",
+    "welcome": "欢迎来到悠鱼",
     "intro": "在这里养成你的第一条鱼，观察它从鱼苗慢慢长大。",
     "startButton": "开始养成",
     "tankButton": "查看鱼缸",
@@ -125,7 +125,7 @@
       "ja": "日本語"
     },
     "aboutLabel": "关于",
-    "aboutDesc": "鱼鱼 v4 · Liquid Glass",
+    "aboutDesc": "悠鱼 v4 · Liquid Glass",
     "cityLabel": "城市设置",
     "cityDesc": "设置城市以获取当地天气和水温建议",
     "citySet": "设置",
@@ -205,5 +205,23 @@
     "back": "返回",
     "language": "语言",
     "create": "创建"
+  },
+  "achievements": {
+    "firstTank": "初识鱼缸",
+    "firstTank.description": "创建你的第一个鱼缸",
+    "fishWhisperer": "鱼语者",
+    "fishWhisperer.description": "成功养成5条鱼至成年",
+    "masterFeeder": "投喂达人",
+    "masterFeeder.description": "累计投喂100次",
+    "consistentCarer": "规律照料",
+    "consistentCarer.description": "连续30天未中断照料",
+    "tankBreeder": "养鱼繁殖",
+    "tankBreeder.description": "成功繁殖一条鱼",
+    "aquaExpert": "水质达人",
+    "aquaExpert.description": "保持水质完美30天",
+    "fishFriend": "鱼之友",
+    "fishFriend.description": "解锁全部5种基础鱼种",
+    "dedication": "执着养鱼",
+    "dedication.description": "累计养鱼100天"
   }
 }

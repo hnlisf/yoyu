@@ -49,9 +49,9 @@ export default function FishDemo() {
         <GlassCard className="p-4">
           <div className="flex gap-2 items-end">
             {[1,2,3,4].map(i => <FishAvatar key={i} variant="guppy" size={60} />)}
-            {[1,2,3,4].map(i => <FishAvatar key={i} variant="betta" size={60} />)}
+            {[1,2,3,4].map(i => <FishAvatar key={i} variant="koi" size={60} />)}
           </div>
-          <p className="text-xs text-text-secondary mt-2">4 guppies + 4 bettas — gradients should not collide</p>
+          <p className="text-xs text-text-secondary mt-2">4 guppies + 4 koi — gradients should not collide</p>
         </GlassCard>
       </section>
 

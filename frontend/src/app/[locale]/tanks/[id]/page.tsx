@@ -1,19 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { api, FishTank, Fish } from '@/lib/api';
+import { api, FishTank, Fish, WeatherData } from '@/lib/api';
 import { FishAvatar } from '@/components/fish';
 import { slugToVariant } from '@/components/fish/types';
 import { TankStage } from '@/components/Tank/TankStage';
-import { FeedingProvider, useFeeding } from '@/components/Tank/feedingStateMachine';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Tag } from '@/components/ui/Tag';
 import { Button } from '@/components/ui/Button';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Toast } from '@/components/ui/Toast';
 import { Icon } from '@/components/ui/Icon';
+import { HeaterSwitch } from '@/components/Tank/HeaterSwitch';
 import { useTranslateTankName } from '@/lib/i18n/tankName';
 
 interface PageProps {
@@ -21,18 +21,13 @@ interface PageProps {
 }
 
 /**
- * Tank detail page — v5.0 main stage shows fish swimming with CSS offset-path
- * + feeding animation state machine. Below: status bars, water quality cards,
- * action buttons, and species chips.
+ * Tank detail page — v6.0: tank stage + status bars + water quality + heater + weather
+ * TankStage internally wraps FeedingProvider; we use feedRef for external control.
  */
 export default function TankDetailPage({ params }: PageProps) {
   const { id } = params;
 
-  return (
-    <FeedingProvider>
-      <TankPageContent tankId={id} />
-    </FeedingProvider>
-  );
+  return <TankPageContent tankId={id} />;
 }
 
 function TankPageContent({ tankId }: { tankId: string }) {
@@ -40,13 +35,21 @@ function TankPageContent({ tankId }: { tankId: string }) {
   const tf = useTranslations('fish.stage');
   const tCommon = useTranslations('common');
   const tName = useTranslateTankName();
-  const { startFeeding } = useFeeding();
+
+  // Ref to trigger feeding animation inside TankStage
+  const feedRef = useRef<((count?: number, fishIds?: string[]) => void) | null>(null);
 
   const [tank, setTank] = useState<FishTank | null>(null);
   const [fishList, setFishList] = useState<Fish[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Heater & weather state
+  const [heaterOn, setHeaterOn] = useState(false);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [heaterToggling, setHeaterToggling] = useState(false);
 
   const load = async () => {
     try {
@@ -61,24 +64,56 @@ function TankPageContent({ tankId }: { tankId: string }) {
     }
   };
 
+  const loadWeather = useCallback(async () => {
+    setWeatherLoading(true);
+    try {
+      const w = await api<WeatherData>(`/api/weather?tankId=${tankId}`);
+      setWeather(w);
+    } catch {
+      // Weather may not be available — silently ignore
+    } finally {
+      setWeatherLoading(false);
+    }
+  }, [tankId]);
+
   useEffect(() => {
     load();
   }, [tankId]);
+
+  // Sync heater state from tank data
+  useEffect(() => {
+    if (tank) {
+      setHeaterOn(tank.heaterOn ?? false);
+    }
+  }, [tank]);
+  // Fetch weather on mount
+  useEffect(() => {
+    loadWeather();
+  }, [tankId, loadWeather]);
+
+  const toggleHeater = async (_tankId: string, newState: boolean) => {
+    setHeaterToggling(true);
+    try {
+      await api(`/api/fish-tanks/${tankId}/heater`, {
+        method: 'POST',
+        body: JSON.stringify({ heaterOn: newState }),
+      });
+      setHeaterOn(newState);
+      setToast(newState ? 'Heater turned ON' : 'Heater turned OFF');
+    } catch (e: any) {
+      setToast('Heater toggle failed: ' + e.message);
+    } finally {
+      setHeaterToggling(false);
+    }
+  };
 
   const feedAll = async () => {
     if (!fishList.length) return;
     setBusy(true);
 
-    // Trigger feeding animation
-    const particles = Array.from(
-      { length: 3 + Math.floor(Math.random() * 5) },
-      (_, i) => ({
-        id: `food-${Date.now()}-${i}`,
-        x: 20 + Math.random() * 60,
-        y: 5 + Math.random() * 15,
-      }),
-    );
-    startFeeding(particles);
+    // Trigger feeding animation in the tank
+    const count = 3 + Math.floor(Math.random() * 5);
+    feedRef.current?.(count, fishList.map((f) => f.id));
 
     try {
       for (const f of fishList) {
@@ -108,6 +143,15 @@ function TankPageContent({ tankId }: { tankId: string }) {
       setBusy(false);
     }
   };
+
+  // Determine if water temp is abnormal (outside typical range 22-28°C)
+  const isTempAbnormal = tank ? (tank.temp < 20 || tank.temp > 30) : false;
+  // If we have a fish with species, check against species temp range
+  const speciesTempAbnormal = fishList.some((f) => {
+    if (!f.species?.tempMin || !f.species?.tempMax) return false;
+    return tank ? (tank.temp < f.species.tempMin || tank.temp > f.species.tempMax) : false;
+  });
+  const showTempWarning = isTempAbnormal || speciesTempAbnormal;
 
   if (loading) {
     return <p className="text-text-secondary text-sm font-light">{tCommon('loading')}</p>;
@@ -140,8 +184,8 @@ function TankPageContent({ tankId }: { tankId: string }) {
         </div>
       </header>
 
-      {/* Main stage — v5.0: CSS offset-path swim + feeding animation */}
-      <TankStage fishList={fishList} />
+      {/* Main stage — v6.0: rAF physics engine + feeding state machine */}
+      <TankStage fishList={fishList} feedRef={feedRef} />
 
       {/* Status bars */}
       <GlassCard className="space-y-3">
@@ -150,22 +194,38 @@ function TankPageContent({ tankId }: { tankId: string }) {
         <ProgressBar value={tank.oxygen} variant="health" showLabel label={t('oxygen')} />
       </GlassCard>
 
-      {/* Water quality cards */}
-      <div className="grid grid-cols-3 gap-3">
-        <GlassCard className="text-center py-4">
+      {/* Water quality cards + heater + weather */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {/* Water temp — with warning styling */}
+        <GlassCard
+          className={`text-center py-4 ${
+            showTempWarning
+              ? 'border border-yellow-500/50'
+              : ''
+          }`}
+        >
           <p className="text-[10px] text-text-secondary font-light uppercase tracking-wide">
             {t('temp')}
           </p>
-          <p className="text-xl text-accent mt-1 font-light tabular-nums">
+          <p
+            className={`text-xl mt-1 font-light tabular-nums ${
+              showTempWarning ? 'text-red-400' : 'text-accent'
+            }`}
+          >
             {tank.temp.toFixed(1)}°
           </p>
+          {showTempWarning && (
+            <p className="text-[9px] text-red-400/80 mt-0.5">异常水温</p>
+          )}
         </GlassCard>
+
         <GlassCard className="text-center py-4">
           <p className="text-[10px] text-text-secondary font-light uppercase tracking-wide">pH</p>
           <p className="text-xl text-accent mt-1 font-light tabular-nums">
             {tank.ph.toFixed(1)}
           </p>
         </GlassCard>
+
         <GlassCard className="text-center py-4">
           <p className="text-[10px] text-text-secondary font-light uppercase tracking-wide">
             {t('fish')}
@@ -174,6 +234,39 @@ function TankPageContent({ tankId }: { tankId: string }) {
             {fishList.length}
           </p>
         </GlassCard>
+      </div>
+
+      {/* Heater + Weather row */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-text-secondary font-light uppercase tracking-wide">加热器</span>
+          <HeaterSwitch
+            tankId={tankId}
+            heaterOn={heaterOn}
+            onToggle={toggleHeater}
+            disabled={heaterToggling}
+          />
+        </div>
+
+        {/* City temp display */}
+        {weather && (
+          <div className="flex items-center gap-1.5 text-xs text-text-secondary font-light">
+            <span>🌡️</span>
+            <span>城市 {weather.temp}°</span>
+            <span className="text-[10px] opacity-60">{weather.description}</span>
+          </div>
+        )}
+
+        {/* Manual refresh weather button */}
+        <button
+          type="button"
+          onClick={loadWeather}
+          disabled={weatherLoading}
+          className="inline-flex items-center gap-1 text-[10px] text-accent/70 hover:text-accent transition ml-auto"
+        >
+          <span className={weatherLoading ? 'animate-spin' : ''}>🔄</span>
+          刷新天气
+        </button>
       </div>
 
       {/* Action buttons */}

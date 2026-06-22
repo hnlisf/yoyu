@@ -205,5 +205,23 @@
     "back": "戻る",
     "language": "言語",
     "create": "作成"
+  },
+  "achievements": {
+    "firstTank": "初めての水槽",
+    "firstTank.description": "最初の水槽を作成する",
+    "fishWhisperer": "魚語り",
+    "fishWhisperer.description": "5匹の魚を成魚まで育てる",
+    "masterFeeder": "餌やり名人",
+    "masterFeeder.description": "累計100回餌をやる",
+    "consistentCarer": "規則的な世話",
+    "consistentCarer.description": "30日間連続で世話をする",
+    "tankBreeder": "魚の繁殖",
+    "tankBreeder.description": "魚の繁殖に成功する",
+    "aquaExpert": "水質の達人",
+    "aquaExpert.description": "30日間完璧な水質を保つ",
+    "fishFriend": "魚の友",
+    "fishFriend.description": "基本5種すべてをアンロック",
+    "dedication": "こだわりの養魚",
+    "dedication.description": "累計100日間魚を育てる"
   }
 }
