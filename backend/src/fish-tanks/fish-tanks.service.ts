@@ -48,7 +48,35 @@ export class FishTanksService {
       include: { fish: { include: { species: true } } },
     });
     if (!tank) return null;
-    return this.attachI18n(tank, lang);
+    const result = this.attachI18n(tank, lang);
+    // Ensure cityTemp and heaterOn are explicitly included in response
+    return {
+      ...result,
+      cityTemp: result.cityTemp ?? 0,
+      heaterOn: result.heaterOn ?? false,
+    };
+  }
+
+  /**
+   * Toggle the heater for a tank and recalculate temperature.
+   * temp = cityTemp + (heaterOn ? 3 : 0)
+   */
+  async toggleHeater(
+    tankId: string,
+    heaterOn: boolean,
+  ): Promise<{ heaterOn: boolean; currentTemp: number }> {
+    const tank = await this.prisma.fishTank.findUnique({ where: { id: tankId } });
+    if (!tank) throw new NotFoundException('Fish tank not found');
+
+    const cityTemp = tank.cityTemp ?? 0;
+    const currentTemp = cityTemp + (heaterOn ? 3 : 0);
+
+    await this.prisma.fishTank.update({
+      where: { id: tankId },
+      data: { heaterOn, temp: currentTemp },
+    });
+
+    return { heaterOn, currentTemp };
   }
 
   private attachI18n(tank: any, lang: string) {
@@ -109,6 +137,7 @@ export class FishTanksService {
               growth: 0,
               health: 100,
               nutrition: 100,
+              mood: 80,
             },
           });
         }
@@ -153,13 +182,49 @@ export class FishTanksService {
    * - cleanliness decays each day
    * - oxygen decays each day
    * - ph drifts slightly
+   * - checks temperature anomalies (decrease mood, return warnings)
    * Returns the updated tank.
    */
-  async tick(id: string, hoursDelta: number = 24): Promise<FishTank> {
-    const tank = await this.findOne(id);
+  async tick(id: string, hoursDelta: number = 24): Promise<any> {
+    const tank = await this.prisma.fishTank.findUnique({
+      where: { id },
+      include: { fish: { include: { species: true } } },
+    });
     if (!tank) throw new NotFoundException('Fish tank not found');
+
     const decay = (hoursDelta / 24) * 5; // 5% per day
-    return this.prisma.fishTank.update({
+
+    // Check temperature anomalies for each fish
+    const warnings: any[] = [];
+    const fishUpdates: Promise<any>[] = [];
+    for (const fish of tank.fish) {
+      const species = fish.species;
+      const currentTemp = tank.temp ?? tank.cityTemp ?? 24;
+      if (
+        species.tempMin != null && species.tempMax != null &&
+        (currentTemp < species.tempMin || currentTemp > species.tempMax)
+      ) {
+        const moodDrop = -5 * (hoursDelta / 1); // -5 per hour away
+        const newMood = Math.max(0, (fish.mood ?? 80) + moodDrop);
+        fishUpdates.push(
+          this.prisma.fish.update({
+            where: { id: fish.id },
+            data: { mood: newMood },
+          }),
+        );
+        warnings.push({
+          fishId: fish.id,
+          fishName: fish.name || `鱼#${fish.id.slice(-4)}`,
+          currentTemp,
+          suitableRange: { min: species.tempMin, max: species.tempMax },
+          severity: currentTemp > species.tempMax + 5 || currentTemp < species.tempMin - 5
+            ? 'high' : 'medium',
+        });
+      }
+    }
+
+    // Execute tank update + fish mood updates
+    const updated = await this.prisma.fishTank.update({
       where: { id },
       data: {
         cleanliness: Math.max(0, tank.cleanliness - decay),
@@ -167,6 +232,11 @@ export class FishTanksService {
         ph: Math.max(5, Math.min(9, tank.ph + (Math.random() - 0.5) * 0.05)),
       },
     });
+
+    // Run fish mood updates sequentially (avoids transaction type issues)
+    await Promise.all(fishUpdates);
+
+    return { ...updated, tempWarnings: warnings };
   }
 
   private async ensureExists(id: string) {

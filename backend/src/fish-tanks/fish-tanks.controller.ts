@@ -46,4 +46,13 @@ export class FishTanksController {
   async tick(@Param('id') id: string, @Body() body: { hoursDelta?: number }) {
     return this.service.tick(id, body?.hoursDelta);
   }
+
+  @Post(':id/heater')
+  @ApiOperation({ summary: 'Toggle heater on/off and recalculate temperature' })
+  async toggleHeater(
+    @Param('id') id: string,
+    @Body() body: { heaterOn: boolean },
+  ) {
+    return this.service.toggleHeater(id, body.heaterOn);
+  }
 }

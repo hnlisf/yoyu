@@ -24,9 +24,13 @@ export class FishController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Add a new fish to a tank' })
-  async create(@Body() body: CreateFishDto) {
-    return this.service.create(body);
+  @ApiOperation({ summary: 'Add a new fish (tankId optional, resolves from user default)' })
+  @ApiQuery({ name: 'userId', required: false })
+  async create(
+    @Body() body: CreateFishDto,
+    @Query('userId') userId?: string,
+  ) {
+    return this.service.create(body, userId);
   }
 
   @Put(':id')
@@ -45,5 +49,13 @@ export class FishController {
   @ApiOperation({ summary: 'Feed a fish (validates frequency vs species)' })
   async feed(@Param('id') id: string, @Body() body: { amount?: FeedAmount }) {
     return this.service.feed(id, body?.amount ?? 'normal');
+  }
+
+  @Get('my')
+  @ApiOperation({ summary: 'List all fish belonging to a user (across all tanks)' })
+  @ApiQuery({ name: 'userId', required: true })
+  @ApiQuery({ name: 'lang', required: false })
+  async myFish(@Query('userId') userId: string, @Query('lang') lang?: string) {
+    return this.service.findAllByUser(userId, lang);
   }
 }

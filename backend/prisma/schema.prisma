@@ -8,34 +8,37 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String   @default("鱼友")
-  locale    String   @default("zh") // zh, en, ja
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id             String    @id @default(uuid())
+  name           String    @default("鱼友")
+  locale         String    @default("zh") // zh, en, ja
+  defaultTankId  String?   @map("default_tank_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  tanks     FishTank[]
-  reminders Reminder[]
+  defaultTank    FishTank? @relation("DefaultTank", fields: [defaultTankId], references: [id], onDelete: SetNull)
+  tanks          FishTank[] @relation("UserTanks")
+  reminders      Reminder[]
 
   @@map("users")
 }
 
 model FishSpecies {
-  id          String @id @default(uuid())
-  nameI18n    String @map("name_i18n") // JSONB: {"zh":"金鱼","en":"Goldfish","ja":"金魚"}
-  descI18n    String @map("description_i18n") // JSONB
-  tempMin     Float  @map("temp_min")
-  tempMax     Float  @map("temp_max")
-  phMin       Float  @map("ph_min")
-  phMax       Float  @map("ph_max")
-  growthDays  Int    @map("growth_days") // 成长周期（天）
-  feedFreq    String @map("feed_freq") // daily / twice_daily / every_2_days
-  stages      String // JSONB: [{"name":"鱼苗","days":7},...]
-  color       String @default("#5BA9C7")
-  isDefault   Boolean @default(false) @map("is_default")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id             String  @id @default(uuid())
+  nameI18n       String  @map("name_i18n") // JSONB: {"zh":"金鱼","en":"Goldfish","ja":"金魚"}
+  descI18n       String  @map("description_i18n") // JSONB
+  tempMin        Float   @map("temp_min")
+  tempMax        Float   @map("temp_max")
+  phMin          Float   @map("ph_min")
+  phMax          Float   @map("ph_max")
+  growthDays     Int     @map("growth_days") // 成长周期（天）
+  feedFreq       String  @map("feed_freq") // daily / twice_daily / every_2_days
+  stages         String  // JSONB: [{"name":"鱼苗","days":7},...]
+  feedRefuseHint String? @map("feed_refuse_hint") // 拒绝投喂时的温馨提醒模板
+  color          String  @default("#5BA9C7")
+  isDefault      Boolean @default(false) @map("is_default")
+  createdAt      DateTime @default(now()) @map("created_at")
 
-  fish        Fish[]
+  fish           Fish[]
 
   @@map("fish_species")
 }
@@ -46,13 +49,16 @@ model FishTank {
   name        String @default("我的鱼缸")
   size        String @default("medium") // small/medium/large
   temp        Float  @default(24.0)
+  cityTemp    Float  @default(24.0) @map("city_temp")
+  heaterOn    Boolean @default(false) @map("heater_on")
   cleanliness Float  @default(100.0) @map("cleanliness") // 0-100
   oxygen      Float  @default(100.0) // 0-100
   ph          Float  @default(7.0)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  user        User   @relation(fields: [userId], references: [id])
+  user        User   @relation("UserTanks", fields: [userId], references: [id])
+  defaultFor  User[] @relation("DefaultTank")
   fish        Fish[]
 
   @@unique([userId, name])
@@ -69,6 +75,7 @@ model Fish {
   growth      Float  @default(0.0) // 0-100 成长度
   health      Float  @default(100.0) // 0-100
   nutrition   Float  @default(100.0) // 0-100
+  mood        Int    @default(80) // 0-100 心情值
   lastFedAt   DateTime? @map("last_fed_at")
   createdAt   DateTime @default(now()) @map("created_at")
 
