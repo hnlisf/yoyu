@@ -124,22 +124,28 @@ export default function ProfilePage() {
         </div>
       </GlassCard>
 
-      {/* Profile stats */}
+      {/* Profile stats — clickable cards */}
       <div className="grid grid-cols-3 gap-3">
-        <GlassCard className="text-center py-4">
-          <p className="text-2xl text-accent font-light tabular-nums">{tanks.length}</p>
-          <p className="text-[11px] text-text-secondary font-light mt-1">{t('myTanks')}</p>
-        </GlassCard>
-        <GlassCard className="text-center py-4">
-          <p className="text-2xl text-accent font-light tabular-nums">{allFish.length}</p>
-          <p className="text-[11px] text-text-secondary font-light mt-1">{t('myFish')}</p>
-        </GlassCard>
-        <GlassCard className="text-center py-4">
-          <p className="text-2xl text-accent-gold font-light tabular-nums">
-            {speciesUnlocked}<span className="text-sm text-text-secondary"> / 5</span>
-          </p>
-          <p className="text-[11px] text-text-secondary font-light mt-1">{t('unlockedSpecies')}</p>
-        </GlassCard>
+        <Link href="/tanks" className="block">
+          <GlassCard hover className="text-center py-4 cursor-pointer">
+            <p className="text-2xl text-accent font-light tabular-nums">{tanks.length}</p>
+            <p className="text-[11px] text-text-secondary font-light mt-1">{t('myTanks')}</p>
+          </GlassCard>
+        </Link>
+        <Link href="/my-fish" className="block">
+          <GlassCard hover className="text-center py-4 cursor-pointer">
+            <p className="text-2xl text-accent font-light tabular-nums">{allFish.length}</p>
+            <p className="text-[11px] text-text-secondary font-light mt-1">{t('myFish')}</p>
+          </GlassCard>
+        </Link>
+        <Link href="/species?filter=unlocked" className="block">
+          <GlassCard hover className="text-center py-4 cursor-pointer">
+            <p className="text-2xl text-accent-gold font-light tabular-nums">
+              {speciesUnlocked}<span className="text-sm text-text-secondary"> / 5</span>
+            </p>
+            <p className="text-[11px] text-text-secondary font-light mt-1">{t('unlockedSpecies')}</p>
+          </GlassCard>
+        </Link>
       </div>
 
       {/* Favorites */}

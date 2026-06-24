@@ -8,15 +8,13 @@ interface GuppyFishSVGProps {
 }
 
 /**
- * Guppy — streamlined body + huge fan tail, blue→purple→orange 3-stop gradient.
- * Key detail: tail-root bridge gradient connects body to tail seamlessly.
- * Source: YoYu_UI_Design_v4_FishSVG_v1_20260617.html (P1 v2).
+ * Guppy — small sleek body, huge fan-shaped tail, bright rainbow colors.
+ * Blue-green body with purple→orange→pink fan tail.
  */
 export function GuppyFishSVG({ size, className }: GuppyFishSVGProps) {
   const uid = useId().replace(/:/g, '_');
   const body = `guppyBody_${uid}`;
   const tail = `guppyTail_${uid}`;
-  const root = `guppyRoot_${uid}`;
   return (
     <svg
       viewBox="0 0 200 120"
@@ -27,37 +25,49 @@ export function GuppyFishSVG({ size, className }: GuppyFishSVGProps) {
       aria-label="Guppy"
     >
       <defs>
-        <linearGradient id={body} x1="0" x2="1">
-          <stop offset="0" stopColor="#0ea5e9" />
+        <linearGradient id={body} x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0" stopColor="#0891b2" />
           <stop offset="0.5" stopColor="#06b6d4" />
           <stop offset="1" stopColor="#10b981" />
         </linearGradient>
-        {/* Tail root bridge (blue-green → orange-pink) — the critical detail. */}
-        <linearGradient id={tail} x1="0" x2="1">
+        <linearGradient id={tail} x1="0" x2="1" y1="0.3" y2="0.7">
           <stop offset="0" stopColor="#06b6d4" />
-          <stop offset="0.3" stopColor="#a78bfa" />
-          <stop offset="0.6" stopColor="#f97316" />
-          <stop offset="1" stopColor="#ec4899" />
-        </linearGradient>
-        <linearGradient id={root} x1="0" x2="1">
-          <stop offset="0" stopColor="#10b981" stopOpacity="0.9" />
-          <stop offset="1" stopColor="#06b6d4" stopOpacity="0.4" />
+          <stop offset="0.2" stopColor="#8b5cf6" />
+          <stop offset="0.5" stopColor="#f97316" />
+          <stop offset="0.8" stopColor="#ec4899" />
+          <stop offset="1" stopColor="#f472b6" stopOpacity="0.4" />
         </linearGradient>
       </defs>
-      {/* Big fan tail (multi-layer, root-colored start) */}
-      <path d="M 70 60 Q 50 30 15 45 Q 8 60 15 75 Q 50 90 70 60 Z" fill={`url(#${tail})`} />
-      <path d="M 70 60 Q 55 35 25 50 Q 20 60 25 70 Q 55 85 70 60 Z" fill={`url(#${tail})`} opacity="0.6" />
-      {/* Tail-root bridge band (blue-green, extends from body into tail) */}
-      <ellipse cx="78" cy="60" rx="15" ry="20" fill={`url(#${root})`} opacity="0.85" />
-      {/* Body: streamlined elongated */}
-      <ellipse cx="115" cy="60" rx="45" ry="18" fill={`url(#${body})`} />
+
+      {/* Huge fan-shaped tail (3 layers) */}
+      <path d="M 75 60 Q 40 10 5 20 Q -5 60 5 100 Q 40 110 75 60 Z" fill={`url(#${tail})`} />
+      <path d="M 75 60 Q 45 20 15 32 Q 8 60 15 88 Q 45 100 75 60 Z" fill={`url(#${tail})`} opacity="0.7" />
+      <path d="M 75 60 Q 50 30 25 40 Q 20 60 25 80 Q 50 90 75 60 Z" fill={`url(#${tail})`} opacity="0.5" />
+
+      {/* Tail vein lines */}
+      <path d="M 72 60 Q 40 25 10 30" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8" />
+      <path d="M 72 60 Q 40 95 10 90" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8" />
+      <path d="M 72 60 Q 50 40 25 45" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="0.6" />
+      <path d="M 72 60 Q 50 80 25 75" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="0.6" />
+
+      {/* Small sleek body */}
+      <ellipse cx="115" cy="60" rx="42" ry="14" fill={`url(#${body})`} />
+
+      {/* Neon lateral stripe */}
+      <line x1="80" y1="57" x2="145" y2="57" stroke="#22d3ee" strokeWidth="2" opacity="0.8" />
+
+      {/* Dorsal fin — tall and sharp */}
+      <path d="M 105 47 Q 112 30 125 48" fill="rgba(8,145,178,0.7)" stroke="#0891b2" strokeWidth="0.5" />
+
+      {/* Belly fin */}
+      <path d="M 108 73 Q 112 80 120 73" fill="rgba(6,182,212,0.4)" />
+
       {/* Scale highlight */}
-      <ellipse cx="110" cy="52" rx="18" ry="3" fill="rgba(255,255,255,0.4)" />
-      {/* Eye + highlight */}
-      <circle cx="150" cy="58" r="3" fill="#1a1a1a" />
-      <circle cx="151" cy="57" r="1.2" fill="#ffffff" />
-      {/* Dorsal fin */}
-      <path d="M 110 45 Q 120 35 130 47" fill="rgba(34,211,238,0.5)" stroke="#22d3ee" strokeWidth="0.5" />
+      <ellipse cx="110" cy="54" rx="16" ry="3" fill="rgba(255,255,255,0.4)" />
+
+      {/* Eye */}
+      <circle cx="148" cy="58" r="3.5" fill="#1a1a1a" />
+      <circle cx="149" cy="57" r="1.3" fill="#ffffff" />
     </svg>
   );
 }

@@ -2,15 +2,15 @@
  * Variant identifiers shared across the 5 fish species.
  * Maps to the SVG components under ./components/fish/.
  */
-export type FishVariant = 'goldfish' | 'guppy' | 'tetra' | 'betta' | 'angel';
+export type FishVariant = 'goldfish' | 'koi' | 'guppy' | 'tropical' | 'tetra';
 
 /** Growth stages used to scale the avatar size. */
 export type FishStage = 'fry' | 'juvenile' | 'subadult' | 'adult';
 
-export const FISH_VARIANTS: FishVariant[] = ['goldfish', 'guppy', 'tetra', 'betta', 'angel'];
+export const FISH_VARIANTS: FishVariant[] = ['goldfish', 'koi', 'guppy', 'tropical', 'tetra'];
 
 /**
- * Species → v4 variant mapping.
+ * Species → variant mapping.
  *
  * The backend's fish_species table uses UUIDs as `id` and stores the user-facing
  * name in the `name` field. We match either by a known english slug *or* by
@@ -21,18 +21,19 @@ const SPECIES_NAME_TO_VARIANT: Array<{ match: RegExp | string; variant: FishVari
   { match: /^goldfish$/i, variant: 'goldfish' },
   { match: /^guppy$/i, variant: 'guppy' },
   { match: /^tetra$/i, variant: 'tetra' },
-  { match: /^betta$/i, variant: 'betta' },
-  { match: /^angel|angelfish$/i, variant: 'angel' },
-  { match: /^koi|carp$/i, variant: 'goldfish' },
+  { match: /^koi|carp$/i, variant: 'koi' },
+  { match: /^angel|angelfish|tropical$/i, variant: 'tropical' },
+  { match: /^betta$/i, variant: 'tropical' },
   { match: /^molly$/i, variant: 'guppy' },
   { match: /^neon$/i, variant: 'tetra' },
   { match: /^platy$/i, variant: 'tetra' },
   // Chinese names (zh) — substring match
-  { match: /金鱼|锦鲤/, variant: 'goldfish' },
+  { match: /金鱼/, variant: 'goldfish' },
+  { match: /锦鲤/, variant: 'koi' },
   { match: /孔雀/, variant: 'guppy' },
-  { match: /灯科|灯鱼|霓虹|热带鱼/, variant: 'tetra' },
-  { match: /斗鱼/, variant: 'betta' },
-  { match: /神仙鱼/, variant: 'angel' },
+  { match: /灯科|灯鱼|霓虹|小型鱼/, variant: 'tetra' },
+  { match: /神仙鱼|热带鱼/, variant: 'tropical' },
+  { match: /斗鱼/, variant: 'tropical' },
 ];
 
 export function slugToVariant(slug?: string | null): FishVariant {

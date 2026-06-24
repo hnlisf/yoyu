@@ -2,10 +2,10 @@
 
 import type { FishVariant, FishStage } from './types';
 import { GoldFishSVG } from './GoldFishSVG';
+import { KoiFishSVG } from './KoiFishSVG';
 import { GuppyFishSVG } from './GuppyFishSVG';
+import { TropicalFishSVG } from './TropicalFishSVG';
 import { TetraFishSVG } from './TetraFishSVG';
-import { BettaFishSVG } from './BettaFishSVG';
-import { AngelFishSVG } from './AngelFishSVG';
 
 interface FishAvatarProps {
   variant: FishVariant;
@@ -17,10 +17,10 @@ interface FishAvatarProps {
 
 const COMPONENT: Record<FishVariant, React.ComponentType<{ size?: number; className?: string }>> = {
   goldfish: GoldFishSVG,
+  koi: KoiFishSVG,
   guppy: GuppyFishSVG,
+  tropical: TropicalFishSVG,
   tetra: TetraFishSVG,
-  betta: BettaFishSVG,
-  angel: AngelFishSVG,
 };
 
 /** Stage multiplier applied to the rendered size. Fry is 40%, adult 100%. */
