@@ -111,7 +111,7 @@ function TankStageInner({ fishList, onFishClick, weatherCode, feedRef }: TankSta
     <div
       ref={containerRef}
       className={`swim-stage glass-card ${bgClass}`}
-      style={{ minHeight: 280, position: 'relative', overflow: 'hidden' }}
+      style={{ position: 'relative', overflow: 'hidden' }}
     >
       {/* Deep-sea gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.08] to-deep/40 pointer-events-none z-0" />
