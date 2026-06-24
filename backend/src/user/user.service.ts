@@ -49,4 +49,26 @@ export class UserService {
     // No tanks at all
     return { defaultTankId: null };
   }
+
+  async setDefaultTank(tankId: string): Promise<DefaultTankResult> {
+    // Find the tank to verify it exists and get its userId
+    const tank = await this.prisma.fishTank.findUnique({
+      where: { id: tankId },
+    });
+
+    if (!tank) {
+      throw new NotFoundException('Tank not found');
+    }
+
+    // Update user's defaultTankId
+    await this.prisma.user.update({
+      where: { id: tank.userId },
+      data: { defaultTankId: tankId },
+    });
+
+    return {
+      defaultTankId: tankId,
+      tankName: tank.name,
+    };
+  }
 }

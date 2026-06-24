@@ -208,20 +208,20 @@
   },
   "achievements": {
     "firstTank": "初识鱼缸",
-    "firstTank.description": "创建你的第一个鱼缸",
+    "firstTankDescription": "创建你的第一个鱼缸",
     "fishWhisperer": "鱼语者",
-    "fishWhisperer.description": "成功养成5条鱼至成年",
+    "fishWhispererDescription": "成功养成5条鱼至成年",
     "masterFeeder": "投喂达人",
-    "masterFeeder.description": "累计投喂100次",
+    "masterFeederDescription": "累计投喂100次",
     "consistentCarer": "规律照料",
-    "consistentCarer.description": "连续30天未中断照料",
+    "consistentCarerDescription": "连续30天未中断照料",
     "tankBreeder": "养鱼繁殖",
-    "tankBreeder.description": "成功繁殖一条鱼",
+    "tankBreederDescription": "成功繁殖一条鱼",
     "aquaExpert": "水质达人",
-    "aquaExpert.description": "保持水质完美30天",
+    "aquaExpertDescription": "保持水质完美30天",
     "fishFriend": "鱼之友",
-    "fishFriend.description": "解锁全部5种基础鱼种",
+    "fishFriendDescription": "解锁全部5种基础鱼种",
     "dedication": "执着养鱼",
-    "dedication.description": "累计养鱼100天"
+    "dedicationDescription": "累计养鱼100天"
   }
 }

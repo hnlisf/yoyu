@@ -1,29 +1,34 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/routing';
 import { api } from '@/lib/api';
 
-const USER_ID = 'demo-user';
-
 /**
- * v6.0 HomeRedirect — on mount, queries user's default tank
- * and redirects accordingly.
+ * v6.1 HomeRedirect — on mount, reads userId from query param or localStorage,
+ * queries user's default tank and redirects accordingly.
  *
  * - If defaultTankId → redirect to /tanks/:id
  * - If no defaultTankId → redirect to /tanks
  */
 export function HomeRedirect() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
+    // Read userId: query param first, fall back to localStorage
+    const userId = searchParams.get('userId') || 
+      (typeof window !== 'undefined' ? localStorage.getItem('userId') : null) ||
+      '';
+
     (async () => {
       try {
         const data = await api<{ defaultTankId?: string }>(
-          `/api/user/me/default-tank?userId=${USER_ID}`,
+          `/api/user/me/default-tank?userId=${encodeURIComponent(userId)}`,
         );
 
         if (cancelled) return;
@@ -43,7 +48,7 @@ export function HomeRedirect() {
     })();
 
     return () => { cancelled = true; };
-  }, [router]);
+  }, [router, searchParams]);
 
   if (error) {
     return (

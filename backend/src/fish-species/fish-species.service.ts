@@ -73,6 +73,7 @@ export class FishSpeciesService {
       stages,
       color: s.color,
       isDefault: s.isDefault,
+      feedRefuseHint: (s as any).feedRefuseHint,
     };
   }
 }

@@ -15,6 +15,7 @@ import { Toast } from '@/components/ui/Toast';
 import { Icon } from '@/components/ui/Icon';
 import { HeaterSwitch } from '@/components/Tank/HeaterSwitch';
 import { useTranslateTankName } from '@/lib/i18n/tankName';
+import { BottomDrawer } from '@/components/BottomDrawer';
 
 interface PageProps {
   params: { id: string };
@@ -125,7 +126,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
       setToast(t('feedAllDone'));
       await load();
     } catch (e: any) {
-      setToast('Feed failed: ' + e.message);
+      setToast(e.message);
     } finally {
       setBusy(false);
     }
@@ -166,8 +167,9 @@ function TankPageContent({ tankId }: { tankId: string }) {
   }
 
   return (
-    <div className="space-y-5">
-      <header className="flex items-baseline justify-between">
+    <div className="flex flex-col h-screen max-h-screen overflow-hidden">
+      {/* Header — shrinks to fit */}
+      <header className="flex items-baseline justify-between shrink-0 px-1 pt-2 pb-1">
         <div>
           <Link
             href="/tanks"
@@ -184,144 +186,170 @@ function TankPageContent({ tankId }: { tankId: string }) {
         </div>
       </header>
 
-      {/* Main stage — v6.0: rAF physics engine + feeding state machine */}
-      <TankStage fishList={fishList} feedRef={feedRef} />
-
-      {/* Status bars */}
-      <GlassCard className="space-y-3">
-        <h2 className="text-sm font-normal text-text-primary">{t('statusTitle')}</h2>
-        <ProgressBar value={tank.cleanliness} variant="accent" showLabel label={t('cleanliness')} />
-        <ProgressBar value={tank.oxygen} variant="health" showLabel label={t('oxygen')} />
-      </GlassCard>
-
-      {/* Water quality cards + heater + weather */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {/* Water temp — with warning styling */}
-        <GlassCard
-          className={`text-center py-4 ${
-            showTempWarning
-              ? 'border border-yellow-500/50'
-              : ''
-          }`}
-        >
-          <p className="text-[10px] text-text-secondary font-light uppercase tracking-wide">
-            {t('temp')}
-          </p>
-          <p
-            className={`text-xl mt-1 font-light tabular-nums ${
-              showTempWarning ? 'text-red-400' : 'text-accent'
-            }`}
-          >
-            {tank.temp.toFixed(1)}°
-          </p>
-          {showTempWarning && (
-            <p className="text-[9px] text-red-400/80 mt-0.5">异常水温</p>
-          )}
-        </GlassCard>
-
-        <GlassCard className="text-center py-4">
-          <p className="text-[10px] text-text-secondary font-light uppercase tracking-wide">pH</p>
-          <p className="text-xl text-accent mt-1 font-light tabular-nums">
-            {tank.ph.toFixed(1)}
-          </p>
-        </GlassCard>
-
-        <GlassCard className="text-center py-4">
-          <p className="text-[10px] text-text-secondary font-light uppercase tracking-wide">
-            {t('fish')}
-          </p>
-          <p className="text-xl text-accent mt-1 font-light tabular-nums">
-            {fishList.length}
-          </p>
-        </GlassCard>
-      </div>
-
-      {/* Heater + Weather row */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-text-secondary font-light uppercase tracking-wide">加热器</span>
-          <HeaterSwitch
-            tankId={tankId}
-            heaterOn={heaterOn}
-            onToggle={toggleHeater}
-            disabled={heaterToggling}
-          />
+      {/* Main stage — v6.1: ≤60vh on mobile, flex-6 on desktop */}
+      <div className="flex-1 min-h-0 flex flex-col sm:flex-row gap-0">
+        {/* Swim stage — ≤60% viewport */}
+        <div className="flex-[6] min-h-0 max-h-[60vh] sm:max-h-none">
+          <TankStage fishList={fishList} feedRef={feedRef} />
         </div>
 
-        {/* City temp display */}
-        {weather && (
-          <div className="flex items-center gap-1.5 text-xs text-text-secondary font-light">
-            <span>🌡️</span>
-            <span>城市 {weather.temp}°</span>
-            <span className="text-[10px] opacity-60">{weather.description}</span>
-          </div>
-        )}
-
-        {/* Manual refresh weather button */}
-        <button
-          type="button"
-          onClick={loadWeather}
-          disabled={weatherLoading}
-          className="inline-flex items-center gap-1 text-[10px] text-accent/70 hover:text-accent transition ml-auto"
-        >
-          <span className={weatherLoading ? 'animate-spin' : ''}>🔄</span>
-          刷新天气
-        </button>
+        {/* Desktop side panel — controls always visible on sm+ */}
+        <div className="hidden sm:flex flex-[4] min-h-0 flex-col overflow-y-auto p-3 space-y-3">
+          {controlsContent()}
+        </div>
       </div>
 
-      {/* Action buttons */}
-      <div className="grid grid-cols-3 gap-3">
-        <Button variant="accent" onClick={feedAll} disabled={busy || !fishList.length}>
-          <Icon name="feed" size={14} /> {t('feedAll')}
-        </Button>
-        <Button variant="primary" onClick={waterChange} disabled={busy}>
-          <Icon name="water" size={14} /> {t('waterChange')}
-        </Button>
-        <Button variant="ghost" disabled>
-          <Icon name="treat" size={14} /> {t('treat')}
-        </Button>
+      {/* Mobile BottomDrawer — wraps all controls */}
+      <div className="sm:hidden shrink-0">
+        <BottomDrawer
+          tabs={[
+            {
+              key: 'status',
+              label: t('statusTitle'),
+              content: <div className="space-y-3">{controlsContent()}</div>,
+            },
+          ]}
+          defaultExpanded={false}
+        />
       </div>
-
-      {/* Species chips */}
-      {fishList.length > 0 && (
-        <GlassCard className="space-y-3">
-          <h2 className="text-sm font-normal text-text-primary">{t('fish')}</h2>
-          <div className="space-y-2">
-            {fishList.map((f) => {
-              const variant = slugToVariant(f.species?.name ?? f.species?.id);
-              return (
-                <Link
-                  key={f.id}
-                  href={`/growth/${f.id}`}
-                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-glass transition"
-                >
-                  <FishAvatar variant={variant} stage={f.stage} size={48} animated={false} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-text-primary truncate">
-                      {f.name || tf(f.stage)}
-                    </p>
-                    <p className="text-[10px] font-light text-text-secondary">
-                      {tf(f.stage)} · {Math.round(f.growth)}%
-                    </p>
-                  </div>
-                  <div className="flex gap-1">
-                    <Tag variant="success">
-                      <Icon name="health" size={11} /> {Math.round(f.health)}
-                    </Tag>
-                    <Tag variant="gold">
-                      <Icon name="feed" size={11} /> {Math.round(f.nutrition)}
-                    </Tag>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </GlassCard>
-      )}
 
       <Toast message={toast} onDismiss={() => setToast(null)} />
     </div>
   );
+
+  /** Shared controls content for desktop side panel & mobile drawer */
+  function controlsContent() {
+    return (
+      <>
+        {/* Status bars */}
+        <GlassCard className="space-y-3">
+          <h2 className="text-sm font-normal text-text-primary">{t('statusTitle')}</h2>
+          <ProgressBar value={tank!.cleanliness} variant="accent" showLabel label={t('cleanliness')} />
+          <ProgressBar value={tank!.oxygen} variant="health" showLabel label={t('oxygen')} />
+        </GlassCard>
+
+        {/* Water quality cards */}
+        <div className="grid grid-cols-3 gap-2">
+          <GlassCard
+            className={`text-center py-3 ${
+              showTempWarning ? 'border border-yellow-500/50' : ''
+            }`}
+          >
+            <p className="text-[10px] text-text-secondary font-light uppercase tracking-wide">
+              {t('temp')}
+            </p>
+            <p
+              className={`text-lg mt-1 font-light tabular-nums ${
+                showTempWarning ? 'text-red-400' : 'text-accent'
+              }`}
+            >
+              {tank!.temp.toFixed(1)}°
+            </p>
+            {showTempWarning && (
+              <p className="text-[9px] text-red-400/80 mt-0.5">异常水温</p>
+            )}
+          </GlassCard>
+
+          <GlassCard className="text-center py-3">
+            <p className="text-[10px] text-text-secondary font-light uppercase tracking-wide">pH</p>
+            <p className="text-lg text-accent mt-1 font-light tabular-nums">
+              {tank!.ph.toFixed(1)}
+            </p>
+          </GlassCard>
+
+          <GlassCard className="text-center py-3">
+            <p className="text-[10px] text-text-secondary font-light uppercase tracking-wide">
+              {t('fish')}
+            </p>
+            <p className="text-lg text-accent mt-1 font-light tabular-nums">
+              {fishList.length}
+            </p>
+          </GlassCard>
+        </div>
+
+        {/* Heater + Weather row */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-text-secondary font-light uppercase tracking-wide">加热器</span>
+            <HeaterSwitch
+              tankId={tankId}
+              heaterOn={heaterOn}
+              onToggle={toggleHeater}
+              disabled={heaterToggling}
+            />
+          </div>
+
+          {weather && (
+            <div className="flex items-center gap-1.5 text-xs text-text-secondary font-light">
+              <span>🌡️</span>
+              <span>城市 {weather.temp}°</span>
+              <span className="text-[10px] opacity-60">{weather.description}</span>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={loadWeather}
+            disabled={weatherLoading}
+            className="inline-flex items-center gap-1 text-[10px] text-accent/70 hover:text-accent transition ml-auto"
+          >
+            <span className={weatherLoading ? 'animate-spin' : ''}>🔄</span>
+            刷新天气
+          </button>
+        </div>
+
+        {/* Action buttons */}
+        <div className="grid grid-cols-3 gap-2">
+          <Button variant="accent" onClick={feedAll} disabled={busy || !fishList.length}>
+            <Icon name="feed" size={14} /> {t('feedAll')}
+          </Button>
+          <Button variant="primary" onClick={waterChange} disabled={busy}>
+            <Icon name="water" size={14} /> {t('waterChange')}
+          </Button>
+          <Button variant="ghost" disabled>
+            <Icon name="treat" size={14} /> {t('treat')}
+          </Button>
+        </div>
+
+        {/* Species chips */}
+        {fishList.length > 0 && (
+          <GlassCard className="space-y-2">
+            <h2 className="text-sm font-normal text-text-primary">{t('fish')}</h2>
+            <div className="space-y-1.5">
+              {fishList.map((f) => {
+                const variant = slugToVariant(f.species?.name ?? f.species?.id);
+                return (
+                  <Link
+                    key={f.id}
+                    href={`/growth/${f.id}`}
+                    className="flex items-center gap-2 p-2 rounded-xl hover:bg-glass transition"
+                  >
+                    <FishAvatar variant={variant} stage={f.stage} size={40} animated={false} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-text-primary truncate">
+                        {f.name || tf(f.stage)}
+                      </p>
+                      <p className="text-[10px] font-light text-text-secondary">
+                        {tf(f.stage)} · {Math.round(f.growth)}%
+                      </p>
+                    </div>
+                    <div className="flex gap-1">
+                      <Tag variant="success">
+                        <Icon name="health" size={11} /> {Math.round(f.health)}
+                      </Tag>
+                      <Tag variant="gold">
+                        <Icon name="feed" size={11} /> {Math.round(f.nutrition)}
+                      </Tag>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </GlassCard>
+        )}
+      </>
+    );
+  }
 }
 
 function tkSize(

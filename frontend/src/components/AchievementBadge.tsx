@@ -27,7 +27,7 @@ export function AchievementBadge({ achievementKey, unlocked = false, unlockedAt 
   const t = useTranslations('achievements');
 
   const name = t(achievementKey);
-  const description = t(`${achievementKey}.description`);
+  const description = t(`${achievementKey}Description`);
 
   return (
     <div
