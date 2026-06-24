@@ -12,9 +12,8 @@ import {
   type Achievement,
 } from '@/lib/api/mock';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { Tag } from '@/components/ui/Tag';
-import { Icon } from '@/components/ui/Icon';
 import { WeeklyBarChart } from '@/components/stats/WeeklyBarChart';
+import { AchievementBadge } from '@/components/AchievementBadge';
 
 const USER_ID = 'demo-user';
 
@@ -88,32 +87,12 @@ export default function StatsPage() {
         <h2 className="text-sm font-normal text-text-primary mb-3">{t('achievements')}</h2>
         <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
           {achievements.map((a) => (
-            <div
+            <AchievementBadge
               key={a.id}
-              className={`flex flex-col items-center text-center p-3 rounded-xl border transition shrink-0 w-24 snap-start ${
-                a.unlocked
-                  ? 'bg-glass border-glass-border'
-                  : 'bg-glass/30 border-glass-border opacity-50'
-              }`}
-              title={a.description}
-            >
-              <span
-                className={`mb-1.5 ${a.unlocked ? 'text-accent' : 'text-text-secondary'}`}
-                aria-hidden
-              >
-                <Icon name={a.icon} size={26} />
-              </span>
-              <p className="text-[11px] font-normal text-text-primary leading-tight whitespace-nowrap">{a.name}</p>
-              {a.unlocked ? (
-                <Tag variant="success" className="mt-1.5">
-                  {t('unlocked')}
-                </Tag>
-              ) : (
-                <Tag variant="neutral" className="mt-1.5">
-                  {t('locked')}
-                </Tag>
-              )}
-            </div>
+              achievementKey={a.achievementKey}
+              unlocked={a.unlocked}
+              unlockedAt={a.unlockedAt}
+            />
           ))}
         </div>
       </GlassCard>

@@ -20,6 +20,7 @@ export async function main(prismaArg?: PrismaClient) {
         { name: 'subadult', label: { zh: '亚成鱼', en: 'Subadult', ja: '亜成魚' }, days: 60 },
         { name: 'adult', label: { zh: '成鱼', en: 'Adult', ja: '成魚' }, days: 90 },
       ]),
+      feedRefuseHint: '金鱼还没饿呢，{hours}小时后再投喂吧~',
       color: '#FFD700', isDefault: true,
     },
     {
@@ -37,6 +38,7 @@ export async function main(prismaArg?: PrismaClient) {
         { name: 'subadult', label: { zh: '亚成鱼', en: 'Subadult', ja: '亜成魚' }, days: 120 },
         { name: 'adult', label: { zh: '成鱼', en: 'Adult', ja: '成魚' }, days: 180 },
       ]),
+      feedRefuseHint: '锦鲤刚吃饱，{hours}小时后再喂~',
       color: '#FF6347', isDefault: true,
     },
     {
@@ -54,6 +56,7 @@ export async function main(prismaArg?: PrismaClient) {
         { name: 'subadult', label: { zh: '亚成鱼', en: 'Subadult', ja: '亜成魚' }, days: 40 },
         { name: 'adult', label: { zh: '成鱼', en: 'Adult', ja: '成魚' }, days: 60 },
       ]),
+      feedRefuseHint: '孔雀鱼还在消化，{hours}小时后再投喂吧~',
       color: '#00CED1', isDefault: true,
     },
     {
@@ -71,6 +74,7 @@ export async function main(prismaArg?: PrismaClient) {
         { name: 'subadult', label: { zh: '亚成鱼', en: 'Subadult', ja: '亜成魚' }, days: 50 },
         { name: 'adult', label: { zh: '成鱼', en: 'Adult', ja: '成魚' }, days: 75 },
       ]),
+      feedRefuseHint: '热带鱼不饿呢，{hours}小时后再喂~',
       color: '#4169E1', isDefault: true,
     },
     {
@@ -88,6 +92,7 @@ export async function main(prismaArg?: PrismaClient) {
         { name: 'subadult', label: { zh: '亚成鱼', en: 'Subadult', ja: '亜成魚' }, days: 80 },
         { name: 'adult', label: { zh: '成鱼', en: 'Adult', ja: '成魚' }, days: 120 },
       ]),
+      feedRefuseHint: '神仙鱼还没饿呢，{hours}小时后再投喂吧~',
       color: '#DAA520', isDefault: true,
     },
     {
@@ -105,6 +110,7 @@ export async function main(prismaArg?: PrismaClient) {
         { name: 'subadult', label: { zh: '亚成鱼', en: 'Subadult', ja: '亜成魚' }, days: 45 },
         { name: 'adult', label: { zh: '成鱼', en: 'Adult', ja: '成魚' }, days: 70 },
       ]),
+      feedRefuseHint: '灯科鱼的肚子还饱着呢，{hours}小时后再投喂吧~',
       color: '#FF8C00', isDefault: true,
     },
     {
@@ -122,6 +128,7 @@ export async function main(prismaArg?: PrismaClient) {
         { name: 'subadult', label: { zh: '亚成鱼', en: 'Subadult', ja: '亜成魚' }, days: 65 },
         { name: 'adult', label: { zh: '成鱼', en: 'Adult', ja: '成魚' }, days: 100 },
       ]),
+      feedRefuseHint: '斗鱼还不饿哦，{hours}小时后再喂~',
       color: '#DC143C', isDefault: true,
     },
     {
@@ -139,6 +146,7 @@ export async function main(prismaArg?: PrismaClient) {
         { name: 'subadult', label: { zh: '亚成鱼', en: 'Subadult', ja: '亜成魚' }, days: 55 },
         { name: 'adult', label: { zh: '成鱼', en: 'Adult', ja: '成魚' }, days: 80 },
       ]),
+      feedRefuseHint: '鼠鱼还饱饱的，{hours}小时后再投喂吧~',
       color: '#8B4513', isDefault: true,
     },
     {
@@ -156,6 +164,7 @@ export async function main(prismaArg?: PrismaClient) {
         { name: 'subadult', label: { zh: '亚成鱼', en: 'Subadult', ja: '亜成魚' }, days: 100 },
         { name: 'adult', label: { zh: '成鱼', en: 'Adult', ja: '成魚' }, days: 150 },
       ]),
+      feedRefuseHint: '异形正在打扫缸壁，{hours}小时后再喂~',
       color: '#2F4F4F', isDefault: true,
     },
     {
@@ -173,6 +182,7 @@ export async function main(prismaArg?: PrismaClient) {
         { name: 'subadult', label: { zh: '亚成鱼', en: 'Subadult', ja: '亜成魚' }, days: 75 },
         { name: 'adult', label: { zh: '成鱼', en: 'Adult', ja: '成魚' }, days: 110 },
       ]),
+      feedRefuseHint: '清道夫把缸里都清理干净啦，{hours}小时后再投喂吧~',
       color: '#556B2F', isDefault: true,
     },
   ];
@@ -201,6 +211,8 @@ export async function main(prismaArg?: PrismaClient) {
           name: '我的鱼缸',
           size: 'medium',
           temp: 24,
+          cityTemp: 24,
+          heaterOn: false,
           cleanliness: 100,
           oxygen: 100,
           ph: 7.0,
@@ -209,6 +221,14 @@ export async function main(prismaArg?: PrismaClient) {
     },
     include: { tanks: true },
   });
+
+  // Set default tank
+  if (user.tanks[0]) {
+    await prisma.user.update({
+      where: { id: 'demo-user' },
+      data: { defaultTankId: user.tanks[0].id },
+    });
+  }
 
   // 给默认鱼缸加一条金鱼
   const goldfish = await prisma.fishSpecies.findFirst({ where: { color: '#FFD700' } });

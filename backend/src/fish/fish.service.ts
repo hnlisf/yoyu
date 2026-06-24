@@ -4,9 +4,10 @@ import { Fish } from '@prisma/client';
 import { FishSpeciesService } from '../fish-species/fish-species.service';
 
 export interface CreateFishDto {
-  tankId: string;
+  tankId?: string;
   speciesId: string;
   name?: string;
+  userId?: string;
 }
 
 export interface UpdateFishDto {
@@ -32,6 +33,16 @@ export class FishService {
     return list.map((f) => this.attachI18nSpecies(f, lang));
   }
 
+  /** Get all fish owned by a user (across all tanks) */
+  async findAllByUser(userId: string, lang = 'zh') {
+    const list = await this.prisma.fish.findMany({
+      where: { tank: { userId } },
+      include: { species: true, feedRecords: { orderBy: { fedAt: 'desc' }, take: 5 } },
+      orderBy: { createdAt: 'asc' },
+    });
+    return list.map((f) => this.attachI18nSpecies(f, lang));
+  }
+
   async findOne(id: string, lang = 'zh') {
     const fish = await this.prisma.fish.findUnique({
       where: { id },
@@ -48,16 +59,51 @@ export class FishService {
     return fish;
   }
 
-  async create(data: CreateFishDto): Promise<Fish> {
-    // Validate tank and species exist
-    const tank = await this.prisma.fishTank.findUnique({ where: { id: data.tankId } });
-    if (!tank) throw new NotFoundException('Fish tank not found');
+  /**
+   * Create a fish. If tankId is not provided, resolve from user's defaultTankId,
+   * fall back to first tank, auto-promote as default.
+   */
+  async create(data: CreateFishDto, userId?: string): Promise<Fish> {
+    // Resolve tankId: explicit > user.defaultTankId > first tank > error
+    let tankId = data.tankId;
+
+    const uid = userId || data.userId;
+    if (!tankId && uid) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: uid },
+        include: { tanks: { orderBy: { createdAt: 'asc' }, take: 1 } },
+      });
+
+      if (!user) throw new NotFoundException('用户不存在');
+
+      if (user.defaultTankId) {
+        const defTank = await this.prisma.fishTank.findUnique({
+          where: { id: user.defaultTankId },
+        });
+        if (defTank) tankId = user.defaultTankId;
+      }
+
+      if (!tankId && user.tanks.length > 0) {
+        tankId = user.tanks[0].id;
+        await this.prisma.user.update({
+          where: { id: uid },
+          data: { defaultTankId: tankId },
+        });
+      }
+    }
+
+    if (!tankId) {
+      throw new BadRequestException('请先创建一个鱼缸');
+    }
+
+    const tank = await this.prisma.fishTank.findUnique({ where: { id: tankId } });
+    if (!tank) throw new NotFoundException('鱼缸不存在');
     const species = await this.prisma.fishSpecies.findUnique({ where: { id: data.speciesId } });
-    if (!species) throw new NotFoundException('Fish species not found');
+    if (!species) throw new NotFoundException('鱼种不存在');
 
     return this.prisma.fish.create({
       data: {
-        tankId: data.tankId,
+        tankId,
         speciesId: data.speciesId,
         name: data.name ?? '',
         stage: 'fry',
@@ -91,8 +137,11 @@ export class FishService {
     if (fish.lastFedAt) {
       const hoursSinceLastFeed = (Date.now() - new Date(fish.lastFedAt).getTime()) / (1000 * 60 * 60);
       if (hoursSinceLastFeed < minIntervalHours) {
+        const hoursRemain = Math.ceil(minIntervalHours - hoursSinceLastFeed);
+        const hint = fish.species.feedRefuseHint
+          || `还没到投喂时间呢，请等待 {hours} 小时后再次投喂`;
         throw new BadRequestException(
-          `Too soon to feed. Wait at least ${minIntervalHours}h (last fed ${hoursSinceLastFeed.toFixed(1)}h ago)`,
+          `温馨提醒：${hint.replace('{hours}', String(hoursRemain))}`,
         );
       }
     }
@@ -128,9 +177,6 @@ export class FishService {
     return updated;
   }
 
-  /**
-   * Compute the current stage by growth percentage vs species stages.
-   */
   computeStage(growth: number, stagesJson: string): string {
     let stages: any[] = [];
     try { stages = JSON.parse(stagesJson); } catch {}

@@ -4,7 +4,7 @@ import Link from 'next/link';
 const RECOMMENDED_FISH = [
   { id: 'goldfish', nameKey: '金鱼', emoji: '🐠', desc: '好养入门' },
   { id: 'guppy', nameKey: '孔雀鱼', emoji: '🐟', desc: '色彩缤纷' },
-  { id: 'betta', nameKey: '斗鱼', emoji: '🐡', desc: '个性独特' },
+  { id: 'koi', nameKey: '锦鲤', emoji: '🐡', desc: '花纹优雅' },
 ];
 
 /**

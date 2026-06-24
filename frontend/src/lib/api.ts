@@ -62,6 +62,12 @@ function humanizeError(responseText: string): string {
     }
   }
 
+  // If message already contains Chinese (e.g. backend user-friendly hints),
+  // return it directly — it's already a readable user-facing message
+  if (/[\u4e00-\u9fff]/.test(message)) {
+    return message;
+  }
+
   // If the parsed message looks like English, give a friendly fallback
   if (/^[a-zA-Z\s.!?,:;()]+$/.test(message) && message.length < 200) {
     return `操作失败：${message}`;
@@ -97,6 +103,7 @@ export interface FishSpecies {
   stages: Array<{ name: string; label: Record<string, string>; days: number }>;
   color: string;
   isDefault: boolean;
+  feedRefuseHint?: string;
 }
 
 export interface Fish {
@@ -123,6 +130,8 @@ export interface FishTank {
   cleanliness: number;
   oxygen: number;
   ph: number;
+  cityTemp: number;
+  heaterOn: boolean;
   fish?: Fish[];
 }
 

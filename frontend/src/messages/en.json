@@ -205,5 +205,23 @@
     "back": "Back",
     "language": "Language",
     "create": "Create"
+  },
+  "achievements": {
+    "firstTank": "First Tank",
+    "firstTankDescription": "Create your first tank",
+    "fishWhisperer": "Fish Whisperer",
+    "fishWhispererDescription": "Raise 5 fish to adulthood",
+    "masterFeeder": "Master Feeder",
+    "masterFeederDescription": "Feed your fish 100 times",
+    "consistentCarer": "Consistent Carer",
+    "consistentCarerDescription": "Care for your fish 30 days in a row",
+    "tankBreeder": "Tank Breeder",
+    "tankBreederDescription": "Successfully breed a fish",
+    "aquaExpert": "Aqua Expert",
+    "aquaExpertDescription": "Keep perfect water quality for 30 days",
+    "fishFriend": "Fish Friend",
+    "fishFriendDescription": "Unlock all 5 base species",
+    "dedication": "Dedication",
+    "dedicationDescription": "Accumulate 100 days of fish keeping"
   }
 }

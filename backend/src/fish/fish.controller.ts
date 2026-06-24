@@ -16,6 +16,15 @@ export class FishController {
     return this.service.findAllByTank(tankId, lang);
   }
 
+  // IMPORTANT: specific routes must come BEFORE parameterized routes
+  @Get('my')
+  @ApiOperation({ summary: 'List all fish belonging to a user (across all tanks)' })
+  @ApiQuery({ name: 'userId', required: true })
+  @ApiQuery({ name: 'lang', required: false })
+  async myFish(@Query('userId') userId: string, @Query('lang') lang?: string) {
+    return this.service.findAllByUser(userId, lang);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get fish detail (with species + recent feed records)' })
   @ApiQuery({ name: 'lang', required: false })
@@ -24,7 +33,7 @@ export class FishController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Add a new fish to a tank' })
+  @ApiOperation({ summary: 'Add a new fish (tankId optional, resolves from user default)' })
   async create(@Body() body: CreateFishDto) {
     return this.service.create(body);
   }
