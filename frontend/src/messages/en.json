@@ -80,7 +80,8 @@
     "我的鱼缸": "My Tank",
     "客厅大缸": "Living Room Tank",
     "书房小缸": "Study Room Tank",
-    "阳台中缸": "Balcony Tank"
+    "阳台中缸": "Balcony Tank",
+    "My Tank": "My Tank"
   },
   "growth": {
     "backToTank": "Back to tank",

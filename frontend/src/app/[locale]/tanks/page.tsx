@@ -34,7 +34,7 @@ export default function TanksHomePage() {
   const [loading, setLocalLoading] = useState(tanks.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [name, setName] = useState('My Tank');
+  const [name, setName] = useState('我的鱼缸');
   const [size, setSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [busy, setBusy] = useState(false);
   const [representativeFishByTank, setRepresentativeFishByTank] = useState<Record<string, Fish>>({});
@@ -84,7 +84,7 @@ export default function TanksHomePage() {
         body: JSON.stringify({ userId: USER_ID, name, size }),
       });
       setCreating(false);
-      setName('My Tank');
+      setName('我的鱼缸');
       // Re-fetch and store the new tank.
       const data = await api<FishTank[]>(`/api/fish-tanks?userId=${USER_ID}`);
       setTanks(data);
