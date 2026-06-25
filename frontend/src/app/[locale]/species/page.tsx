@@ -25,6 +25,16 @@ export default function SpeciesPage() {
 
   const addToTank = async (sp: FishSpecies) => {
     let tankId = localStorage.getItem(STORAGE_KEY);
+    // Validate existing tankId before use (it may have been deleted or belong to another user)
+    if (tankId) {
+      try {
+        await api(`/api/fish-tanks/${tankId}`);
+      } catch {
+        // tankId is stale — clear it and recreate
+        tankId = null;
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
     if (!tankId) {
       const tank = await api<{ id: string }>('/api/fish-tanks', {
         method: 'POST',
@@ -32,12 +42,19 @@ export default function SpeciesPage() {
       });
       tankId = tank.id;
       localStorage.setItem(STORAGE_KEY, tankId);
+      // Set as default tank for HomeRedirect
+      try {
+        await api('/api/user/preferences', {
+          method: 'PUT',
+          body: JSON.stringify({ defaultTankId: tankId }),
+        });
+      } catch { /* non-critical */ }
     }
     await api('/api/fish', {
       method: 'POST',
       body: JSON.stringify({ tankId, speciesId: sp.id }),
     });
-    alert(`Added ${sp.name} to your tank!`);
+    alert(`已添加 ${sp.name} 到鱼缸！`);
   };
 
   const createCustom = async () => {
