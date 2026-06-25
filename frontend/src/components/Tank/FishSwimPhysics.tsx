@@ -205,8 +205,8 @@ export function useFishSwimPhysics(
           s.vy = (s.vy / mag) * maxSpeed;
         }
 
-        // Direction
-        s.direction = s.vx < -5 ? 'left' : s.vx > 5 ? 'right' : s.direction;
+        // Direction — use direct velocity sign (no hysteresis) for correct immediate flip
+        s.direction = s.vx < 0 ? 'left' : 'right';
       }
 
       // Update React state every 3 frames (~20 fps visual updates)
@@ -250,7 +250,7 @@ export function fishPositionStyle(
     top: 0,
     width: fishSize,
     height: Math.round(fishSize * 0.6),
-    transform: `translate(${pos.x - fishSize / 2}px, ${pos.y - fishSize * 0.3}px) scaleX(${pos.direction === 'left' ? 1 : -1})`,
+    transform: `translate(${pos.x - fishSize / 2}px, ${pos.y - fishSize * 0.3}px) scaleX(${pos.direction === 'left' ? -1 : 1})`,
     willChange: 'transform',
   };
 }
