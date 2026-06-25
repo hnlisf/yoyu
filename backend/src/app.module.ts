@@ -11,6 +11,8 @@ import { FeedingAdviceModule } from './feeding-advice/feeding-advice.module';
 import { RemindersModule } from './reminders/reminders.module';
 import { PreferencesModule } from './preferences/preferences.module';
 import { UserModule } from './user/user.module';
+import { TemperatureModule } from './temperature/temperature.module';
+// (end of imports)
 
 @Module({
   imports: [
@@ -24,6 +26,7 @@ import { UserModule } from './user/user.module';
     RemindersModule,
     PreferencesModule,
     UserModule,
+    TemperatureModule,
   ],
   controllers: [AppController],
   providers: [AppService],

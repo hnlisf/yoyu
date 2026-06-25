@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FishTank, Prisma } from '@prisma/client';
 import { FishSpeciesService } from '../fish-species/fish-species.service';
 import { FishService } from '../fish/fish.service';
+import { WaterTemperatureService } from '../temperature/water-temperature.service';
 
 export interface CreateFishTankDto {
   userId?: string;
@@ -31,7 +32,18 @@ export class FishTanksService {
     private prisma: PrismaService,
     private speciesService: FishSpeciesService,
     private fishService: FishService,
-  ) {}
+    private waterTemp: WaterTemperatureService,
+  ) {
+    // Register flush callback: persist temperature to DB every ~30s
+    this.waterTemp.onFlush(async (tankId, temp) => {
+      try {
+        await this.prisma.fishTank.update({
+          where: { id: tankId },
+          data: { temp },
+        });
+      } catch { /* tank may have been deleted */ }
+    });
+  }
 
   async findAllByUser(userId: string, lang = 'zh'): Promise<any[]> {
     const tanks = await this.prisma.fishTank.findMany({
@@ -49,6 +61,15 @@ export class FishTanksService {
     });
     if (!tank) return null;
     const result = this.attachI18n(tank, lang);
+    // Auto-register with physics engine so temperature tracks in real-time
+    if (this.waterTemp.getCurrentTemp(id) === null) {
+      this.waterTemp.register(
+        id,
+        tank.temp ?? tank.cityTemp ?? 24,
+        tank.cityTemp ?? 20,
+        tank.heaterOn ?? false,
+      );
+    }
     // Ensure cityTemp and heaterOn are explicitly included in response
     return {
       ...result,
@@ -58,8 +79,10 @@ export class FishTanksService {
   }
 
   /**
-   * Toggle the heater for a tank and recalculate temperature.
-   * temp = cityTemp + (heaterOn ? 3 : 0)
+   * Toggle the heater for a tank and engage the physics engine.
+   * Temperature now evolves according to:
+   *   ON:  T(t+1) = T(t) + 0.5 - (T(t) - T_outdoor) * 0.15
+   *   OFF: T(t+1) = T(t) - (T(t) - T_outdoor) * 0.15
    */
   async toggleHeater(
     tankId: string,
@@ -68,14 +91,26 @@ export class FishTanksService {
     const tank = await this.prisma.fishTank.findUnique({ where: { id: tankId } });
     if (!tank) throw new NotFoundException('Fish tank not found');
 
-    const cityTemp = tank.cityTemp ?? 0;
-    const currentTemp = cityTemp + (heaterOn ? 3 : 0);
+    // Register with physics engine if not already tracked
+    const tracked = this.waterTemp.getCurrentTemp(tankId);
+    if (tracked === null) {
+      this.waterTemp.register(
+        tankId,
+        tank.temp ?? tank.cityTemp ?? 24,
+        tank.cityTemp ?? 20,
+        heaterOn,
+      );
+    } else {
+      this.waterTemp.setHeaterOn(tankId, heaterOn);
+    }
 
+    // Persist heaterOn immediately to DB
     await this.prisma.fishTank.update({
       where: { id: tankId },
-      data: { heaterOn, temp: currentTemp },
+      data: { heaterOn },
     });
 
+    const currentTemp = this.waterTemp.getCurrentTemp(tankId) ?? tank.temp;
     return { heaterOn, currentTemp };
   }
 
