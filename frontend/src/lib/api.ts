@@ -85,7 +85,18 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const rawText = await res.text();
-    throw new Error(humanizeError(rawText));
+    const friendly = humanizeError(rawText);
+
+    // Global error logging
+    console.error(`[API Error ${res.status}] ${path}: ${rawText.slice(0, 200)}`);
+
+    // On /stats page, silently fallback to mock data (don't show toast)
+    if (typeof window !== 'undefined' && window.location.pathname.includes('/stats')) {
+      console.warn(`[API Silent Fallback] ${path} → stats mock data used`);
+      return null as unknown as T;
+    }
+
+    throw new Error(friendly);
   }
   return res.json() as Promise<T>;
 }
