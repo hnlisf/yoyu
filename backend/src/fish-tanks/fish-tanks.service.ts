@@ -114,6 +114,35 @@ export class FishTanksService {
     return { heaterOn, currentTemp };
   }
 
+  /**
+   * Update outdoor temperature for a tank.
+   * Called when user switches city or weather data refreshes.
+   * Triggers immediate physics recalculation via WaterTemperatureService.
+   */
+  async updateOutdoorTemp(
+    tankId: string,
+    outdoorTemp: number,
+  ): Promise<{ tankId: string; outdoorTemp: number; waterTemp: number }> {
+    const tank = await this.prisma.fishTank.findUnique({ where: { id: tankId } });
+    if (!tank) throw new NotFoundException('Fish tank not found');
+
+    // Persist cityTemp to DB
+    await this.prisma.fishTank.update({
+      where: { id: tankId },
+      data: { cityTemp: outdoorTemp },
+    });
+
+    // Register with physics engine if needed and update outdoor temp
+    if (this.waterTemp.getCurrentTemp(tankId) === null) {
+      this.waterTemp.register(tankId, tank.temp ?? outdoorTemp, outdoorTemp, tank.heaterOn ?? false);
+    } else {
+      this.waterTemp.updateOutdoorTemp(tankId, outdoorTemp);
+    }
+
+    const waterTemp = this.waterTemp.getCurrentTemp(tankId) ?? tank.temp;
+    return { tankId, outdoorTemp, waterTemp };
+  }
+
   private attachI18n(tank: any, lang: string) {
     if (tank.fish) {
       tank.fish = tank.fish.map((f: any) => {
