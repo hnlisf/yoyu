@@ -104,7 +104,7 @@ export default function SpeciesPage() {
         {species?.map((sp) => (
           <div key={sp.id} className="card hover:shadow-md transition">
             <div className="h-20 rounded-2xl mb-3 bg-water-50 flex items-center justify-center">
-              <FishAvatar variant={slugToVariant(sp.name)} size={64} animated={false} />
+              <FishAvatar variant={(sp.variant as any) ?? slugToVariant(sp.name)} size={64} animated={false} />
             </div>
             <h3 className="font-semibold text-water-600 text-lg">{sp.name}</h3>
             <p className="text-sm text-water-500 mt-1 line-clamp-2">{sp.description}</p>

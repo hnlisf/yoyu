@@ -104,6 +104,7 @@ export interface FishSpecies {
   color: string;
   isDefault: boolean;
   feedRefuseHint?: string;
+  variant?: string;
 }
 
 export interface Fish {
