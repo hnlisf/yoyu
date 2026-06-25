@@ -59,10 +59,11 @@ export default function SpeciesPage() {
 
   const createCustom = async () => {
     if (!name) return;
+    if (!name.trim()) return;
     setBusy(true);
     try {
       const lang = document.cookie.match(/locale=(\w+)/)?.[1] ?? 'zh';
-      await api('/api/fish-species/custom', {
+      const result = await api<{ id: string; name: string }>('/api/fish-species/custom', {
         method: 'POST',
         body: JSON.stringify({
           nameI18n: JSON.stringify({ zh: name, en: name, ja: name }),
@@ -79,8 +80,9 @@ export default function SpeciesPage() {
       setAdding(false);
       setName('');
       refetch();
+      alert(`自定义鱼种「${result.name ?? name}」创建成功！`);
     } catch (e: any) {
-      alert('Failed: ' + e.message);
+      alert('创建失败：' + (e.message ?? '未知错误'));
     } finally {
       setBusy(false);
     }

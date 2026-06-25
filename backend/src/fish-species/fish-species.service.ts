@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FishSpecies } from '@prisma/client';
 
@@ -36,6 +36,17 @@ export class FishSpeciesService {
       typeof data.descI18n === 'string' ? data.descI18n : JSON.stringify(data.descI18n ?? {});
     const stagesStr =
       typeof data.stages === 'string' ? data.stages : JSON.stringify(data.stages ?? []);
+
+    // Validation
+    if (!nameI18nStr || nameI18nStr === '{}')
+      throw new BadRequestException('鱼种名称不能为空');
+    if (data.tempMin >= data.tempMax)
+      throw new BadRequestException('最低温度必须小于最高温度');
+    if (data.phMin >= data.phMax)
+      throw new BadRequestException('最低pH必须小于最高pH');
+    if (data.growthDays <= 0)
+      throw new BadRequestException('生长天数必须大于0');
+
     return this.prisma.fishSpecies.create({
       data: {
         nameI18n: nameI18nStr,
