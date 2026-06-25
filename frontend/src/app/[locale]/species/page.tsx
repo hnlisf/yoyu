@@ -25,6 +25,16 @@ export default function SpeciesPage() {
 
   const addToTank = async (sp: FishSpecies) => {
     let tankId = localStorage.getItem(STORAGE_KEY);
+    // Validate existing tankId before use (it may have been deleted or belong to another user)
+    if (tankId) {
+      try {
+        await api(`/api/fish-tanks/${tankId}`);
+      } catch {
+        // tankId is stale — clear it and recreate
+        tankId = null;
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
     if (!tankId) {
       const tank = await api<{ id: string }>('/api/fish-tanks', {
         method: 'POST',
@@ -32,20 +42,28 @@ export default function SpeciesPage() {
       });
       tankId = tank.id;
       localStorage.setItem(STORAGE_KEY, tankId);
+      // Set as default tank for HomeRedirect
+      try {
+        await api('/api/user/preferences', {
+          method: 'PUT',
+          body: JSON.stringify({ defaultTankId: tankId }),
+        });
+      } catch { /* non-critical */ }
     }
     await api('/api/fish', {
       method: 'POST',
       body: JSON.stringify({ tankId, speciesId: sp.id }),
     });
-    alert(`Added ${sp.name} to your tank!`);
+    alert(`已添加 ${sp.name} 到鱼缸！`);
   };
 
   const createCustom = async () => {
     if (!name) return;
+    if (!name.trim()) return;
     setBusy(true);
     try {
       const lang = document.cookie.match(/locale=(\w+)/)?.[1] ?? 'zh';
-      await api('/api/fish-species/custom', {
+      const result = await api<{ id: string; name: string }>('/api/fish-species/custom', {
         method: 'POST',
         body: JSON.stringify({
           nameI18n: JSON.stringify({ zh: name, en: name, ja: name }),
@@ -62,8 +80,9 @@ export default function SpeciesPage() {
       setAdding(false);
       setName('');
       refetch();
+      alert(`自定义鱼种「${result.name ?? name}」创建成功！`);
     } catch (e: any) {
-      alert('Failed: ' + e.message);
+      alert('创建失败：' + (e.message ?? '未知错误'));
     } finally {
       setBusy(false);
     }
@@ -85,7 +104,7 @@ export default function SpeciesPage() {
         {species?.map((sp) => (
           <div key={sp.id} className="card hover:shadow-md transition">
             <div className="h-20 rounded-2xl mb-3 bg-water-50 flex items-center justify-center">
-              <FishAvatar variant={slugToVariant(sp.name)} size={64} animated={false} />
+              <FishAvatar variant={(sp.variant as any) ?? slugToVariant(sp.name)} size={64} animated={false} />
             </div>
             <h3 className="font-semibold text-water-600 text-lg">{sp.name}</h3>
             <p className="text-sm text-water-500 mt-1 line-clamp-2">{sp.description}</p>

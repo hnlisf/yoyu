@@ -3,14 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/routing';
-import { api } from '@/lib/api';
+import { api, FishTank } from '@/lib/api';
 
 /**
- * v6.1 HomeRedirect — on mount, reads userId from query param or localStorage,
- * queries user's default tank and redirects accordingly.
+ * v7.0 HomeRedirect — 3-branch routing (UI-3)
  *
- * - If defaultTankId → redirect to /tanks/:id
- * - If no defaultTankId → redirect to /tanks
+ * On mount:
+ *   1. Fetch all tanks for the user
+ *   2.  0 tanks → /tanks (empty state with create guide)
+ *   3.  1 tank  → /tanks/:id (direct to the only tank)
+ *   4.  N tanks → /tanks/:defaultTankId (or first tank as fallback)
  */
 export function HomeRedirect() {
   const router = useRouter();
@@ -20,27 +22,39 @@ export function HomeRedirect() {
   useEffect(() => {
     let cancelled = false;
 
-    // Read userId: query param first, fall back to localStorage
-    const userId = searchParams.get('userId') || 
+    const userId = searchParams.get('userId') ||
       (typeof window !== 'undefined' ? localStorage.getItem('userId') : null) ||
-      '';
+      'demo-user';
 
     (async () => {
       try {
-        const data = await api<{ defaultTankId?: string }>(
-          `/api/user/me/default-tank?userId=${encodeURIComponent(userId)}`,
+        const tanks = await api<FishTank[]>(
+          `/api/fish-tanks?userId=${encodeURIComponent(userId)}`,
         );
 
         if (cancelled) return;
 
-        if (data?.defaultTankId) {
-          router.replace(`/tanks/${data.defaultTankId}`);
-        } else {
+        if (tanks.length === 0) {
+          // No tanks — show empty state
           router.replace('/tanks');
+        } else if (tanks.length === 1) {
+          // Exactly one tank — go straight to it
+          router.replace(`/tanks/${tanks[0].id}`);
+        } else {
+          // Multiple tanks — resolve defaultTankId
+          try {
+            const me = await api<{ defaultTankId?: string }>(
+              `/api/user/me/default-tank?userId=${encodeURIComponent(userId)}`,
+            );
+            const targetId = me?.defaultTankId ?? tanks[0].id;
+            router.replace(`/tanks/${targetId}`);
+          } catch {
+            // Fallback to first tank
+            router.replace(`/tanks/${tanks[0].id}`);
+          }
         }
       } catch {
         if (!cancelled) {
-          // API not available — redirect to tanks list
           setError(true);
           setTimeout(() => router.replace('/tanks'), 500);
         }

@@ -21,19 +21,20 @@ const SPECIES_NAME_TO_VARIANT: Array<{ match: RegExp | string; variant: FishVari
   { match: /^goldfish$/i, variant: 'goldfish' },
   { match: /^guppy$/i, variant: 'guppy' },
   { match: /^tetra$/i, variant: 'tetra' },
+  { match: /^neon.?tetra$/i, variant: 'tetra' },
   { match: /^koi|carp$/i, variant: 'koi' },
   { match: /^angel|angelfish|tropical$/i, variant: 'tropical' },
   { match: /^betta$/i, variant: 'tropical' },
   { match: /^molly$/i, variant: 'guppy' },
   { match: /^neon$/i, variant: 'tetra' },
   { match: /^platy$/i, variant: 'tetra' },
+  { match: /^gourami$/i, variant: 'tropical' },
   // Chinese names (zh) — substring match
-  { match: /金鱼/, variant: 'goldfish' },
-  { match: /锦鲤/, variant: 'koi' },
+  { match: /金鱼|金鲫|草金/, variant: 'goldfish' },
+  { match: /锦鲤|红鲤/, variant: 'koi' },
   { match: /孔雀/, variant: 'guppy' },
-  { match: /灯科|灯鱼|霓虹|小型鱼/, variant: 'tetra' },
-  { match: /神仙鱼|热带鱼/, variant: 'tropical' },
-  { match: /斗鱼/, variant: 'tropical' },
+  { match: /灯科|灯鱼|霓虹|小型鱼|青鳉/, variant: 'tetra' },
+  { match: /神仙鱼|热带鱼|斗鱼|七彩/, variant: 'tropical' },
 ];
 
 export function slugToVariant(slug?: string | null): FishVariant {

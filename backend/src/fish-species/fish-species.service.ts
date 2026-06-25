@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FishSpecies } from '@prisma/client';
 
@@ -36,6 +36,17 @@ export class FishSpeciesService {
       typeof data.descI18n === 'string' ? data.descI18n : JSON.stringify(data.descI18n ?? {});
     const stagesStr =
       typeof data.stages === 'string' ? data.stages : JSON.stringify(data.stages ?? []);
+
+    // Validation
+    if (!nameI18nStr || nameI18nStr === '{}')
+      throw new BadRequestException('鱼种名称不能为空');
+    if (data.tempMin >= data.tempMax)
+      throw new BadRequestException('最低温度必须小于最高温度');
+    if (data.phMin >= data.phMax)
+      throw new BadRequestException('最低pH必须小于最高pH');
+    if (data.growthDays <= 0)
+      throw new BadRequestException('生长天数必须大于0');
+
     return this.prisma.fishSpecies.create({
       data: {
         nameI18n: nameI18nStr,
@@ -60,9 +71,10 @@ export class FishSpeciesService {
     try { nameI18n = JSON.parse(s.nameI18n); } catch {}
     try { descI18n = JSON.parse(s.descI18n); } catch {}
     try { stages = JSON.parse(s.stages); } catch {}
+    const zhName = nameI18n['zh'] || '';
     return {
       id: s.id,
-      name: nameI18n[lang] || nameI18n['zh'] || s.nameI18n,
+      name: nameI18n[lang] || zhName || s.nameI18n,
       description: descI18n[lang] || descI18n['zh'] || '',
       tempMin: s.tempMin,
       tempMax: s.tempMax,
@@ -74,6 +86,17 @@ export class FishSpeciesService {
       color: s.color,
       isDefault: s.isDefault,
       feedRefuseHint: (s as any).feedRefuseHint,
+      variant: this.resolveVariant(zhName),
     };
+  }
+
+  private resolveVariant(name: string): string {
+    const n = name.toLowerCase();
+    if (/goldfish|金鱼|金鲫|草金/i.test(n)) return 'goldfish';
+    if (/guppy|孔雀|玛丽/i.test(n)) return 'guppy';
+    if (/tetra|neon|灯鱼|灯科|霓虹|小型鱼|青鳉|platy/i.test(n)) return 'tetra';
+    if (/koi|carp|锦鲤|红鲤/i.test(n)) return 'koi';
+    if (/angel|angelfish|tropical|betta|molly|gourami|神仙鱼|热带鱼|斗鱼|七彩/i.test(n)) return 'tropical';
+    return 'guppy';
   }
 }

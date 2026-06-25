@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { FishTanksService } from './fish-tanks.service';
 import type { CreateFishTankDto, UpdateFishTankDto } from './fish-tanks.service';
@@ -54,5 +54,14 @@ export class FishTanksController {
     @Body() body: { heaterOn: boolean },
   ) {
     return this.service.toggleHeater(id, body.heaterOn);
+  }
+
+  @Patch(':id/temperature')
+  @ApiOperation({ summary: 'Update outdoor temperature (triggers water temp physics recalc)' })
+  async updateOutdoorTemp(
+    @Param('id') id: string,
+    @Body() body: { outdoorTemp: number },
+  ) {
+    return this.service.updateOutdoorTemp(id, body.outdoorTemp);
   }
 }
