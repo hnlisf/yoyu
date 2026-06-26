@@ -112,24 +112,44 @@ function TankPageContent({ tankId }: { tankId: string }) {
     if (!fishList.length) return;
     setBusy(true);
 
-    // Trigger feeding animation in the tank
-    const count = 3 + Math.floor(Math.random() * 5);
-    feedRef.current?.(count, fishList.map((f) => f.id));
-
-    try {
-      for (const f of fishList) {
-        await api(`/api/fish/${f.id}/feed`, {
+    // BUG-3 fix: call API first, animate only on success (ADR-005)
+    const results = await Promise.allSettled(
+      fishList.map((f) =>
+        api(`/api/fish/${f.id}/feed`, {
           method: 'POST',
           body: JSON.stringify({ amount: 'normal' }),
-        });
-      }
-      setToast(t('feedAllDone'));
-      await load();
-    } catch (e: any) {
-      setToast(e.message);
-    } finally {
+        })
+      )
+    );
+
+    const successes = results
+      .map((r, i) => (r.status === 'fulfilled' ? fishList[i].id : null))
+      .filter((id): id is string => id !== null);
+    const failures = results.filter((r) => r.status === 'rejected');
+
+    if (failures.length > 0 && successes.length === 0) {
+      // All failed — no animation, show error
+      const firstError = (failures[0] as PromiseRejectedResult).reason;
+      setToast(firstError?.message || '喂食失败，请稍后再试');
       setBusy(false);
+      return;
     }
+
+    if (successes.length > 0) {
+      // Trigger animation only for successfully fed fish
+      const count = 3 + Math.floor(Math.random() * 5);
+      feedRef.current?.(count, successes);
+
+      if (failures.length > 0) {
+        // Partial success — mixed toast
+        setToast(`${successes.length}条鱼喂食成功，${failures.length}条失败`);
+      } else {
+        setToast(t('feedAllDone'));
+      }
+      await load();
+    }
+
+    setBusy(false);
   };
 
   const waterChange = async () => {
