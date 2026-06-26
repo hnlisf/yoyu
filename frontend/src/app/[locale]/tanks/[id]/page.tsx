@@ -68,8 +68,20 @@ function TankPageContent({ tankId }: { tankId: string }) {
   const loadWeather = useCallback(async () => {
     setWeatherLoading(true);
     try {
-      const w = await api<WeatherData>(`/api/weather?tankId=${tankId}`);
+      // BUG-4 fix: 方案B 前端两跳 (ADR-001)
+      // Step 1: Get user city preference
+      const pref = await api<{ city?: string }>('/api/user/preferences');
+      const city = pref?.city || 'Beijing';
+
+      // Step 2: Fetch weather by city
+      const w = await api<WeatherData>(`/api/weather?city=${encodeURIComponent(city)}`);
       setWeather(w);
+
+      // Step 3: Push outdoor temp to tank (triggers physics recalc)
+      await api(`/api/fish-tanks/${tankId}/temperature`, {
+        method: 'PATCH',
+        body: JSON.stringify({ outdoorTemp: w.temp }),
+      });
     } catch {
       // Weather may not be available — silently ignore
     } finally {
