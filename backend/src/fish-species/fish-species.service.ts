@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FishSpecies } from '@prisma/client';
 
@@ -18,7 +24,7 @@ export class FishSpeciesService {
   }
 
   async createCustom(data: {
-    nameI18n: any;          // accepted as object from client
+    nameI18n: any;
     descI18n?: any;
     tempMin: number;
     tempMax: number;
@@ -40,6 +46,8 @@ export class FishSpeciesService {
     // Validation
     if (!nameI18nStr || nameI18nStr === '{}')
       throw new BadRequestException('鱼种名称不能为空');
+    if (data.tempMin <= 0)
+      throw new BadRequestException('最低温度必须大于 0°C');
     if (data.tempMin >= data.tempMax)
       throw new BadRequestException('最低温度必须小于最高温度');
     if (data.phMin >= data.phMax)
@@ -62,6 +70,28 @@ export class FishSpeciesService {
         isDefault: false,
       },
     });
+  }
+
+  /**
+   * Delete a custom fish species. Rules:
+   * - isDefault=true (system species): 403
+   * - isDefault=false but referenced by fish: 409 Conflict
+   * - isDefault=false and no fish references: 204 (hard delete)
+   */
+  async delete(id: string): Promise<void> {
+    const species = await this.prisma.fishSpecies.findUnique({ where: { id } });
+    if (!species) {
+      throw new NotFoundException('鱼种不存在');
+    }
+    if (species.isDefault) {
+      throw new ForbiddenException('系统内置鱼种不可删除');
+    }
+    // Check if any fish reference this species
+    const fishCount = await this.prisma.fish.count({ where: { speciesId: id } });
+    if (fishCount > 0) {
+      throw new ConflictException('该鱼种下有鱼，请先删除鱼后再删除鱼种');
+    }
+    await this.prisma.fishSpecies.delete({ where: { id } });
   }
 
   toI18n(s: FishSpecies, lang: string) {

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
+import { Controller, Delete, Get, Post, Body, Param, Query, HttpCode } from '@nestjs/common';
 import { FishSpeciesService } from './fish-species.service';
 
 @Controller('api/fish-species')
@@ -18,5 +18,11 @@ export class FishSpeciesController {
   @Post('custom')
   async createCustom(@Body() body: any) {
     return this.service.createCustom(body);
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  async remove(@Param('id') id: string) {
+    await this.service.delete(id);
   }
 }
