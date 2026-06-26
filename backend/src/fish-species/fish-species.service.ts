@@ -96,7 +96,12 @@ export class FishSpeciesService {
     if (/guppy|孔雀|玛丽/i.test(n)) return 'guppy';
     if (/tetra|neon|灯鱼|灯科|霓虹|小型鱼|青鳉|platy/i.test(n)) return 'tetra';
     if (/koi|carp|锦鲤|红鲤/i.test(n)) return 'koi';
-    if (/angel|angelfish|tropical|betta|molly|gourami|神仙鱼|热带鱼|斗鱼|七彩/i.test(n)) return 'tropical';
+    if (/angel|angelfish|神仙鱼/i.test(n)) return 'angelfish';
+    if (/betta|斗鱼/i.test(n)) return 'betta';
+    if (/cory|corydoras|鼠鱼/i.test(n)) return 'cory';
+    if (/pleco|plecostomus|异形/i.test(n)) return 'pleco';
+    if (/oto|otocinclus|清道夫/i.test(n)) return 'otocinclus';
+    if (/tropical|molly|gourami|热带鱼|七彩/i.test(n)) return 'tropical';
     return 'guppy';
   }
 }
