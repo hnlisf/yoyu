@@ -167,7 +167,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
   }
 
   return (
-    <div className="flex flex-col h-screen max-h-screen overflow-hidden">
+    <div className="flex flex-col justify-between h-screen max-h-screen overflow-hidden">
       {/* Header — shrinks to fit */}
       <header className="flex items-baseline justify-between shrink-0 px-1 pt-2 pb-1">
         <div>
@@ -186,10 +186,10 @@ function TankPageContent({ tankId }: { tankId: string }) {
         </div>
       </header>
 
-      {/* Main stage — v6.1: ≤60vh on mobile, flex-6 on desktop */}
-      <div className="flex-1 min-h-0 flex flex-col sm:flex-row gap-0">
-        {/* Swim stage — ≤60% viewport */}
-        <div className="flex-[6] min-h-0 max-h-[60vh] sm:max-h-none">
+      {/* Main stage — flex-none for natural height, no 60vh cap */}
+      <div className="flex-none min-h-0 flex flex-col sm:flex-row gap-0">
+        {/* Swim stage — auto-height, no 60vh cap */}
+        <div className="flex-[6] min-h-0 sm:max-h-none">
           <TankStage fishList={fishList} feedRef={feedRef} />
         </div>
 
