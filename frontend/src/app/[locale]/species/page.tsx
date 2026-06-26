@@ -8,6 +8,59 @@ import { slugToVariant } from '@/components/fish/types';
 
 const STORAGE_KEY = 'fishgrow.tankId';
 
+/** Sleep helper for exponential backoff */
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Fetch with exponential backoff retry (max 3 attempts).
+ * 404 errors are NOT retried — they propagate immediately.
+ * Network errors and 5xx are retried with 1s/2s/4s backoff.
+ */
+async function fetchWithRetry(
+  url: string,
+  init?: RequestInit,
+  retries = 3,
+): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url, {
+        ...init,
+        headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+        // Abort after 10s per attempt
+        signal: AbortSignal.timeout?.(10000),
+      });
+      // 404: don't retry
+      if (res.status === 404) return res;
+      // 5xx: retry
+      if (res.status >= 500 && i < retries - 1) {
+        await sleep(1000 * Math.pow(2, i));
+        continue;
+      }
+      return res;
+    } catch (e: any) {
+      // Network error / timeout: retry
+      if (i < retries - 1) {
+        await sleep(1000 * Math.pow(2, i));
+        continue;
+      }
+      throw e; // exhausted retries
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
+/**
+ * Classify fetch errors into 4 categories for tankId handling.
+ */
+type ErrorCategory = 'not_found' | 'network' | 'server' | 'timeout';
+function classifyError(e: any, status?: number): ErrorCategory {
+  if (status === 404) return 'not_found';
+  if (e?.name === 'AbortError' || e?.name === 'TimeoutError') return 'timeout';
+  if (status && status >= 500) return 'server';
+  // Network errors: TypeError, Failed to fetch, etc.
+  return 'network';
+}
+
 export default function SpeciesPage() {
   const t = useTranslations('species');
   const tf = useTranslations('fish');
@@ -22,39 +75,85 @@ export default function SpeciesPage() {
   const [feedFreq, setFeedFreq] = useState<'daily' | 'twice_daily' | 'every_2_days'>('twice_daily');
   const [color, setColor] = useState('#5BA9C7');
   const [busy, setBusy] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   const addToTank = async (sp: FishSpecies) => {
+    setBusy(true);
     let tankId = localStorage.getItem(STORAGE_KEY);
-    // Validate existing tankId before use (it may have been deleted or belong to another user)
+
+    // Validate existing tankId with proper error classification
     if (tankId) {
       try {
-        await api(`/api/fish-tanks/${tankId}`);
-      } catch {
-        // tankId is stale — clear it and recreate
-        tankId = null;
-        localStorage.removeItem(STORAGE_KEY);
+        const res = await fetchWithRetry(`/api/fish-tanks/${tankId}`);
+        if (!res.ok) {
+          const category = classifyError(null, res.status);
+          if (category === 'not_found') {
+            // 404: tank was deleted — clear stale id, will recreate below
+            tankId = null;
+            localStorage.removeItem(STORAGE_KEY);
+          } else if (category === 'server') {
+            // 5xx: keep tankId, show error, don't create new tank
+            setToastMsg('服务器暂时不可用，请稍后重试');
+            setBusy(false);
+            return;
+          }
+        }
+      } catch (e: any) {
+        const category = classifyError(e);
+        if (category === 'network' || category === 'timeout') {
+          // Network error: keep tankId, retry exhausted, show message
+          setToastMsg('网络连接失败，请检查网络后重试');
+          setBusy(false);
+          return;
+        }
+        // Unknown error: keep tankId, show message
+        setToastMsg('操作失败，请重试');
+        setBusy(false);
+        return;
       }
     }
+
+    // Create tank if needed (only when 404 cleared the id or no id yet)
     if (!tankId) {
-      const tank = await api<{ id: string }>('/api/fish-tanks', {
-        method: 'POST',
-        body: JSON.stringify({ userId: 'demo-user', name: '我的鱼缸' }),
-      });
-      tankId = tank.id;
-      localStorage.setItem(STORAGE_KEY, tankId);
-      // Set as default tank for HomeRedirect
       try {
-        await api('/api/user/preferences', {
-          method: 'PUT',
-          body: JSON.stringify({ defaultTankId: tankId }),
+        const res = await fetchWithRetry('/api/fish-tanks', {
+          method: 'POST',
+          body: JSON.stringify({ userId: 'demo-user', name: '我的鱼缸' }),
         });
-      } catch { /* non-critical */ }
+        if (!res.ok) {
+          setToastMsg('创建鱼缸失败，请重试');
+          setBusy(false);
+          return;
+        }
+        const tank = await res.json();
+        tankId = tank.id;
+        localStorage.setItem(STORAGE_KEY, tankId);
+        // Set as default tank for HomeRedirect
+        try {
+          await api('/api/user/preferences', {
+            method: 'PUT',
+            body: JSON.stringify({ defaultTankId: tankId }),
+          });
+        } catch { /* non-critical */ }
+      } catch (e: any) {
+        setToastMsg('网络连接失败，请检查网络后重试');
+        setBusy(false);
+        return;
+      }
     }
-    await api('/api/fish', {
-      method: 'POST',
-      body: JSON.stringify({ tankId, speciesId: sp.id }),
-    });
-    alert(`已添加 ${sp.name} 到鱼缸！`);
+
+    // Add fish to tank
+    try {
+      await api('/api/fish', {
+        method: 'POST',
+        body: JSON.stringify({ tankId, speciesId: sp.id }),
+      });
+      setToastMsg(`已添加 ${sp.name} 到鱼缸！`);
+    } catch (e: any) {
+      setToastMsg(`添加失败：${e.message}`);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const createCustom = async () => {
@@ -92,6 +191,18 @@ export default function SpeciesPage() {
 
   return (
     <div className="space-y-6">
+      {/* Inline toast for feedback */}
+      {toastMsg && (
+        <div className="fixed top-4 right-4 z-50 bg-water-700 text-white px-4 py-3 rounded-lg shadow-lg text-sm max-w-xs animate-fade-in">
+          <span>{toastMsg}</span>
+          <button
+            onClick={() => setToastMsg(null)}
+            className="ml-3 text-white/70 hover:text-white"
+          >
+            ×
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-water-600">{t('title')}</h1>
