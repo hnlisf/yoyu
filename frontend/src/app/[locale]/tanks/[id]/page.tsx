@@ -17,6 +17,8 @@ import { HeaterSwitch } from '@/components/Tank/HeaterSwitch';
 import { useTranslateTankName } from '@/lib/i18n/tankName';
 import { BottomDrawer } from '@/components/BottomDrawer';
 
+const USER_ID = 'demo-user';
+
 interface PageProps {
   params: { id: string };
 }
@@ -70,7 +72,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
     try {
       // BUG-4 fix: 方案B 前端两跳 (ADR-001)
       // Step 1: Get user city preference
-      const pref = await api<{ city?: string }>('/api/user/preferences');
+      const pref = await api<{ city?: string }>(`/api/user/preferences?userId=${USER_ID}`);
       const city = pref?.city || 'Beijing';
 
       // Step 2: Fetch weather by city
