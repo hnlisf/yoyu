@@ -218,8 +218,8 @@ function TankPageContent({ tankId }: { tankId: string }) {
         </div>
       </header>
 
-      {/* Main stage — flex-none for natural height, no 60vh cap */}
-      <div className="flex-none min-h-0 flex flex-col sm:flex-row gap-0">
+      {/* Main stage — flex-1 for adaptive height, no 60vh cap */}
+      <div className="flex-1 min-h-0 flex flex-col sm:flex-row gap-0">
         {/* Swim stage — auto-height, no 60vh cap */}
         <div className="flex-[6] min-h-0 sm:max-h-none">
           <TankStage fishList={fishList} feedRef={feedRef} />
