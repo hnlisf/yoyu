@@ -220,10 +220,10 @@ function TankPageContent({ tankId }: { tankId: string }) {
         </div>
       </header>
 
-      {/* Main stage — flex-1 for adaptive height, no 60vh cap */}
-      <div className="flex-1 min-h-0 flex flex-col sm:flex-row gap-0">
-        {/* Swim stage — auto-height, no 60vh cap */}
-        <div className="flex-[6] min-h-0 sm:max-h-none">
+      {/* Main stage — flex-1 for adaptive height, capped at 60vh/80vh */}
+      <div className="flex-1 min-h-0 flex flex-col sm:flex-row gap-0 max-h-[60vh] md:max-h-[80vh]">
+        {/* Swim stage — capped to prevent viewport overflow */}
+        <div className="flex-[6] min-h-0 max-h-[60vh] md:max-h-[80vh]">
           <TankStage fishList={fishList} feedRef={feedRef} />
         </div>
 
