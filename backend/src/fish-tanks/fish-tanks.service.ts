@@ -59,7 +59,7 @@ export class FishTanksService {
       where: { id },
       include: { fish: { include: { species: true } } },
     });
-    if (!tank) return null;
+    if (!tank) throw new NotFoundException(`Fish tank ${id} not found`);
     const result = this.attachI18n(tank, lang);
     // Auto-register with physics engine so temperature tracks in real-time
     if (this.waterTemp.getCurrentTemp(id) === null) {
