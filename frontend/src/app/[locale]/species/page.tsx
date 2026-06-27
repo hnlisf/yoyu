@@ -116,18 +116,25 @@ export default function SpeciesPage() {
     // Create tank if needed (only when 404 cleared the id or no id yet)
     if (!tankId) {
       try {
-        const res = await fetchWithRetry('/api/fish-tanks', {
-          method: 'POST',
-          body: JSON.stringify({ userId: 'demo-user', name: '我的鱼缸' }),
-        });
-        if (!res.ok) {
-          setToastMsg('创建鱼缸失败，请重试');
-          setBusy(false);
-          return;
+        // Try to reuse existing tank first (avoid DUPLICATE_TANK_NAME dead loop on 404 recovery)
+        const existing = await api<{ id: string }[]>('/api/fish-tanks?userId=demo-user');
+        if (existing && existing.length > 0) {
+          tankId = existing[0].id;
+          localStorage.setItem(STORAGE_KEY, tankId);
+        } else {
+          const res = await fetchWithRetry('/api/fish-tanks', {
+            method: 'POST',
+            body: JSON.stringify({ userId: 'demo-user', name: '我的鱼缸' }),
+          });
+          if (!res.ok) {
+            setToastMsg('创建鱼缸失败，请重试');
+            setBusy(false);
+            return;
+          }
+          const tank = await res.json();
+          tankId = tank.id;
+          localStorage.setItem(STORAGE_KEY, tankId);
         }
-        const tank = await res.json();
-        tankId = tank.id;
-        localStorage.setItem(STORAGE_KEY, tankId);
         // Set as default tank for HomeRedirect
         try {
           await api('/api/user/preferences', {
