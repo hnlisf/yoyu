@@ -201,7 +201,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
   }
 
   return (
-    <div className="flex flex-col justify-between h-screen max-h-screen overflow-hidden">
+    <div className="flex flex-col justify-between h-screen max-h-screen overflow-hidden pb-40 sm:pb-0">
       {/* Header — shrinks to fit */}
       <header className="flex items-baseline justify-between shrink-0 px-1 pt-2 pb-1">
         <div>
