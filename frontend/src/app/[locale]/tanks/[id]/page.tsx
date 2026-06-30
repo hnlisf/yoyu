@@ -16,6 +16,8 @@ import { Icon } from '@/components/ui/Icon';
 import { HeaterSwitch } from '@/components/Tank/HeaterSwitch';
 import { useTranslateTankName } from '@/lib/i18n/tankName';
 import { BottomDrawer } from '@/components/BottomDrawer';
+import { CapacityBar } from '@/components/ui/CapacityBar';
+import { TempAlertBanner } from '@/components/Tank/TempAlertBanner';
 
 const USER_ID = 'demo-user';
 
@@ -24,12 +26,11 @@ interface PageProps {
 }
 
 /**
- * Tank detail page — v6.0: tank stage + status bars + water quality + heater + weather
+ * Tank detail page — v9.0: tank stage + capacity bar + temp alert + water change
  * TankStage internally wraps FeedingProvider; we use feedRef for external control.
  */
 export default function TankDetailPage({ params }: PageProps) {
   const { id } = params;
-
   return <TankPageContent tankId={id} />;
 }
 
@@ -39,7 +40,6 @@ function TankPageContent({ tankId }: { tankId: string }) {
   const tCommon = useTranslations('common');
   const tName = useTranslateTankName();
 
-  // Ref to trigger feeding animation inside TankStage
   const feedRef = useRef<((count?: number, fishIds?: string[]) => void) | null>(null);
 
   const [tank, setTank] = useState<FishTank | null>(null);
@@ -48,7 +48,6 @@ function TankPageContent({ tankId }: { tankId: string }) {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  // Heater & weather state
   const [heaterOn, setHeaterOn] = useState(false);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
@@ -74,12 +73,9 @@ function TankPageContent({ tankId }: { tankId: string }) {
       // Step 1: Get user city preference
       const pref = await api<{ city?: string }>(`/api/user/preferences?userId=${USER_ID}`);
       const city = pref?.city || 'Beijing';
-
-      // Step 2: Fetch weather by city
       const w = await api<WeatherData>(`/api/weather?city=${encodeURIComponent(city)}`);
       setWeather(w);
 
-      // Step 3: Push outdoor temp to tank (triggers physics recalc)
       await api(`/api/fish-tanks/${tankId}/temperature`, {
         method: 'PATCH',
         body: JSON.stringify({ outdoorTemp: w.temp }),
@@ -95,13 +91,12 @@ function TankPageContent({ tankId }: { tankId: string }) {
     load();
   }, [tankId]);
 
-  // Sync heater state from tank data
   useEffect(() => {
     if (tank) {
       setHeaterOn(tank.heaterOn ?? false);
     }
   }, [tank]);
-  // Fetch weather on mount
+
   useEffect(() => {
     loadWeather();
   }, [tankId, loadWeather]);
@@ -126,7 +121,6 @@ function TankPageContent({ tankId }: { tankId: string }) {
     if (!fishList.length) return;
     setBusy(true);
 
-    // BUG-3 fix: call API first, animate only on success (ADR-005)
     const results = await Promise.allSettled(
       fishList.map((f) =>
         api(`/api/fish/${f.id}/feed`, {
@@ -142,7 +136,6 @@ function TankPageContent({ tankId }: { tankId: string }) {
     const failures = results.filter((r) => r.status === 'rejected');
 
     if (failures.length > 0 && successes.length === 0) {
-      // All failed — no animation, show error
       const firstError = (failures[0] as PromiseRejectedResult).reason;
       setToast(firstError?.message || '喂食失败，请稍后再试');
       setBusy(false);
@@ -150,12 +143,10 @@ function TankPageContent({ tankId }: { tankId: string }) {
     }
 
     if (successes.length > 0) {
-      // Trigger animation only for successfully fed fish
       const count = 3 + Math.floor(Math.random() * 5);
       feedRef.current?.(count, successes);
 
       if (failures.length > 0) {
-        // Partial success — mixed toast
         setToast(`${successes.length}条鱼喂食成功，${failures.length}条失败`);
       } else {
         setToast(t('feedAllDone'));
@@ -166,27 +157,37 @@ function TankPageContent({ tankId }: { tankId: string }) {
     setBusy(false);
   };
 
+  // v9.0 REQ-7: Change water — uses new endpoint that resets temp to 24°C + clears alert
   const waterChange = async () => {
     setBusy(true);
     try {
-      await api(`/api/fish-tanks/${tankId}/tick`, { method: 'POST' });
-      setToast(t('waterChanged'));
+      const result = await api<{ id: string; temperature: number; heaterOn: boolean; cityTemp: number }>(
+        `/api/fish-tanks/${tankId}/change-water`,
+        { method: 'POST' }
+      );
+      setToast(`换水完成！水温已重置为 ${result.temperature}°C`);
+      setHeaterOn(false);
       await load();
     } catch (e: any) {
-      setToast('Water change failed: ' + e.message);
+      setToast('换水失败: ' + e.message);
     } finally {
       setBusy(false);
     }
   };
 
-  // Determine if water temp is abnormal (outside typical range 22-28°C)
-  const isTempAbnormal = tank ? (tank.temp < 20 || tank.temp > 30) : false;
-  // If we have a fish with species, check against species temp range
+  // v9.0 REQ-7: Check if water temperature is over safe range
+  const isOverTemp = tank?.tempAlert?.isOverTemp === true;
+  // Also check against fish species temp range
   const speciesTempAbnormal = fishList.some((f) => {
     if (!f.species?.tempMin || !f.species?.tempMax) return false;
-    return tank ? (tank.temp < f.species.tempMin || tank.temp > f.species.tempMax) : false;
+    const currentTemp = tank?.temperature ?? tank?.temp;
+    return currentTemp ? (currentTemp < f.species.tempMin || currentTemp > f.species.tempMax) : false;
   });
-  const showTempWarning = isTempAbnormal || speciesTempAbnormal;
+  const showTempWarning = isOverTemp || speciesTempAbnormal;
+
+  // v9.0 REQ-6: compute capacity info
+  const capacity = tank ? (tank.size === 'small' ? 6 : tank.size === 'medium' ? 12 : 30) : 12;
+  const fishCount = fishList.length;
 
   if (loading) {
     return <p className="text-text-secondary text-sm font-light">{tCommon('loading')}</p>;
@@ -223,17 +224,26 @@ function TankPageContent({ tankId }: { tankId: string }) {
       {/* Main stage — flex-1 for adaptive height, capped at 60vh/80vh */}
       <div className="flex-1 min-h-0 flex flex-col sm:flex-row gap-0 max-h-[60vh] md:max-h-[80vh]">
         {/* Swim stage — capped to prevent viewport overflow */}
-        <div className="flex-[6] min-h-0 max-h-[60vh] md:max-h-[80vh]">
+        <div className="flex-[6] min-h-0 max-h-[60vh] md:max-h-[80vh] relative">
+          {/* v9.0 REQ-7: TempAlertBanner — shown when over-temp */}
+          {showTempWarning && (
+            <div className="absolute top-2 left-2 right-2 z-20">
+              <TempAlertBanner
+                temperature={tank.temperature ?? tank.temp}
+                threshold={fishList[0]?.species?.tempMax}
+              />
+            </div>
+          )}
           <TankStage fishList={fishList} feedRef={feedRef} />
         </div>
 
-        {/* Desktop side panel — controls always visible on sm+ */}
+        {/* Desktop side panel */}
         <div className="hidden sm:flex flex-[4] min-h-0 flex-col overflow-y-auto p-3 space-y-3">
           {controlsContent()}
         </div>
       </div>
 
-      {/* Mobile BottomDrawer — wraps all controls */}
+      {/* Mobile BottomDrawer */}
       <div className="sm:hidden shrink-0">
         <BottomDrawer
           tabs={[
@@ -251,10 +261,20 @@ function TankPageContent({ tankId }: { tankId: string }) {
     </div>
   );
 
-  /** Shared controls content for desktop side panel & mobile drawer */
   function controlsContent() {
     return (
       <>
+        {/* v9.0 REQ-6: Capacity bar */}
+        <GlassCard className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-normal text-text-primary">鱼缸容量</h2>
+            <span className="text-[10px] text-text-secondary">
+              {fishCount >= capacity ? '🔴 已满' : '🟢 可添加'}
+            </span>
+          </div>
+          <CapacityBar size={tank!.size} current={fishCount} />
+        </GlassCard>
+
         {/* Status bars */}
         <GlassCard className="space-y-3">
           <h2 className="text-sm font-normal text-text-primary">{t('statusTitle')}</h2>
@@ -277,7 +297,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
                 showTempWarning ? 'text-red-400' : 'text-accent'
               }`}
             >
-              {tank!.temp.toFixed(1)}°
+              {(tank!.temperature ?? tank!.temp).toFixed(1)}°
             </p>
             {showTempWarning && (
               <p className="text-[9px] text-red-400/80 mt-0.5">异常水温</p>
@@ -333,15 +353,12 @@ function TankPageContent({ tankId }: { tankId: string }) {
         </div>
 
         {/* Action buttons */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <Button variant="accent" onClick={feedAll} disabled={busy || !fishList.length}>
             <Icon name="feed" size={14} /> {t('feedAll')}
           </Button>
           <Button variant="primary" onClick={waterChange} disabled={busy}>
-            <Icon name="water" size={14} /> {t('waterChange')}
-          </Button>
-          <Button variant="ghost" disabled>
-            <Icon name="treat" size={14} /> {t('treat')}
+            <Icon name="water" size={14} /> 换水
           </Button>
         </div>
 

@@ -2,82 +2,31 @@
 
 import { useEffect, useState } from 'react';
 
-/**
- * Map backend error messages → user-friendly Chinese text.
- * The backend stays untouched; all error translation happens here.
- */
 const ERROR_MESSAGE_MAP: Array<{ pattern: RegExp; zh: string; en: string }> = [
-  {
-    pattern: /too soon to feed/i,
-    zh: '还没到投喂时间呢，再等等吧~',
-    en: 'Not time to feed yet, please wait a bit~',
-  },
-  {
-    pattern: /fish tank not found/i,
-    zh: '鱼缸不存在或已被删除',
-    en: 'Tank not found or has been deleted',
-  },
-  {
-    pattern: /fish not found/i,
-    zh: '鱼不存在或已被移除',
-    en: 'Fish not found or has been removed',
-  },
-  {
-    pattern: /fish species not found/i,
-    zh: '鱼种不存在',
-    en: 'Fish species not found',
-  },
-  {
-    pattern: /lat\/lon must be numbers/i,
-    zh: '位置参数错误',
-    en: 'Invalid location parameters',
-  },
-  {
-    pattern: /userId required/i,
-    zh: '用户信息缺失',
-    en: 'User information missing',
-  },
+  { pattern: /too soon to feed/i, zh: '还没到投喂时间呢，再等等吧~', en: 'Not time to feed yet, please wait a bit~' },
+  { pattern: /fish tank not found/i, zh: '鱼缸不存在或已被删除', en: 'Tank not found or has been deleted' },
+  { pattern: /fish not found/i, zh: '鱼不存在或已被移除', en: 'Fish not found or has been removed' },
+  { pattern: /fish species not found/i, zh: '鱼种不存在', en: 'Fish species not found' },
+  { pattern: /lat\/lon must be numbers/i, zh: '位置参数错误', en: 'Invalid location parameters' },
+  { pattern: /userId required/i, zh: '用户信息缺失', en: 'User information missing' },
 ];
 
-/**
- * Try to parse a JSON error response from the backend and produce a
- * user-friendly message. Falls back to the raw text if it can't be parsed.
- */
 function humanizeError(responseText: string): string {
-  // Attempt to parse JSON (NestJS errors are JSON)
   let message = responseText;
   try {
     const parsed = JSON.parse(responseText);
     message = parsed.message || responseText;
-  } catch {
-    // Not JSON — use raw text
-  }
-
-  // Check against known patterns
+  } catch {}
   for (const entry of ERROR_MESSAGE_MAP) {
-    if (entry.pattern.test(message)) {
-      // For now return Chinese (the app's primary audience).
-      // In a full i18n solution, we'd detect the current locale.
-      return entry.zh;
-    }
+    if (entry.pattern.test(message)) return entry.zh;
   }
-
-  // If message already contains Chinese (e.g. backend user-friendly hints),
-  // return it directly — it's already a readable user-facing message
-  if (/[\u4e00-\u9fff]/.test(message)) {
-    return message;
-  }
-
-  // If the parsed message looks like English, give a friendly fallback
+  if (/[\u4e00-\u9fff]/.test(message)) return message;
   if (/^[a-zA-Z\s.!?,:;()]+$/.test(message) && message.length < 200) {
     return `操作失败：${message}`;
   }
-
-  // Last resort: generic error
   return '操作失败，请稍后再试';
 }
 
-// Helper: client-side API calls go to /api (rewritten by Next.js to backend)
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
@@ -86,16 +35,11 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     const rawText = await res.text();
     const friendly = humanizeError(rawText);
-
-    // Global error logging
     console.error(`[API Error ${res.status}] ${path}: ${rawText.slice(0, 200)}`);
-
-    // On /stats page, silently fallback to mock data (don't show toast)
     if (typeof window !== 'undefined' && window.location.pathname.includes('/stats')) {
       console.warn(`[API Silent Fallback] ${path} → stats mock data used`);
       return null as unknown as T;
     }
-
     throw new Error(friendly);
   }
   return res.json() as Promise<T>;
@@ -114,6 +58,7 @@ export interface FishSpecies {
   stages: Array<{ name: string; label: Record<string, string>; days: number }>;
   color: string;
   isDefault: boolean;
+  userCustomized?: boolean; // v9.0
   feedRefuseHint?: string;
   variant?: string;
 }
@@ -123,6 +68,9 @@ export interface Fish {
   tankId: string;
   speciesId: string;
   name: string;
+  instanceId?: string; // v9.0
+  adoptedDays?: number; // v9.0: computed days since adoption
+  status?: string; // v9.0: healthy|subhealthy|danger|hungry|dead
   birthday: string;
   stage: 'fry' | 'juvenile' | 'subadult' | 'adult';
   growth: number;
@@ -144,6 +92,10 @@ export interface FishTank {
   ph: number;
   cityTemp: number;
   heaterOn: boolean;
+  temperature?: number; // v9.0
+  weatherSync?: { city: string; currentTemp: number; lastSyncAt: string } | null; // v9.0
+  tempAlert?: { isOverTemp: boolean; threshold: number | null; dismissedAt: string } | null; // v9.0
+  fishCount?: number; // v9.0: computed by backend
   fish?: Fish[];
 }
 
@@ -154,7 +106,6 @@ export interface Reminder {
   titleI18n: string | Record<string, string>;
   dueAt: string;
   isDone: boolean;
-  // backend may also return the resolved title:
   title?: string;
 }
 
@@ -188,7 +139,6 @@ export interface FeedingAdvice {
   actionItems: string[];
 }
 
-// Re-exported for convenience
 export { api };
 
 export function useApi<T>(path: string | null) {

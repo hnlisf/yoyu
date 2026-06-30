@@ -137,7 +137,7 @@ function TankStageInner({ fishList, onFishClick, weatherCode, feedRef }: TankSta
           return (
             <div
               key={f.id}
-              className="fish-physics-wrapper"
+              className="fish-physics-wrapper group"
               style={fishPositionStyle(pos)}
               onClick={() => onFishClick?.(f)}
             >
@@ -149,7 +149,8 @@ function TankStageInner({ fishList, onFishClick, weatherCode, feedRef }: TankSta
                   animated={false}
                 />
               </span>
-              <p className="text-[9px] text-text-primary mt-0.5 font-light drop-shadow text-center truncate max-w-[80px]">
+              {/* v9.0 REQ-3: hide label by default, show on hover */}
+              <p className="text-[9px] text-text-primary mt-0.5 font-light drop-shadow text-center truncate max-w-[80px] opacity-0 group-hover:opacity-100 transition-opacity">
                 {f.name || f.stage}
               </p>
             </div>
