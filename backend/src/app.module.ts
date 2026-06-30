@@ -12,6 +12,7 @@ import { RemindersModule } from './reminders/reminders.module';
 import { PreferencesModule } from './preferences/preferences.module';
 import { UserModule } from './user/user.module';
 import { TemperatureModule } from './temperature/temperature.module';
+import { HealthController } from './health/health.controller';
 // (end of imports)
 
 @Module({
@@ -28,7 +29,7 @@ import { TemperatureModule } from './temperature/temperature.module';
     UserModule,
     TemperatureModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule {}
