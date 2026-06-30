@@ -12,6 +12,12 @@ dist/
 backend/prisma/dev.db
 backend/prisma/dev.db-journal
 backend/prisma/migrations/dev.db
+backend/prisma/prisma/
+
+# Database artifacts (any path)
+backend/dev.db
+*.db
+*.db-journal
 
 # Test artifacts
 backend/coverage/
