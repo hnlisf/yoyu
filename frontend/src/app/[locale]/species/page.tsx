@@ -165,8 +165,8 @@ export default function SpeciesPage() {
             return;
           }
           const tank = await res.json();
-          tankId = tank.id;
-          localStorage.setItem(STORAGE_KEY, tankId);
+          tankId = tank.id as string;
+          localStorage.setItem(STORAGE_KEY, tankId!);
         }
         // Set as default tank for HomeRedirect
         try {
