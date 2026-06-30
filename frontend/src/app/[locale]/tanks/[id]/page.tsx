@@ -219,38 +219,50 @@ function TankPageContent({ tankId }: { tankId: string }) {
             {tkSize(tank.size, t)}
           </p>
         </div>
+        {/* CapacityBar: shown in header on md+ (top horizontal) */}
+        <div className="hidden md:block w-48">
+          <div className="text-[9px] text-text-secondary uppercase tracking-wide mb-1">鱼缸容量</div>
+          <CapacityBar size={tank!.size} current={fishCount} />
+        </div>
       </header>
 
-      {/* Main stage — flex-1 for adaptive height, capped at 60vh/80vh */}
+      {/* TempAlertBanner — shown at top on all breakpoints */}
+      {showTempWarning && (
+        <div className="shrink-0 px-1">
+          <TempAlertBanner
+            temperature={tank.temperature ?? tank.temp}
+            threshold={fishList[0]?.species?.tempMax}
+            className="py-1.5 text-xs"
+          />
+        </div>
+      )}
+
+      {/* Main stage + side panel — responsive layout, capped for pad viewport */}
       <div className="flex-1 min-h-0 flex flex-col sm:flex-row gap-0 max-h-[60vh] md:max-h-[80vh]">
-        {/* Swim stage — capped to prevent viewport overflow */}
-        <div className="flex-[6] min-h-0 max-h-[60vh] md:max-h-[80vh] relative">
-          {/* v9.0 REQ-7: TempAlertBanner — shown when over-temp */}
-          {showTempWarning && (
-            <div className="absolute top-2 left-2 right-2 z-20">
-              <TempAlertBanner
-                temperature={tank.temperature ?? tank.temp}
-                threshold={fishList[0]?.species?.tempMax}
-              />
-            </div>
-          )}
+        {/* Tank stage: responsive flex, capped to prevent overflow */}
+        <div className="flex-[6] md:flex-[6] lg:flex-[6] xl:flex-[5] min-h-0 max-h-[60vh] md:max-h-[80vh] relative">
           <TankStage fishList={fishList} feedRef={feedRef} />
         </div>
 
-        {/* Desktop side panel */}
-        <div className="hidden sm:flex flex-[4] min-h-0 flex-col overflow-y-auto p-3 space-y-3">
-          {controlsContent()}
+        {/* Desktop sidebar: hidden on mobile, visible sm+ */}
+        <div className="hidden sm:flex flex-[4] lg:flex-[4] xl:flex-[3] min-h-0 flex-col overflow-y-auto p-3 space-y-3">
+          {sidebarContent()}
+        </div>
+
+        {/* xl info panel: extra column for large desktops */}
+        <div className="hidden xl:flex flex-[2] min-h-0 flex-col overflow-y-auto p-3 space-y-3 border-l border-glass-border">
+          {infoPanelContent()}
         </div>
       </div>
 
-      {/* Mobile BottomDrawer */}
+      {/* Mobile BottomDrawer: only on sm breakpoint */}
       <div className="sm:hidden shrink-0">
         <BottomDrawer
           tabs={[
             {
               key: 'status',
               label: t('statusTitle'),
-              content: <div className="space-y-3">{controlsContent()}</div>,
+              content: <div className="space-y-3">{sidebarContent()}</div>,
             },
           ]}
           defaultExpanded={false}
@@ -261,19 +273,22 @@ function TankPageContent({ tankId }: { tankId: string }) {
     </div>
   );
 
-  function controlsContent() {
+  /** Sidebar content: shared between sm/md/lg and mobile BottomDrawer */
+  function sidebarContent() {
     return (
       <>
-        {/* v9.0 REQ-6: Capacity bar */}
-        <GlassCard className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-normal text-text-primary">鱼缸容量</h2>
-            <span className="text-[10px] text-text-secondary">
-              {fishCount >= capacity ? '🔴 已满' : '🟢 可添加'}
-            </span>
-          </div>
-          <CapacityBar size={tank!.size} current={fishCount} />
-        </GlassCard>
+        {/* Capacity bar: visible on mobile (inside drawer); on md+ it's in header */}
+        <div className="sm:hidden">
+          <GlassCard className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-normal text-text-primary">鱼缸容量</h2>
+              <span className="text-[10px] text-text-secondary">
+                {fishCount >= capacity ? '🔴 已满' : '🟢 可添加'}
+              </span>
+            </div>
+            <CapacityBar size={tank!.size} current={fishCount} />
+          </GlassCard>
+        </div>
 
         {/* Status bars */}
         <GlassCard className="space-y-3">
@@ -346,6 +361,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
             onClick={loadWeather}
             disabled={weatherLoading}
             className="inline-flex items-center gap-1 text-[10px] text-accent/70 hover:text-accent transition ml-auto"
+            style={{ minWidth: 44, minHeight: 44, touchAction: 'manipulation' }}
           >
             <span className={weatherLoading ? 'animate-spin' : ''}>🔄</span>
             刷新天气
@@ -362,11 +378,18 @@ function TankPageContent({ tankId }: { tankId: string }) {
           </Button>
         </div>
 
+        {/* Water change button — also in sidebar on md+ */}
+        {showTempWarning && (
+          <Button variant="primary" onClick={waterChange} disabled={busy} className="w-full">
+            <Icon name="water" size={16} /> 紧急换水（重置水温至24°C）
+          </Button>
+        )}
+
         {/* Species chips */}
         {fishList.length > 0 && (
-          <GlassCard className="space-y-2">
+          <GlassCard className="space-y-2 xl:hidden">
             <h2 className="text-sm font-normal text-text-primary">{t('fish')}</h2>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
               {fishList.map((f) => {
                 const variant = slugToVariant(f.species?.name ?? f.species?.id);
                 return (
@@ -397,6 +420,46 @@ function TankPageContent({ tankId }: { tankId: string }) {
               })}
             </div>
           </GlassCard>
+        )}
+      </>
+    );
+  }
+
+  /** Info panel: shown on xl+ only — detailed fish stats */
+  function infoPanelContent() {
+    return (
+      <>
+        <h2 className="text-sm font-normal text-text-primary">鱼群详情</h2>
+        {fishList.length === 0 ? (
+          <p className="text-text-secondary text-xs font-light">暂无鱼</p>
+        ) : (
+          <div className="space-y-2">
+            {fishList.map((f) => {
+              const variant = slugToVariant(f.species?.name ?? f.species?.id);
+              const adoptedDays = f.adoptedDays ?? Math.floor((Date.now() - new Date(f.birthday).getTime()) / 86400000);
+              return (
+                <Link
+                  key={f.id}
+                  href={`/growth/${f.id}`}
+                  className="block p-2 rounded-xl hover:bg-glass transition"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <FishAvatar variant={variant} stage={f.stage} size={32} animated={false} />
+                    <div className="min-w-0">
+                      <p className="text-xs text-text-primary truncate">{f.name || tf(f.stage)}</p>
+                      <p className="text-[9px] text-text-secondary">{tf(f.stage)}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 text-[10px] text-text-secondary">
+                    <span>健康: {Math.round(f.health)}%</span>
+                    <span>营养: {Math.round(f.nutrition)}%</span>
+                    <span>成长: {Math.round(f.growth)}%</span>
+                    <span>养殖: {adoptedDays}天</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         )}
       </>
     );

@@ -43,9 +43,17 @@ export function TankSelector({ isOpen, onClose, onSelect, excludeFull = true }: 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm
+        /* Mobile/md: bottom drawer */
+        flex items-end justify-center
+        /* lg+: centered modal */
+        lg:flex lg:items-center lg:justify-center"
+      onClick={onClose}
+    >
       <div
-        className="bg-card w-full max-w-lg rounded-t-3xl p-5 space-y-4 max-h-[70vh] overflow-y-auto"
+        className="bg-card w-full rounded-t-3xl p-5 space-y-4 max-h-[70vh] overflow-y-auto
+          lg:max-w-lg lg:rounded-3xl lg:max-h-[80vh] lg:shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
