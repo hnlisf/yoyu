@@ -68,6 +68,7 @@ export class FishSpeciesService {
         stages: stagesStr,
         color: data.color || '#5BA9C7',
         isDefault: false,
+        userCustomized: true, // v9.0 REQ-4: mark as user-created
       },
     });
   }

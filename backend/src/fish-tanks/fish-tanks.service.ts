@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FishTank, Prisma } from '@prisma/client';
@@ -25,6 +26,9 @@ export interface UpdateFishTankDto {
   oxygen?: number;
   ph?: number;
 }
+
+// v9.0: max tanks per user
+const MAX_TANKS_PER_USER = 6;
 
 @Injectable()
 export class FishTanksService {
@@ -70,19 +74,20 @@ export class FishTanksService {
         tank.heaterOn ?? false,
       );
     }
-    // Ensure cityTemp and heaterOn are explicitly included in response
+    // v9.0: Include weatherSync and tempAlert in response
     return {
       ...result,
       cityTemp: result.cityTemp ?? 0,
       heaterOn: result.heaterOn ?? false,
+      temperature: result.temperature ?? result.temp ?? 24,
+      weatherSync: result.weatherSync ?? null,
+      tempAlert: result.tempAlert ?? null,
+      fishCount: result.fish?.length ?? 0,
     };
   }
 
   /**
    * Toggle the heater for a tank and engage the physics engine.
-   * Temperature now evolves according to:
-   *   ON:  T(t+1) = T(t) + 0.5 - (T(t) - T_outdoor) * 0.15
-   *   OFF: T(t+1) = T(t) - (T(t) - T_outdoor) * 0.15
    */
   async toggleHeater(
     tankId: string,
@@ -91,7 +96,6 @@ export class FishTanksService {
     const tank = await this.prisma.fishTank.findUnique({ where: { id: tankId } });
     if (!tank) throw new NotFoundException('Fish tank not found');
 
-    // Register with physics engine if not already tracked
     const tracked = this.waterTemp.getCurrentTemp(tankId);
     if (tracked === null) {
       this.waterTemp.register(
@@ -104,7 +108,6 @@ export class FishTanksService {
       this.waterTemp.setHeaterOn(tankId, heaterOn);
     }
 
-    // Persist heaterOn immediately to DB
     await this.prisma.fishTank.update({
       where: { id: tankId },
       data: { heaterOn },
@@ -116,8 +119,6 @@ export class FishTanksService {
 
   /**
    * Update outdoor temperature for a tank.
-   * Called when user switches city or weather data refreshes.
-   * Triggers immediate physics recalculation via WaterTemperatureService.
    */
   async updateOutdoorTemp(
     tankId: string,
@@ -126,13 +127,11 @@ export class FishTanksService {
     const tank = await this.prisma.fishTank.findUnique({ where: { id: tankId } });
     if (!tank) throw new NotFoundException('Fish tank not found');
 
-    // Persist cityTemp to DB
     await this.prisma.fishTank.update({
       where: { id: tankId },
       data: { cityTemp: outdoorTemp },
     });
 
-    // Register with physics engine if needed and update outdoor temp
     if (this.waterTemp.getCurrentTemp(tankId) === null) {
       this.waterTemp.register(tankId, tank.temp ?? outdoorTemp, outdoorTemp, tank.heaterOn ?? false);
     } else {
@@ -141,6 +140,31 @@ export class FishTanksService {
 
     const waterTemp = this.waterTemp.getCurrentTemp(tankId) ?? tank.temp;
     return { tankId, outdoorTemp, waterTemp };
+  }
+
+  // v9.0 REQ-7: changeWater endpoint — resets temperature to 24°C, heaterOff, clears tempAlert
+  async changeWater(tankId: string): Promise<{ id: string; temperature: number; heaterOn: boolean; cityTemp: number }> {
+    const tank = await this.prisma.fishTank.findUnique({ where: { id: tankId } });
+    if (!tank) throw new NotFoundException('Fish tank not found');
+
+    await this.prisma.fishTank.update({
+      where: { id: tankId },
+      data: {
+        temperature: 24.0,
+        heaterOn: false,
+        tempAlert: JSON.stringify({ isOverTemp: false, threshold: null, dismissedAt: new Date().toISOString() }),
+      },
+    });
+
+    // Update physics engine
+    this.waterTemp.reset(tankId, 24.0);
+
+    return {
+      id: tankId,
+      temperature: 24.0,
+      heaterOn: false,
+      cityTemp: tank.cityTemp ?? 24,
+    };
   }
 
   private attachI18n(tank: any, lang: string) {
@@ -154,10 +178,15 @@ export class FishTanksService {
   }
 
   async create(data: CreateFishTankDto): Promise<FishTank> {
-    // MVP: auto-create user if no userId provided (no auth in MVP)
     const userId = data.userId
       ? await this.ensureUser(data.userId)
       : await this.createDemoUser();
+
+    // v9.0 REQ-6: max tanks check
+    const tankCount = await this.prisma.fishTank.count({ where: { userId } });
+    if (tankCount >= MAX_TANKS_PER_USER) {
+      throw new BadRequestException('用户最多6个鱼缸，已达上限');
+    }
 
     const tankName = data.name ?? '我的鱼缸';
 
@@ -172,8 +201,6 @@ export class FishTanksService {
       });
     }
 
-    // Use a transaction so tank + fish are created atomically
-    // DB unique constraint catches concurrent race condition that service check misses
     try {
       return await this.prisma.$transaction(async (tx) => {
         const tank = await tx.fishTank.create({
@@ -183,10 +210,10 @@ export class FishTanksService {
             size: data.size ?? 'medium',
             temp: data.temp ?? 24.0,
             ph: data.ph ?? 7.0,
+            temperature: data.temp ?? 24.0,
           },
         });
 
-        // Pick a random default species to seed the tank with one fish
         const defaultSpecies = await tx.fishSpecies.findFirst({
           where: { isDefault: true },
         });
@@ -202,6 +229,7 @@ export class FishTanksService {
               health: 100,
               nutrition: 100,
               mood: 80,
+              instanceId: `inst_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
             },
           });
         }
@@ -241,14 +269,6 @@ export class FishTanksService {
     return this.prisma.fishTank.delete({ where: { id } });
   }
 
-  /**
-   * Tick the tank status:
-   * - cleanliness decays each day
-   * - oxygen decays each day
-   * - ph drifts slightly
-   * - checks temperature anomalies (decrease mood, return warnings)
-   * Returns the updated tank.
-   */
   async tick(id: string, hoursDelta: number = 24): Promise<any> {
     const tank = await this.prisma.fishTank.findUnique({
       where: { id },
@@ -256,9 +276,8 @@ export class FishTanksService {
     });
     if (!tank) throw new NotFoundException('Fish tank not found');
 
-    const decay = (hoursDelta / 24) * 5; // 5% per day
+    const decay = (hoursDelta / 24) * 5;
 
-    // Check temperature anomalies for each fish
     const warnings: any[] = [];
     const fishUpdates: Promise<any>[] = [];
     for (const fish of tank.fish) {
@@ -268,7 +287,7 @@ export class FishTanksService {
         species.tempMin != null && species.tempMax != null &&
         (currentTemp < species.tempMin || currentTemp > species.tempMax)
       ) {
-        const moodDrop = -5 * (hoursDelta / 1); // -5 per hour away
+        const moodDrop = -5 * (hoursDelta / 1);
         const newMood = Math.max(0, (fish.mood ?? 80) + moodDrop);
         fishUpdates.push(
           this.prisma.fish.update({
@@ -287,7 +306,6 @@ export class FishTanksService {
       }
     }
 
-    // Execute tank update + fish mood updates
     const updated = await this.prisma.fishTank.update({
       where: { id },
       data: {
@@ -297,7 +315,6 @@ export class FishTanksService {
       },
     });
 
-    // Run fish mood updates sequentially (avoids transaction type issues)
     await Promise.all(fishUpdates);
 
     return { ...updated, tempWarnings: warnings };
