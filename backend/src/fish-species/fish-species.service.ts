@@ -119,6 +119,7 @@ export class FishSpeciesService {
       stages,
       color: s.color,
       isDefault: s.isDefault,
+      userCustomized: (s as any).userCustomized ?? false,
       feedRefuseHint: (s as any).feedRefuseHint,
       variant: this.resolveVariant(zhName),
     };
