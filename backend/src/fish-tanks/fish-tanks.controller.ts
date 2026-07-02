@@ -1,12 +1,18 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { FishTanksService } from './fish-tanks.service';
+import { FishService } from '../fish/fish.service';
+import { TemperatureAdjustService } from '../temperature-adjust/temperature-adjust.service';
 import type { CreateFishTankDto, UpdateFishTankDto } from './fish-tanks.service';
 
 @ApiTags('fish-tanks')
 @Controller('api/fish-tanks')
 export class FishTanksController {
-  constructor(private readonly service: FishTanksService) {}
+  constructor(
+    private readonly service: FishTanksService,
+    private readonly fishService: FishService,
+    private readonly temperatureAdjustService: TemperatureAdjustService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List all fish tanks for a user' })
@@ -30,8 +36,14 @@ export class FishTanksController {
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Update a fish tank' })
+  @ApiOperation({ summary: 'Update a fish tank (full)' })
   async update(@Param('id') id: string, @Body() body: UpdateFishTankDto) {
+    return this.service.update(id, body);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Partial update a fish tank (e.g. location)' })
+  async partialUpdate(@Param('id') id: string, @Body() body: UpdateFishTankDto) {
     return this.service.update(id, body);
   }
 
@@ -56,10 +68,30 @@ export class FishTanksController {
     return this.service.toggleHeater(id, body.heaterOn);
   }
 
+  @Get(':id/temperature-adjust')
+  @ApiOperation({ summary: 'v9.1: Get temperature adjustment progress (exponential decay τ=20min)' })
+  async getTemperatureAdjust(@Param('id') tankId: string) {
+    const progress = await this.temperatureAdjustService.getProgress(tankId);
+    if (!progress) {
+      return { jobId: null, status: 'none', message: 'No active temperature adjustment' };
+    }
+    return progress;
+  }
+
   @Post(':id/change-water')
-  @ApiOperation({ summary: 'v9.0: Change water — resets temperature to 24°C, heater off, clears temp alert' })
+  @ApiOperation({ summary: 'v9.0: Change water — resets temperature to 24°C, heater off, clears temp alert. v9.1: also creates WaterChangeLog' })
   async changeWater(@Param('id') id: string) {
     return this.service.changeWater(id);
+  }
+
+  @Get(':id/water-logs')
+  @ApiOperation({ summary: 'v9.1 Item 6b: Get water change logs for a tank' })
+  @ApiQuery({ name: 'limit', required: false })
+  async getWaterChangeLogs(
+    @Param('id') id: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.service.getWaterChangeLogs(id, limit ? parseInt(limit, 10) : 20);
   }
 
   @Patch(':id/temperature')
@@ -69,5 +101,15 @@ export class FishTanksController {
     @Body() body: { outdoorTemp: number },
   ) {
     return this.service.updateOutdoorTemp(id, body.outdoorTemp);
+  }
+
+  @Patch(':tankId/fishes/:fishId')
+  @ApiOperation({ summary: 'Rename a fish (nickname). Body: { nickname, userId }. Frontend "rename" button calls this.' })
+  async renameFish(
+    @Param('tankId') tankId: string,
+    @Param('fishId') fishId: string,
+    @Body() body: { nickname: string; userId: string },
+  ) {
+    return this.fishService.renameFish(tankId, fishId, body.nickname, body.userId);
   }
 }

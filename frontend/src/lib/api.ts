@@ -61,6 +61,7 @@ export interface FishSpecies {
   userCustomized?: boolean; // v9.0
   feedRefuseHint?: string;
   variant?: string;
+  visualVariant?: { color: string; pattern: string; body: string }; // v9.1
 }
 
 export interface Fish {

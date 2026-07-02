@@ -37,6 +37,7 @@ export class FishSpeciesService {
     feedFreq: string;
     stages?: any;
     color?: string;
+    visualVariant?: { color: string; pattern: string; body: string };
   }): Promise<FishSpecies> {
     // DB columns are String (we store JSON-encoded), so stringify if client sent objects
     const nameI18nStr =
@@ -58,6 +59,22 @@ export class FishSpeciesService {
     if (data.growthDays <= 0)
       throw new BadRequestException('生长天数必须大于0');
 
+    // v9.1 item1: validate and stringify visualVariant
+    let visualVariantStr: string | undefined;
+    if (data.visualVariant) {
+      const vv = data.visualVariant;
+      const missing: string[] = [];
+      if (typeof vv.color !== 'string' || !vv.color) missing.push('color');
+      if (typeof vv.pattern !== 'string' || !vv.pattern) missing.push('pattern');
+      if (typeof vv.body !== 'string' || !vv.body) missing.push('body');
+      if (missing.length > 0) {
+        throw new BadRequestException(
+          `visualVariant 缺少必填字段: ${missing.join(', ')}`,
+        );
+      }
+      visualVariantStr = JSON.stringify(vv);
+    }
+
     return this.prisma.fishSpecies.create({
       data: {
         nameI18n: nameI18nStr,
@@ -70,6 +87,7 @@ export class FishSpeciesService {
         feedFreq: data.feedFreq,
         stages: stagesStr,
         color: data.color || '#5BA9C7',
+        visualVariant: visualVariantStr,
         isDefault: false,
         userCustomized: true, // v9.0 REQ-4: mark as user-created
       },
@@ -105,6 +123,11 @@ export class FishSpeciesService {
     try { nameI18n = JSON.parse(s.nameI18n); } catch {}
     try { descI18n = JSON.parse(s.descI18n); } catch {}
     try { stages = JSON.parse(s.stages); } catch {}
+    // v9.1 item1: parse visualVariant from JSON field
+    let visualVariant: any = undefined;
+    if ((s as any).visualVariant) {
+      try { visualVariant = JSON.parse((s as any).visualVariant); } catch {}
+    }
     const zhName = nameI18n['zh'] || '';
     return {
       id: s.id,
@@ -121,6 +144,7 @@ export class FishSpeciesService {
       isDefault: s.isDefault,
       userCustomized: (s as any).userCustomized ?? false,
       feedRefuseHint: (s as any).feedRefuseHint,
+      visualVariant,
       variant: this.resolveVariant(zhName),
     };
   }

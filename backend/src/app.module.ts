@@ -12,6 +12,7 @@ import { RemindersModule } from './reminders/reminders.module';
 import { PreferencesModule } from './preferences/preferences.module';
 import { UserModule } from './user/user.module';
 import { TemperatureModule } from './temperature/temperature.module';
+import { TemperatureAdjustModule } from './temperature-adjust/temperature-adjust.module';
 import { HealthController } from './health/health.controller';
 // (end of imports)
 
@@ -28,6 +29,7 @@ import { HealthController } from './health/health.controller';
     PreferencesModule,
     UserModule,
     TemperatureModule,
+    TemperatureAdjustModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

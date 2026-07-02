@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ConflictException,
   BadRequestException,
@@ -9,6 +10,8 @@ import { FishTank, Prisma } from '@prisma/client';
 import { FishSpeciesService } from '../fish-species/fish-species.service';
 import { FishService } from '../fish/fish.service';
 import { WaterTemperatureService } from '../temperature/water-temperature.service';
+import { WeatherService } from '../weather/weather.service';
+import { TemperatureAdjustService } from '../temperature-adjust/temperature-adjust.service';
 
 export interface CreateFishTankDto {
   userId?: string;
@@ -16,6 +19,8 @@ export interface CreateFishTankDto {
   size?: 'small' | 'medium' | 'large';
   temp?: number;
   ph?: number;
+  location?: string;
+  initialWaterTemp?: number;
 }
 
 export interface UpdateFishTankDto {
@@ -25,6 +30,7 @@ export interface UpdateFishTankDto {
   cleanliness?: number;
   oxygen?: number;
   ph?: number;
+  location?: string;
 }
 
 // v9.0: max tanks per user
@@ -32,11 +38,15 @@ const MAX_TANKS_PER_USER = 6;
 
 @Injectable()
 export class FishTanksService {
+  private readonly logger = new Logger(FishTanksService.name);
+
   constructor(
     private prisma: PrismaService,
     private speciesService: FishSpeciesService,
     private fishService: FishService,
     private waterTemp: WaterTemperatureService,
+    private weatherService: WeatherService,
+    private temperatureAdjustService: TemperatureAdjustService,
   ) {
     // Register flush callback: persist temperature to DB every ~30s
     this.waterTemp.onFlush(async (tankId, temp) => {
@@ -143,17 +153,28 @@ export class FishTanksService {
   }
 
   // v9.0 REQ-7: changeWater endpoint — resets temperature to 24°C, heaterOff, clears tempAlert
+  // v9.1 Item 6b: also creates a WaterChangeLog record
   async changeWater(tankId: string): Promise<{ id: string; temperature: number; heaterOn: boolean; cityTemp: number }> {
     const tank = await this.prisma.fishTank.findUnique({ where: { id: tankId } });
     if (!tank) throw new NotFoundException('Fish tank not found');
 
-    await this.prisma.fishTank.update({
-      where: { id: tankId },
-      data: {
-        temperature: 24.0,
-        heaterOn: false,
-        tempAlert: JSON.stringify({ isOverTemp: false, threshold: null, dismissedAt: new Date().toISOString() }),
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.fishTank.update({
+        where: { id: tankId },
+        data: {
+          temperature: 24.0,
+          heaterOn: false,
+          tempAlert: JSON.stringify({ isOverTemp: false, threshold: null, dismissedAt: new Date().toISOString() }),
+        },
+      });
+
+      // v9.1 Item 6b: Log the water change
+      await tx.waterChangeLog.create({
+        data: {
+          tankId,
+          waterStatus: 'changed',
+        },
+      });
     });
 
     // Update physics engine
@@ -167,6 +188,20 @@ export class FishTanksService {
     };
   }
 
+  /**
+   * v9.1 Item 6b: Get water change logs for a tank, ordered by most recent first.
+   */
+  async getWaterChangeLogs(tankId: string, limit: number = 20): Promise<any[]> {
+    // Verify tank exists
+    await this.ensureExists(tankId);
+
+    return this.prisma.waterChangeLog.findMany({
+      where: { tankId },
+      orderBy: { changedAt: 'desc' },
+      take: limit,
+    });
+  }
+
   private attachI18n(tank: any, lang: string) {
     if (tank.fish) {
       tank.fish = tank.fish.map((f: any) => {
@@ -177,7 +212,7 @@ export class FishTanksService {
     return tank;
   }
 
-  async create(data: CreateFishTankDto): Promise<FishTank> {
+  async create(data: CreateFishTankDto): Promise<any> {
     const userId = data.userId
       ? await this.ensureUser(data.userId)
       : await this.createDemoUser();
@@ -189,6 +224,7 @@ export class FishTanksService {
     }
 
     const tankName = data.name ?? '我的鱼缸';
+    const location = data.location ?? 'Beijing';
 
     // MBE.1: prevent duplicate tank names for the same user
     const existing = await this.prisma.fishTank.findFirst({
@@ -201,16 +237,38 @@ export class FishTanksService {
       });
     }
 
+    // v9.1 item6a: Validate city via geocode API
+    const coords = await this.weatherService.geocodeCity(location);
+    if (!coords) {
+      throw new BadRequestException(`Invalid city: "${location}". Please provide a valid city name.`);
+    }
+
+    // v9.1 item6a: Fetch weather for the location to determine target temp
+    let cityTemp = 25.0; // fallback
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        const tank = await tx.fishTank.create({
+      const weather = await this.weatherService.getWeatherByCity(location);
+      if (weather) {
+        cityTemp = weather.temp;
+      }
+    } catch {
+      this.logger.warn(`Weather fetch failed for ${location}, using fallback 25°C`);
+    }
+
+    const initialWaterTemp = data.initialWaterTemp ?? cityTemp;
+
+    try {
+      const tank = await this.prisma.$transaction(async (tx) => {
+        const newTank = await tx.fishTank.create({
           data: {
             userId,
             name: tankName,
             size: data.size ?? 'medium',
-            temp: data.temp ?? 24.0,
+            temp: initialWaterTemp,
             ph: data.ph ?? 7.0,
-            temperature: data.temp ?? 24.0,
+            temperature: initialWaterTemp,
+            location,
+            lastWeatherFetchAt: new Date(),
+            cityTemp,
           },
         });
 
@@ -221,7 +279,7 @@ export class FishTanksService {
         if (defaultSpecies) {
           await tx.fish.create({
             data: {
-              tankId: tank.id,
+              tankId: newTank.id,
               speciesId: defaultSpecies.id,
               name: '',
               stage: 'fry',
@@ -234,8 +292,27 @@ export class FishTanksService {
           });
         }
 
-        return tank;
+        return newTank;
       });
+
+      // v9.1 item7: Create temperature adjust job for the initial temperature sync
+      // Only if there's a meaningful difference between initialWaterTemp and cityTemp
+      if (Math.abs(initialWaterTemp - cityTemp) > 0.1) {
+        await this.temperatureAdjustService.createJob(
+          tank.id,
+          initialWaterTemp,
+          cityTemp,
+        );
+      }
+
+      return {
+        id: tank.id,
+        name: tank.name,
+        location: tank.location,
+        displayWaterTemp: initialWaterTemp,
+        lastWeatherFetchAt: new Date().toISOString(),
+        temperatureAdjustJob: await this.temperatureAdjustService.getProgress(tank.id),
+      };
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         throw new ConflictException({
@@ -259,9 +336,66 @@ export class FishTanksService {
     return (await this.prisma.user.create({ data: {} })).id;
   }
 
-  async update(id: string, data: UpdateFishTankDto): Promise<FishTank> {
+  async update(id: string, data: UpdateFishTankDto): Promise<any> {
     await this.ensureExists(id);
-    return this.prisma.fishTank.update({ where: { id }, data });
+
+    // v9.1 item6a: If location changed, fetch new weather and create temp adjust job
+    if (data.location) {
+      const tank = await this.prisma.fishTank.findUnique({ where: { id } });
+      if (!tank) throw new NotFoundException('Fish tank not found');
+
+      const oldLocation = tank.location;
+      if (data.location !== oldLocation) {
+        // v9.1 item6a: Validate city via geocode API
+        const coords = await this.weatherService.geocodeCity(data.location);
+        if (!coords) {
+          throw new BadRequestException(`Invalid city: "${data.location}". Please provide a valid city name.`);
+        }
+
+        // Cancel existing temp adjust job
+        await this.temperatureAdjustService.cancelJobs(id);
+
+        // Fetch weather for new location
+        let cityTemp = 25.0;
+        try {
+          const weather = await this.weatherService.getWeatherByCity(data.location);
+          if (weather) {
+            cityTemp = weather.temp;
+          }
+        } catch {
+          this.logger.warn(`Weather fetch failed for ${data.location}, using fallback 25°C`);
+        }
+
+        // Update tank with new location and weather
+        await this.prisma.fishTank.update({
+          where: { id },
+          data: {
+            ...data,
+            cityTemp,
+            lastWeatherFetchAt: new Date(),
+          },
+        });
+
+        // Create new temperature adjust job (from current temp to new city temp)
+        const currentTemp = tank.temp ?? tank.temperature ?? 24;
+        if (Math.abs(currentTemp - cityTemp) > 0.1) {
+          await this.temperatureAdjustService.createJob(id, currentTemp, cityTemp);
+        }
+
+        return {
+          id,
+          name: data.name ?? tank.name,
+          location: data.location,
+          displayWaterTemp: currentTemp,
+          lastWeatherFetchAt: new Date().toISOString(),
+          temperatureAdjustJob: await this.temperatureAdjustService.getProgress(id),
+        };
+      }
+    }
+
+    // No location change or no location provided — simple update
+    const updated = await this.prisma.fishTank.update({ where: { id }, data });
+    return updated;
   }
 
   async remove(id: string): Promise<FishTank> {

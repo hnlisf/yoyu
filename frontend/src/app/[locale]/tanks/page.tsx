@@ -34,8 +34,10 @@ export default function TanksHomePage() {
   const [loading, setLocalLoading] = useState(tanks.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [createStep, setCreateStep] = useState(1); // v9.1: step 1 = name+size, step 2 = city
   const [name, setName] = useState('我的鱼缸');
   const [size, setSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [location, setLocation] = useState(''); // v9.1 REQ-6a
   const [busy, setBusy] = useState(false);
   const [representativeFishByTank, setRepresentativeFishByTank] = useState<Record<string, Fish>>({});
 
@@ -81,10 +83,12 @@ export default function TanksHomePage() {
     try {
       const created = await api<FishTank>('/api/fish-tanks', {
         method: 'POST',
-        body: JSON.stringify({ userId: USER_ID, name, size }),
+        body: JSON.stringify({ userId: USER_ID, name, size, location: location || undefined }),
       });
       setCreating(false);
       setName('我的鱼缸');
+      setLocation('');
+      setCreateStep(1);
       // Re-fetch and store the new tank.
       const data = await api<FishTank[]>(`/api/fish-tanks?userId=${USER_ID}`);
       setTanks(data);
@@ -189,46 +193,82 @@ export default function TanksHomePage() {
 
       <BottomSheet
         open={creating}
-        onClose={() => setCreating(false)}
-        title={t('createTitle')}
+        onClose={() => { setCreating(false); setCreateStep(1); setLocation(''); }}
+        title={createStep === 1 ? t('createTitle') : '选择城市'}
       >
-        <div className="space-y-4">
-          <Input
-            label={t('name')}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="My Tank"
-          />
-          <div>
-            <label className="block text-[11px] font-light text-text-secondary mb-1.5 tracking-wide uppercase">
-              {t('size')}
-            </label>
-            <div className="flex gap-2">
-              {(['small', 'medium', 'large'] as const).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSize(s)}
-                  className={`flex-1 py-2 rounded-xl text-sm transition ${
-                    size === s
-                      ? 'bg-accent/20 text-accent border border-accent/40'
-                      : 'bg-glass text-text-secondary border border-glass-border'
-                  }`}
-                >
-                  {s === 'small' ? t('sizeSmall') : s === 'medium' ? t('sizeMedium') : t('sizeLarge')}
-                </button>
-              ))}
+        {/* v9.1 REQ-6a: Step 1 — name + size, Step 2 — city */}
+        {createStep === 1 ? (
+          <div className="space-y-4">
+            <Input
+              label={t('name')}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="My Tank"
+            />
+            <div>
+              <label className="block text-[11px] font-light text-text-secondary mb-1.5 tracking-wide uppercase">
+                {t('size')}
+              </label>
+              <div className="flex gap-2">
+                {(['small', 'medium', 'large'] as const).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setSize(s)}
+                    className={`flex-1 py-2 rounded-xl text-sm transition ${
+                      size === s
+                        ? 'bg-accent/20 text-accent border border-accent/40'
+                        : 'bg-glass text-text-secondary border border-glass-border'
+                    }`}
+                  >
+                    {s === 'small' ? t('sizeSmall') : s === 'medium' ? t('sizeMedium') : t('sizeLarge')}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setCreating(false)} className="flex-1">
+                {tCommon('cancel')}
+              </Button>
+              <Button variant="primary" onClick={() => setCreateStep(2)} disabled={!name.trim()} className="flex-1">
+                下一步
+              </Button>
             </div>
           </div>
-          <div className="flex gap-2 pt-2">
-            <Button variant="ghost" onClick={() => setCreating(false)} className="flex-1">
-              {tCommon('cancel')}
-            </Button>
-            <Button variant="primary" onClick={createTank} disabled={busy} className="flex-1">
-              {busy ? '…' : tCommon('create')}
-            </Button>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-xs text-text-secondary font-light">选择鱼缸所在城市，用于获取当地天气</p>
+            <input
+              type="text"
+              list="city-list"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder={'输入城市名，如"北京"'}
+              className="w-full px-4 py-2 rounded-xl bg-glass border border-glass-border text-text-primary placeholder:text-text-secondary/50 text-sm outline-none focus:border-accent transition"
+              autoFocus
+            />
+            <datalist id="city-list">
+              <option value="Beijing" />
+              <option value="Shanghai" />
+              <option value="Guangzhou" />
+              <option value="Shenzhen" />
+              <option value="Chengdu" />
+              <option value="Hangzhou" />
+              <option value="Nanjing" />
+              <option value="Wuhan" />
+              <option value="Xi'an" />
+              <option value="Chongqing" />
+            </datalist>
+            <div className="flex gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setCreateStep(1)} className="flex-1">
+                上一步
+              </Button>
+              <Button variant="primary" onClick={createTank} disabled={busy} className="flex-1">
+                {busy ? '…' : tCommon('create')}
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </BottomSheet>
     </div>
   );
