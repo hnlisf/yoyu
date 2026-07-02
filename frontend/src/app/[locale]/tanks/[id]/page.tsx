@@ -63,6 +63,33 @@ function TankPageContent({ tankId }: { tankId: string }) {
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [heaterToggling, setHeaterToggling] = useState(false);
 
+  // v9.1 REQ-3: Nickname privacy — hidden by default, click to reveal, auto-hide after 2.5s
+  const [visibleNicknameId, setVisibleNicknameId] = useState<string | null>(null);
+  const nicknameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearNicknameTimer = useCallback(() => {
+    if (nicknameTimerRef.current) { clearTimeout(nicknameTimerRef.current); nicknameTimerRef.current = null; }
+  }, []);
+  const revealNickname = useCallback((fishId: string) => {
+    clearNicknameTimer();
+    setVisibleNicknameId(fishId);
+    nicknameTimerRef.current = setTimeout(() => setVisibleNicknameId(null), 2500);
+  }, [clearNicknameTimer]);
+  // Cleanup timer on unmount, and global click-to-hide
+  useEffect(() => {
+    const handleDocClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-nickname]')) {
+        clearNicknameTimer();
+        setVisibleNicknameId(null);
+      }
+    };
+    document.addEventListener('click', handleDocClick);
+    return () => {
+      clearNicknameTimer();
+      document.removeEventListener('click', handleDocClick);
+    };
+  }, [clearNicknameTimer]);
+
   const load = async () => {
     try {
       const tk = await api<FishTank>(`/api/fish-tanks/${tankId}`);
@@ -481,37 +508,44 @@ function TankPageContent({ tankId }: { tankId: string }) {
                     <Link href={`/growth/${f.id}`} className="flex items-center gap-2 flex-1 min-w-0">
                       <FishAvatar variant={variant} stage={f.stage} size={40} animated={false} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-text-primary truncate">
-                          {f.name || tf(f.stage)} <span className="text-xs">{moodEmoji}</span>
-                        </p>
+                        {isRenaming ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={renameValue}
+                              onChange={(e) => setRenameValue(e.target.value)}
+                              maxLength={20}
+                              placeholder="新昵称"
+                              className="w-24 px-1.5 py-0.5 rounded text-xs bg-glass border border-glass-border text-text-primary outline-none"
+                              autoFocus
+                              onKeyDown={(e) => { if (e.key === 'Enter') handleRename(f.id); if (e.key === 'Escape') setRenamingFishId(null); }}
+                            />
+                            <button onClick={() => handleRename(f.id)} className="text-xs text-accent hover:text-accent-aux px-1">✓</button>
+                            <button onClick={() => setRenamingFishId(null)} className="text-xs text-text-secondary px-1">✕</button>
+                          </div>
+                        ) : (
+                          <p
+                            className="text-sm text-text-primary truncate cursor-pointer"
+                            data-nickname="true"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (f.name) revealNickname(f.id); }}
+                          >
+                            {f.name
+                              ? (visibleNicknameId === f.id ? f.name : '•••••')
+                              : tf(f.stage)
+                            } <span className="text-xs">{moodEmoji}</span>
+                          </p>
+                        )}
                         <p className="text-[10px] font-light text-text-secondary">
                           {tf(f.stage)} · {Math.round(f.growth)}%
                         </p>
                       </div>
                     </Link>
-                    {isRenaming ? (
-                      <div className="flex items-center gap-1 shrink-0">
-                        <input
-                          type="text"
-                          value={renameValue}
-                          onChange={(e) => setRenameValue(e.target.value)}
-                          maxLength={20}
-                          placeholder="新昵称"
-                          className="w-20 px-1.5 py-0.5 rounded text-[10px] bg-glass border border-glass-border text-text-primary outline-none"
-                          autoFocus
-                          onKeyDown={(e) => { if (e.key === 'Enter') handleRename(f.id); if (e.key === 'Escape') setRenamingFishId(null); }}
-                        />
-                        <button onClick={() => handleRename(f.id)} className="text-[10px] text-accent hover:text-accent-aux px-1">✓</button>
-                        <button onClick={() => setRenamingFishId(null)} className="text-[10px] text-text-secondary px-1">✕</button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRenamingFishId(f.id); setRenameValue(f.name || ''); }}
-                        className="text-[9px] text-text-secondary hover:text-accent shrink-0 px-1.5 py-0.5 rounded border border-glass-border hover:border-accent/40 transition"
-                      >
-                        ✎ 重命名
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRenamingFishId(f.id); setRenameValue(f.name || ''); }}
+                      className="text-[9px] text-text-secondary hover:text-accent shrink-0 px-1.5 py-0.5 rounded border border-glass-border hover:border-accent/40 transition"
+                    >
+                      ✎ 重命名
+                    </button>
                     <div className="flex gap-1 shrink-0">
                       <Tag variant="success">
                         <Icon name="health" size={11} /> {Math.round(f.health)}
@@ -559,7 +593,33 @@ function TankPageContent({ tankId }: { tankId: string }) {
                   <Link href={`/growth/${f.id}`} className="flex items-center gap-2 mb-1">
                     <FishAvatar variant={variant} stage={f.stage} size={32} animated={false} />
                     <div className="min-w-0">
-                      <p className="text-xs text-text-primary truncate">{f.name || tf(f.stage)} <span>{moodEmoji}</span></p>
+                      {isRenaming ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            maxLength={20}
+                            placeholder="新昵称"
+                            className="w-24 px-1.5 py-0.5 rounded text-[10px] bg-glass border border-glass-border text-text-primary outline-none"
+                            autoFocus
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleRename(f.id); if (e.key === 'Escape') setRenamingFishId(null); }}
+                          />
+                          <button onClick={() => handleRename(f.id)} className="text-[10px] text-accent px-1">✓</button>
+                          <button onClick={() => setRenamingFishId(null)} className="text-[10px] text-text-secondary px-1">✕</button>
+                        </div>
+                      ) : (
+                        <p
+                          className="text-xs text-text-primary truncate cursor-pointer"
+                          data-nickname="true"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (f.name) revealNickname(f.id); }}
+                        >
+                          {f.name
+                            ? (visibleNicknameId === f.id ? f.name : '•••••')
+                            : tf(f.stage)
+                          } <span>{moodEmoji}</span>
+                        </p>
+                      )}
                       <p className="text-[9px] text-text-secondary">{tf(f.stage)}</p>
                     </div>
                   </Link>
@@ -569,29 +629,12 @@ function TankPageContent({ tankId }: { tankId: string }) {
                     <span>成长: {Math.round(f.growth)}%</span>
                     <span>养殖: {adoptedDays}天</span>
                   </div>
-                  {isRenaming ? (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="text"
-                        value={renameValue}
-                        onChange={(e) => setRenameValue(e.target.value)}
-                        maxLength={20}
-                        placeholder="新昵称"
-                        className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-glass border border-glass-border text-text-primary outline-none"
-                        autoFocus
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleRename(f.id); if (e.key === 'Escape') setRenamingFishId(null); }}
-                      />
-                      <button onClick={() => handleRename(f.id)} className="text-[10px] text-accent px-1">✓</button>
-                      <button onClick={() => setRenamingFishId(null)} className="text-[10px] text-text-secondary px-1">✕</button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => { setRenamingFishId(f.id); setRenameValue(f.name || ''); }}
-                      className="text-[9px] text-text-secondary hover:text-accent px-1.5 py-0.5 rounded border border-glass-border hover:border-accent/40 transition w-full"
-                    >
-                      ✎ 重命名
-                    </button>
-                  )}
+                  <button
+                    onClick={() => { setRenamingFishId(f.id); setRenameValue(f.name || ''); }}
+                    className="text-[9px] text-text-secondary hover:text-accent px-1.5 py-0.5 rounded border border-glass-border hover:border-accent/40 transition w-full"
+                  >
+                    ✎ 重命名
+                  </button>
                 </div>
               );
             })}
