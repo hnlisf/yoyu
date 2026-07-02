@@ -39,7 +39,8 @@ describe('FishTanksService', () => {
     };
     speciesService = { toI18n: jest.fn((s: any, lang: string) => ({ ...s, lang })) };
     fishService = { create: jest.fn() };
-    svc = new FishTanksService(prisma, speciesService, fishService);
+    const waterTemp = { onFlush: jest.fn(), getCurrentTemp: jest.fn().mockReturnValue(null), register: jest.fn(), reset: jest.fn(), updateOutdoorTemp: jest.fn(), setHeaterOn: jest.fn() };
+    svc = new FishTanksService(prisma, speciesService, fishService, waterTemp);
   });
 
   describe('findAllByUser', () => {
