@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Fish } from '@prisma/client';
 import { FishSpeciesService } from '../fish-species/fish-species.service';
@@ -136,11 +136,32 @@ export class FishService {
     // v9.0: generate instanceId
     const instanceId = `inst_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
+    // v9.1 item2: nickname is now required, validate
+    const nickname = (data.name ?? '').trim();
+    if (!nickname) {
+      throw new BadRequestException('请给鱼起个昵称');
+    }
+    if (nickname.length > 20) {
+      throw new BadRequestException('昵称不能超过20个字符');
+    }
+    if (/<[^>]*>/.test(nickname)) {
+      throw new BadRequestException('昵称不能包含HTML标签');
+    }
+    // No emoji
+    if (
+      /[\uD800-\uDBFF][\uDC00-\uDFFF]/.test(nickname) ||
+      /[\u2600-\u27BF]/.test(nickname) ||
+      /[\uFE00-\uFE0F]/.test(nickname) ||
+      /\u200D/.test(nickname)
+    ) {
+      throw new BadRequestException('昵称不能包含表情符号');
+    }
+
     return this.prisma.fish.create({
       data: {
         tankId,
         speciesId: data.speciesId,
-        name: data.name ?? '',
+        name: nickname,
         instanceId,
         stage: 'fry',
         growth: 0,
@@ -235,5 +256,61 @@ export class FishService {
   private async ensureExists(id: string) {
     const f = await this.prisma.fish.findUnique({ where: { id } });
     if (!f) throw new NotFoundException('Fish not found');
+  }
+
+  /**
+   * v9.1 item4: Rename a fish (nickname).
+   * Validates: non-empty, 1-20 chars, no emoji, no HTML tags.
+   * Checks tank ownership via userId (403 if not owner).
+   */
+  async renameFish(
+    tankId: string,
+    fishId: string,
+    nickname: string,
+    userId: string,
+  ): Promise<Fish> {
+    // Validate nickname
+    if (!nickname || typeof nickname !== 'string') {
+      throw new BadRequestException('昵称不能为空');
+    }
+    const trimmed = nickname.trim();
+    if (trimmed.length < 1 || trimmed.length > 20) {
+      throw new BadRequestException('昵称长度须在1-20个字符之间');
+    }
+    // No HTML tags
+    if (/<[^>]*>/.test(trimmed)) {
+      throw new BadRequestException('昵称不能包含HTML标签');
+    }
+    // No emoji (detect characters outside BMP and common emoji ranges)
+    if (
+      /[\uD800-\uDBFF][\uDC00-\uDFFF]/.test(trimmed) ||
+      /[\u2600-\u27BF]/.test(trimmed) ||
+      /[\uFE00-\uFE0F]/.test(trimmed) ||
+      /\u200D/.test(trimmed)
+    ) {
+      throw new BadRequestException('昵称不能包含表情符号');
+    }
+
+    // Check fish exists and belongs to the specified tank
+    const fish = await this.prisma.fish.findUnique({
+      where: { id: fishId },
+      include: { tank: true },
+    });
+    if (!fish) throw new NotFoundException('鱼不存在');
+    if (fish.tankId !== tankId) {
+      throw new NotFoundException('鱼不属于该鱼缸');
+    }
+
+    // Check tank ownership
+    const tank = await this.prisma.fishTank.findUnique({ where: { id: tankId } });
+    if (!tank) throw new NotFoundException('鱼缸不存在');
+    if (tank.userId !== userId) {
+      throw new ForbiddenException('无权操作该鱼缸');
+    }
+
+    return this.prisma.fish.update({
+      where: { id: fishId },
+      data: { name: trimmed },
+    });
   }
 }

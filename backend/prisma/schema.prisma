@@ -38,6 +38,7 @@ model FishSpecies {
   color          String  @default("#5BA9C7")
   isDefault      Boolean @default(false) @map("is_default")
   userCustomized Boolean @default(false) @map("user_customized") // v9.0: user-created species
+  visualVariant  String? @map("visual_variant") // v9.1 item1: JSON {"color","pattern","body"} — null for defaults
   createdAt      DateTime @default(now()) @map("created_at")
 
   fish           Fish[]
@@ -46,25 +47,29 @@ model FishSpecies {
 }
 
 model FishTank {
-  id          String @id @default(uuid())
-  userId      String @map("user_id")
-  name        String @default("我的鱼缸")
-  size        String @default("medium") // small/medium/large
-  temp        Float  @default(24.0)
-  cityTemp    Float  @default(24.0) @map("city_temp")
-  heaterOn    Boolean @default(false) @map("heater_on")
-  temperature Float? // v9.0: current water temperature (°C)
-  weatherSync Json?  @map("weather_sync") // v9.0: {city, currentTemp, lastSyncAt}
-  tempAlert   Json?  @map("temp_alert") // v9.0: {isOverTemp, threshold, dismissedAt}
-  cleanliness Float  @default(100.0) @map("cleanliness") // 0-100
-  oxygen      Float  @default(100.0) // 0-100
-  ph          Float  @default(7.0)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id                String @id @default(uuid())
+  userId            String @map("user_id")
+  name              String @default("我的鱼缸")
+  size              String @default("medium") // small/medium/large
+  temp              Float  @default(24.0)
+  cityTemp          Float  @default(24.0) @map("city_temp")
+  heaterOn          Boolean @default(false) @map("heater_on")
+  temperature       Float? // v9.0: current water temperature (°C)
+  weatherSync       Json?  @map("weather_sync") // v9.0: {city, currentTemp, lastSyncAt}
+  tempAlert         Json?  @map("temp_alert") // v9.0: {isOverTemp, threshold, dismissedAt}
+  location          String @default("Beijing") @map("location") // v9.1 item6a: city code
+  lastWeatherFetchAt DateTime? @map("last_weather_fetch_at") // v9.1 item6a: last weather fetch
+  cleanliness       Float  @default(100.0) @map("cleanliness") // 0-100
+  oxygen            Float  @default(100.0) // 0-100
+  ph                Float  @default(7.0)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
-  user        User   @relation("UserTanks", fields: [userId], references: [id])
-  defaultFor  User[] @relation("DefaultTank")
-  fish        Fish[]
+  user              User   @relation("UserTanks", fields: [userId], references: [id])
+  defaultFor        User[] @relation("DefaultTank")
+  fish              Fish[]
+  temperatureAdjustJobs TemperatureAdjustJob[]
+  waterChangeLogs   WaterChangeLog[]
 
   @@unique([userId, name])
   @@map("fish_tanks")
@@ -74,7 +79,7 @@ model Fish {
   id          String @id @default(uuid())
   tankId      String @map("tank_id")
   speciesId   String @map("species_id")
-  name        String @default("")
+  name        String @default("") // v9.1: nickname (items 2-4)
   instanceId  String? @map("instance_id") // v9.0: unique instance ID for "my fish" list
   adoptedDays Int?    @map("adopted_days") // v9.0: computed days since adoption
   status      String? // v9.0: healthy|subhealthy|danger|hungry|dead
@@ -139,4 +144,38 @@ model UserPreference {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("user_preferences")
+}
+
+// v9.1 item7: Temperature adjustment job tracking
+model TemperatureAdjustJob {
+  id              String   @id @default(uuid())
+  tankId          String   @map("tank_id")
+  fromTemp        Float    @map("from_temp")
+  toTemp          Float    @map("to_temp")
+  currentTemp     Float    @map("current_temp")
+  algorithm       String   @default("exponential_decay")
+  tauMinutes      Int      @default(20) @map("tau_minutes")
+  startedAt       DateTime @default(now()) @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  status          String   @default("running")
+
+  tank            FishTank @relation(fields: [tankId], references: [id], onDelete: Cascade)
+
+  @@index([tankId])
+  @@index([status])
+  @@map("temperature_adjust_job")
+}
+
+// v9.1 item6b: Water change log
+model WaterChangeLog {
+  id          String   @id @default(uuid())
+  tankId      String   @map("tank_id")
+  fishId      String?  @map("fish_id")
+  changedAt   DateTime @default(now()) @map("changed_at")
+  waterStatus String   @default("changed") @map("water_status")
+
+  tank        FishTank @relation(fields: [tankId], references: [id], onDelete: Cascade)
+
+  @@index([tankId])
+  @@map("water_change_logs")
 }

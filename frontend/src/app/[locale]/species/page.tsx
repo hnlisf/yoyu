@@ -48,11 +48,17 @@ function classifyError(e: any, status?: number): ErrorCategory {
   return 'network';
 }
 
+// v9.1: Visual variant options
+const VISUAL_COLORS = ['red', 'blue', 'golden', 'green', 'purple', 'orange', 'white', 'black', 'pink'];
+const VISUAL_PATTERNS = ['solid', 'spotted', 'striped'];
+const VISUAL_BODY_TYPES = ['slender', 'round', 'elongated'];
+
 export default function SpeciesPage() {
   const t = useTranslations('species');
   const tf = useTranslations('fish');
   const { data: species, loading, refetch } = useApi<FishSpecies[]>('/api/fish-species?lang=' + (typeof window !== 'undefined' ? (document.cookie.match(/locale=(\w+)/)?.[1] ?? 'zh') : 'zh'));
   const [adding, setAdding] = useState(false);
+  const [addingStep, setAddingStep] = useState(1); // v9.1: wizard steps 1-3
   const [name, setName] = useState('');
   const [tempMin, setTempMin] = useState(20);
   const [tempMax, setTempMax] = useState(28);
@@ -61,56 +67,51 @@ export default function SpeciesPage() {
   const [growthDays, setGrowthDays] = useState(60);
   const [feedFreq, setFeedFreq] = useState<'daily' | 'twice_daily' | 'every_2_days'>('twice_daily');
   const [color, setColor] = useState('#5BA9C7');
+  const [visualVariant, setVisualVariant] = useState({ color: 'red', pattern: 'solid', body: 'slender' });
   const [busy, setBusy] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // v9.0 REQ-1: TankSelector state
+  // v9.1 REQ-2: Nickname modal FIRST, then tank selector
+  const [showNicknameFirst, setShowNicknameFirst] = useState(false);
+  const [nickname, setNickname] = useState('');
   const [showTankSelector, setShowTankSelector] = useState(false);
   const [pendingSpecies, setPendingSpecies] = useState<FishSpecies | null>(null);
-  const [selectedTankId, setSelectedTankId] = useState<string | null>(null);
-  // v9.0 REQ-2: Nickname state
-  const [showNicknameInput, setShowNicknameInput] = useState(false);
-  const [nickname, setNickname] = useState('');
 
-  // v9.0 REQ-1 + REQ-2: Initiate add fish flow — show tank selector first
+  // v9.1 REQ-2: Start add-fish flow — show nickname modal FIRST
   const startAddToTank = (sp: FishSpecies) => {
     setPendingSpecies(sp);
+    setNickname('');
+    setShowNicknameFirst(true);
+  };
+
+  // Called when nickname is confirmed (required) — proceed to tank selector
+  const onNicknameConfirmed = () => {
+    setShowNicknameFirst(false);
     setShowTankSelector(true);
   };
 
-  // Called when user picks a tank from TankSelector
-  const onTankSelected = (tankId: string) => {
+  // Called when user picks a tank from TankSelector — finalize
+  const onTankSelected = async (tankId: string) => {
     setShowTankSelector(false);
-    setSelectedTankId(tankId);
     localStorage.setItem(STORAGE_KEY, tankId);
-    if (pendingSpecies) {
-      setNickname(''); // reset nickname
-      setShowNicknameInput(true);
-    }
-  };
+    if (!pendingSpecies) return;
 
-  // v9.0 REQ-1 + REQ-2: Finalize add fish with tank + optional nickname
-  const confirmAddFish = async () => {
-    if (!pendingSpecies || !selectedTankId) return;
     setBusy(true);
-    setShowNicknameInput(false);
-
     try {
       await api('/api/fish', {
         method: 'POST',
         body: JSON.stringify({
-          tankId: selectedTankId,
+          tankId,
           speciesId: pendingSpecies.id,
-          name: nickname.trim() || '',
+          name: nickname.trim(),
         }),
       });
-      setToastMsg(`已添加 ${pendingSpecies.name}${nickname ? ` (${nickname})` : ''} 到鱼缸！`);
+      setToastMsg(`已添加 ${pendingSpecies.name} (${nickname}) 到鱼缸！`);
     } catch (e: any) {
       setToastMsg(`添加失败：${e.message}`);
     } finally {
       setBusy(false);
       setPendingSpecies(null);
-      setSelectedTankId(null);
       setNickname('');
     }
   };
@@ -207,6 +208,7 @@ export default function SpeciesPage() {
           nameI18n: JSON.stringify({ zh: name, en: name, ja: name }),
           descI18n: JSON.stringify({ zh: '自定义鱼种', en: 'Custom species', ja: 'カスタム魚種' }),
           tempMin, tempMax, phMin, phMax, growthDays, feedFreq, color,
+          visualVariant: JSON.stringify(visualVariant),
           stages: JSON.stringify([
             { name: 'fry', label: { zh: '鱼苗', en: 'Fry', ja: '稚魚' }, days: Math.round(growthDays * 0.1) },
             { name: 'juvenile', label: { zh: '幼鱼', en: 'Juvenile', ja: '幼魚' }, days: Math.round(growthDays * 0.4) },
@@ -252,13 +254,25 @@ export default function SpeciesPage() {
       </div>
 
       <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {species?.map((sp) => (
+        {species?.map((sp) => {
+          let visualVariantObj: { color?: string; pattern?: string; body?: string } | null = null;
+          if (sp.variant && typeof sp.variant === 'string' && sp.variant.startsWith('{')) {
+            try { visualVariantObj = JSON.parse(sp.variant); } catch {}
+          }
+          return (
           <div key={sp.id} className="card hover:shadow-md transition">
             <div className="h-20 rounded-2xl mb-3 bg-water-50 flex items-center justify-center">
               <FishAvatar variant={(sp.variant as any) ?? slugToVariant(sp.name)} size={64} animated={false} />
             </div>
             <h3 className="font-semibold text-water-600 text-lg">{sp.name}</h3>
             <p className="text-sm text-water-500 mt-1 line-clamp-2">{sp.description}</p>
+            {visualVariantObj && (
+              <div className="flex gap-1 mt-1.5 text-[10px] text-water-400">
+                <span className="bg-water-50 px-1.5 py-0.5 rounded">{visualVariantObj.color}</span>
+                <span className="bg-water-50 px-1.5 py-0.5 rounded">{visualVariantObj.pattern}</span>
+                <span className="bg-water-50 px-1.5 py-0.5 rounded">{visualVariantObj.body}</span>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
               <div className="rounded-lg bg-water-50 p-2">
                 <p className="text-water-500">🌡️ {t('tempRange')}</p>
@@ -283,27 +297,28 @@ export default function SpeciesPage() {
               {t('selectButton')}
             </button>
           </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* v9.0 REQ-1: TankSelector drawer */}
+      {/* v9.1 REQ-2: Nickname modal FIRST (required, 1-20 chars) */}
       <TankSelector
         isOpen={showTankSelector}
-        onClose={() => { setShowTankSelector(false); setPendingSpecies(null); }}
+        onClose={() => { setShowTankSelector(false); setPendingSpecies(null); setNickname(''); }}
         onSelect={onTankSelected}
       />
 
-      {/* v9.0 REQ-2: Nickname input modal */}
-      {showNicknameInput && pendingSpecies && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowNicknameInput(false)}>
+      {/* v9.1 REQ-2: Nickname modal — required, shows BEFORE tank selector */}
+      {showNicknameFirst && pendingSpecies && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowNicknameFirst(false)}>
           <div className="bg-card max-w-sm w-full rounded-3xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-light text-text-primary">给鱼取个名字</h2>
             <p className="text-xs text-text-secondary">
-              即将添加 <span className="text-accent">{pendingSpecies.name}</span>，可选填昵称
+              即将添加 <span className="text-accent">{pendingSpecies.name}</span>，请为它取个名字
             </p>
             <input
               type="text"
-              placeholder="输入昵称（选填）"
+              placeholder="输入昵称（1-20个字符）"
               maxLength={20}
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
@@ -312,65 +327,107 @@ export default function SpeciesPage() {
             />
             <p className="text-[10px] text-text-secondary text-right">{nickname.length}/20</p>
             <div className="flex gap-2 pt-2">
-              <button onClick={() => setShowNicknameInput(false)} className="flex-1 py-2 rounded-xl border border-glass-border text-text-secondary text-sm hover:bg-glass transition">
-                跳过
+              <button onClick={() => setShowNicknameFirst(false)} className="flex-1 py-2 rounded-xl border border-glass-border text-text-secondary text-sm hover:bg-glass transition">
+                取消
               </button>
-              <button onClick={confirmAddFish} disabled={busy} className="flex-1 py-2 rounded-xl bg-accent text-deep text-sm font-medium hover:bg-accent-aux transition disabled:opacity-50">
-                {busy ? '添加中...' : '确认添加'}
+              <button
+                onClick={onNicknameConfirmed}
+                disabled={nickname.trim().length < 1}
+                className="flex-1 py-2 rounded-xl bg-accent text-deep text-sm font-medium hover:bg-accent-aux transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                下一步
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* v9.1 Custom species wizard with 3 steps */}
       {adding && (
         <div className="fixed inset-0 bg-water-600/30 backdrop-blur-sm z-40 flex items-center justify-center p-4" onClick={() => setAdding(false)}>
           <div className="card max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-            <h2 className="font-semibold text-water-600 mb-4">{t('addCustom')}</h2>
-            <div className="space-y-3">
-              <div>
-                <label className="label">{t('customName')}</label>
-                <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">🌡️ Temp min</label>
-                  <input className="input" type="number" value={tempMin} onChange={(e) => setTempMin(+e.target.value)} />
-                </div>
-                <div>
-                  <label className="label">Temp max</label>
-                  <input className="input" type="number" value={tempMax} onChange={(e) => setTempMax(+e.target.value)} />
-                </div>
-                <div>
-                  <label className="label">⚗️ pH min</label>
-                  <input className="input" type="number" step="0.1" value={phMin} onChange={(e) => setPhMin(+e.target.value)} />
-                </div>
-                <div>
-                  <label className="label">pH max</label>
-                  <input className="input" type="number" step="0.1" value={phMax} onChange={(e) => setPhMax(+e.target.value)} />
-                </div>
-                <div>
-                  <label className="label">📅 {t('growthDays')}</label>
-                  <input className="input" type="number" value={growthDays} onChange={(e) => setGrowthDays(+e.target.value)} />
-                </div>
-                <div>
-                  <label className="label">🎨 Color</label>
-                  <input className="input h-10 p-1" type="color" value={color} onChange={(e) => setColor(e.target.value)} />
-                </div>
-              </div>
-              <div>
-                <label className="label">{t('feedFreq')}</label>
-                <select className="input" value={feedFreq} onChange={(e) => setFeedFreq(e.target.value as any)}>
-                  <option value="daily">{t('freqDaily')}</option>
-                  <option value="twice_daily">{t('freqTwice')}</option>
-                  <option value="every_2_days">{t('freq2Days')}</option>
-                </select>
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button onClick={() => setAdding(false)} className="btn-secondary flex-1">Cancel</button>
-                <button onClick={createCustom} disabled={busy} className="btn-primary flex-1">{busy ? '…' : 'Create'}</button>
-              </div>
+            <div className="flex items-center gap-2 mb-4">
+              <h2 className="font-semibold text-water-600">{t('addCustom')}</h2>
+              <span className="text-xs text-water-400 ml-auto">步骤 {addingStep}/3</span>
             </div>
+
+            {addingStep === 1 && (
+              <div className="space-y-3">
+                <div>
+                  <label className="label">{t('customName')}</label>
+                  <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">🌡️ Temp min</label>
+                    <input className="input" type="number" value={tempMin} onChange={(e) => setTempMin(+e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="label">Temp max</label>
+                    <input className="input" type="number" value={tempMax} onChange={(e) => setTempMax(+e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="label">⚗️ pH min</label>
+                    <input className="input" type="number" step="0.1" value={phMin} onChange={(e) => setPhMin(+e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="label">pH max</label>
+                    <input className="input" type="number" step="0.1" value={phMax} onChange={(e) => setPhMax(+e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="label">📅 {t('growthDays')}</label>
+                    <input className="input" type="number" value={growthDays} onChange={(e) => setGrowthDays(+e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="label">🎨 Color</label>
+                    <input className="input h-10 p-1" type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+                  </div>
+                </div>
+                <div>
+                  <label className="label">{t('feedFreq')}</label>
+                  <select className="input" value={feedFreq} onChange={(e) => setFeedFreq(e.target.value as any)}>
+                    <option value="daily">{t('freqDaily')}</option>
+                    <option value="twice_daily">{t('freqTwice')}</option>
+                    <option value="every_2_days">{t('freq2Days')}</option>
+                  </select>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button onClick={() => setAdding(false)} className="btn-secondary flex-1">Cancel</button>
+                  <button onClick={() => setAddingStep(2)} disabled={!name.trim()} className="btn-primary flex-1">下一步</button>
+                </div>
+              </div>
+            )}
+
+            {addingStep === 2 && (
+              <div className="space-y-3">
+                <p className="text-sm text-water-500">选择外观特征（{VISUAL_COLORS.length} × {VISUAL_PATTERNS.length} × {VISUAL_BODY_TYPES.length} = 27 种组合）</p>
+                <div>
+                  <label className="label">颜色 Color</label>
+                  <select className="input" value={visualVariant.color} onChange={(e) => setVisualVariant({ ...visualVariant, color: e.target.value })}>
+                    {VISUAL_COLORS.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">花纹 Pattern</label>
+                  <select className="input" value={visualVariant.pattern} onChange={(e) => setVisualVariant({ ...visualVariant, pattern: e.target.value })}>
+                    {VISUAL_PATTERNS.map((p) => <option key={p} value={p}>{p === 'solid' ? '纯色 Solid' : p === 'spotted' ? '斑点 Spotted' : '条纹 Striped'}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">体型 Body</label>
+                  <select className="input" value={visualVariant.body} onChange={(e) => setVisualVariant({ ...visualVariant, body: e.target.value })}>
+                    {VISUAL_BODY_TYPES.map((b) => <option key={b} value={b}>{b === 'slender' ? '细长 Slender' : b === 'round' ? '圆形 Round' : '延长 Elongated'}</option>)}
+                  </select>
+                </div>
+                <div className="bg-water-50 rounded-lg p-3 text-xs text-water-500">
+                  当前: {visualVariant.color} · {visualVariant.pattern} · {visualVariant.body}
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button onClick={() => setAddingStep(1)} className="btn-secondary flex-1">上一步</button>
+                  <button onClick={createCustom} disabled={busy} className="btn-primary flex-1">{busy ? '…' : '创建'}</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

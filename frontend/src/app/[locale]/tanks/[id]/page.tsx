@@ -48,6 +48,16 @@ function TankPageContent({ tankId }: { tankId: string }) {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
+  // v9.1 REQ-4: Rename state
+  const [renamingFishId, setRenamingFishId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  // v9.1 REQ-7: Temperature adjust job state
+  const [tempJob, setTempJob] = useState<{
+    fromTemp: number; toTemp: number; currentTemp: number;
+    status: string; remainingSeconds: number; deltaPerMinute: number;
+  } | null>(null);
+
   const [heaterOn, setHeaterOn] = useState(false);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
@@ -100,6 +110,50 @@ function TankPageContent({ tankId }: { tankId: string }) {
   useEffect(() => {
     loadWeather();
   }, [tankId, loadWeather]);
+
+  // v9.1 REQ-7: Poll temperature adjust job every 30s
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const poll = async () => {
+      try {
+        const job = await api<{
+          jobId: string; fromTemp: number; toTemp: number;
+          currentTemp: number; status: string;
+          remainingSeconds: number; deltaPerMinute: number;
+        } | null>(`/api/fish-tanks/${tankId}/temperature-adjust`);
+        if (cancelled) return;
+        setTempJob(job && job.status === 'active' ? job : null);
+      } catch {
+        setTempJob(null);
+      }
+    };
+
+    poll();
+    timer = setInterval(poll, 30000);
+    return () => { cancelled = true; if (timer) clearInterval(timer); };
+  }, [tankId]);
+
+  // v9.1 REQ-4: Handle rename
+  const handleRename = async (fishId: string) => {
+    if (!renameValue.trim() || renameValue.trim().length > 20) return;
+    setBusy(true);
+    try {
+      await api(`/api/fish-tanks/${tankId}/fishes/${fishId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ nickname: renameValue.trim(), userId: USER_ID }),
+      });
+      setToast('重命名成功');
+      setRenamingFishId(null);
+      setRenameValue('');
+      await load();
+    } catch (e: any) {
+      setToast('重命名失败: ' + e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const toggleHeater = async (_tankId: string, newState: boolean) => {
     setHeaterToggling(true);
@@ -225,6 +279,24 @@ function TankPageContent({ tankId }: { tankId: string }) {
           <CapacityBar size={tank!.size} current={fishCount} />
         </div>
       </header>
+
+      {/* v9.1 REQ-7: Temperature adjust progress bar */}
+      {tempJob && (
+        <div className="shrink-0 px-1">
+          <GlassCard className="py-2 px-3 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-text-primary font-light">水温调节中... 剩余 {Math.ceil(tempJob.remainingSeconds / 60)} 分钟</p>
+              <span className="text-[10px] text-text-secondary">{tempJob.currentTemp.toFixed(1)}° → {tempJob.toTemp.toFixed(1)}°</span>
+            </div>
+            <ProgressBar
+              value={tempJob.toTemp !== tempJob.fromTemp
+                ? Math.min(100, Math.max(0, ((tempJob.currentTemp - tempJob.fromTemp) / (tempJob.toTemp - tempJob.fromTemp)) * 100))
+                : 50}
+              variant="accent"
+            />
+          </GlassCard>
+        </div>
+      )}
 
       {/* TempAlertBanner — shown at top on all breakpoints */}
       {showTempWarning && (
@@ -389,25 +461,58 @@ function TankPageContent({ tankId }: { tankId: string }) {
         {fishList.length > 0 && (
           <GlassCard className="space-y-2 xl:hidden">
             <h2 className="text-sm font-normal text-text-primary">{t('fish')}</h2>
-            <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+            <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
               {fishList.map((f) => {
                 const variant = slugToVariant(f.species?.name ?? f.species?.id);
+                const isRenaming = renamingFishId === f.id;
+                // v9.1 REQ-7: Fish mood based on currentTemp vs optimalTempRange
+                const currentTemp = tank!.temperature ?? tank!.temp;
+                const optimalMin = f.species?.tempMin;
+                const optimalMax = f.species?.tempMax;
+                let moodEmoji = '😊';
+                if (optimalMin != null && optimalMax != null) {
+                  const diff = Math.min(Math.abs(currentTemp - optimalMin), Math.abs(currentTemp - optimalMax));
+                  if (currentTemp < optimalMin || currentTemp > optimalMax) {
+                    moodEmoji = diff > 5 ? '😵' : '😟';
+                  }
+                }
                 return (
-                  <Link
-                    key={f.id}
-                    href={`/growth/${f.id}`}
-                    className="flex items-center gap-2 p-2 rounded-xl hover:bg-glass transition"
-                  >
-                    <FishAvatar variant={variant} stage={f.stage} size={40} animated={false} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-text-primary truncate">
-                        {f.name || tf(f.stage)}
-                      </p>
-                      <p className="text-[10px] font-light text-text-secondary">
-                        {tf(f.stage)} · {Math.round(f.growth)}%
-                      </p>
-                    </div>
-                    <div className="flex gap-1">
+                  <div key={f.id} className="flex items-center gap-2 p-2 rounded-xl hover:bg-glass transition">
+                    <Link href={`/growth/${f.id}`} className="flex items-center gap-2 flex-1 min-w-0">
+                      <FishAvatar variant={variant} stage={f.stage} size={40} animated={false} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-text-primary truncate">
+                          {f.name || tf(f.stage)} <span className="text-xs">{moodEmoji}</span>
+                        </p>
+                        <p className="text-[10px] font-light text-text-secondary">
+                          {tf(f.stage)} · {Math.round(f.growth)}%
+                        </p>
+                      </div>
+                    </Link>
+                    {isRenaming ? (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <input
+                          type="text"
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          maxLength={20}
+                          placeholder="新昵称"
+                          className="w-20 px-1.5 py-0.5 rounded text-[10px] bg-glass border border-glass-border text-text-primary outline-none"
+                          autoFocus
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleRename(f.id); if (e.key === 'Escape') setRenamingFishId(null); }}
+                        />
+                        <button onClick={() => handleRename(f.id)} className="text-[10px] text-accent hover:text-accent-aux px-1">✓</button>
+                        <button onClick={() => setRenamingFishId(null)} className="text-[10px] text-text-secondary px-1">✕</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRenamingFishId(f.id); setRenameValue(f.name || ''); }}
+                        className="text-[9px] text-text-secondary hover:text-accent shrink-0 px-1.5 py-0.5 rounded border border-glass-border hover:border-accent/40 transition"
+                      >
+                        ✎ 重命名
+                      </button>
+                    )}
+                    <div className="flex gap-1 shrink-0">
                       <Tag variant="success">
                         <Icon name="health" size={11} /> {Math.round(f.health)}
                       </Tag>
@@ -415,7 +520,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
                         <Icon name="feed" size={11} /> {Math.round(f.nutrition)}
                       </Tag>
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
@@ -437,26 +542,57 @@ function TankPageContent({ tankId }: { tankId: string }) {
             {fishList.map((f) => {
               const variant = slugToVariant(f.species?.name ?? f.species?.id);
               const adoptedDays = f.adoptedDays ?? Math.floor((Date.now() - new Date(f.birthday).getTime()) / 86400000);
+              const isRenaming = renamingFishId === f.id;
+              // v9.1 REQ-7: Fish mood
+              const currentTemp = tank!.temperature ?? tank!.temp;
+              const optimalMin = f.species?.tempMin;
+              const optimalMax = f.species?.tempMax;
+              let moodEmoji = '😊';
+              if (optimalMin != null && optimalMax != null) {
+                const diff = Math.min(Math.abs(currentTemp - optimalMin), Math.abs(currentTemp - optimalMax));
+                if (currentTemp < optimalMin || currentTemp > optimalMax) {
+                  moodEmoji = diff > 5 ? '😵' : '😟';
+                }
+              }
               return (
-                <Link
-                  key={f.id}
-                  href={`/growth/${f.id}`}
-                  className="block p-2 rounded-xl hover:bg-glass transition"
-                >
-                  <div className="flex items-center gap-2 mb-1">
+                <div key={f.id} className="block p-2 rounded-xl hover:bg-glass transition">
+                  <Link href={`/growth/${f.id}`} className="flex items-center gap-2 mb-1">
                     <FishAvatar variant={variant} stage={f.stage} size={32} animated={false} />
                     <div className="min-w-0">
-                      <p className="text-xs text-text-primary truncate">{f.name || tf(f.stage)}</p>
+                      <p className="text-xs text-text-primary truncate">{f.name || tf(f.stage)} <span>{moodEmoji}</span></p>
                       <p className="text-[9px] text-text-secondary">{tf(f.stage)}</p>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 text-[10px] text-text-secondary">
+                  </Link>
+                  <div className="grid grid-cols-2 gap-1 text-[10px] text-text-secondary mb-1">
                     <span>健康: {Math.round(f.health)}%</span>
                     <span>营养: {Math.round(f.nutrition)}%</span>
                     <span>成长: {Math.round(f.growth)}%</span>
                     <span>养殖: {adoptedDays}天</span>
                   </div>
-                </Link>
+                  {isRenaming ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="text"
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        maxLength={20}
+                        placeholder="新昵称"
+                        className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-glass border border-glass-border text-text-primary outline-none"
+                        autoFocus
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleRename(f.id); if (e.key === 'Escape') setRenamingFishId(null); }}
+                      />
+                      <button onClick={() => handleRename(f.id)} className="text-[10px] text-accent px-1">✓</button>
+                      <button onClick={() => setRenamingFishId(null)} className="text-[10px] text-text-secondary px-1">✕</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setRenamingFishId(f.id); setRenameValue(f.name || ''); }}
+                      className="text-[9px] text-text-secondary hover:text-accent px-1.5 py-0.5 rounded border border-glass-border hover:border-accent/40 transition w-full"
+                    >
+                      ✎ 重命名
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>

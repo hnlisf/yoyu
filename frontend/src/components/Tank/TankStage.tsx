@@ -41,6 +41,9 @@ export function TankStage({ fishList, onFishClick, weatherCode, feedRef }: TankS
 function TankStageInner({ fishList, onFishClick, weatherCode, feedRef }: TankStageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerDims, setContainerDims] = useState({ w: 600, h: 280 });
+  // v9.1 REQ-3: nickname visibility — only one visible at a time
+  const [visibleNicknameId, setVisibleNicknameId] = useState<string | null>(null);
+  const nicknameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { state: feedingState, triggerFeeding, onFishReachedFood, getFishFeedingClass } =
     useFeeding();
@@ -107,11 +110,49 @@ function TankStageInner({ fishList, onFishClick, weatherCode, feedRef }: TankSta
   // Derive tank background class from weather code
   const bgClass = getWeatherBgClass(weatherCode);
 
+  // v9.1 REQ-3: handle fish card click for nickname toggle
+  const handleFishCardClick = useCallback((fish: Fish) => {
+    if (nicknameTimerRef.current) {
+      clearTimeout(nicknameTimerRef.current);
+      nicknameTimerRef.current = null;
+    }
+    // If clicking same fish that's already visible, hide it
+    if (visibleNicknameId === fish.id) {
+      setVisibleNicknameId(null);
+      onFishClick?.(fish);
+      return;
+    }
+    setVisibleNicknameId(fish.id);
+    nicknameTimerRef.current = setTimeout(() => {
+      setVisibleNicknameId(null);
+      nicknameTimerRef.current = null;
+    }, 2500);
+    onFishClick?.(fish);
+  }, [visibleNicknameId, onFishClick]);
+
+  const handleStageClick = useCallback((e: React.MouseEvent) => {
+    // Only hide if clicking the background (not a fish)
+    if ((e.target as HTMLElement).closest('.fish-physics-wrapper')) return;
+    if (nicknameTimerRef.current) {
+      clearTimeout(nicknameTimerRef.current);
+      nicknameTimerRef.current = null;
+    }
+    setVisibleNicknameId(null);
+  }, []);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (nicknameTimerRef.current) clearTimeout(nicknameTimerRef.current);
+    };
+  }, []);
+
   return (
     <div
       ref={containerRef}
       className={`swim-stage glass-card ${bgClass}`}
       style={{ position: 'relative', overflow: 'hidden' }}
+      onClick={handleStageClick}
     >
       {/* Deep-sea gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.08] to-deep/40 pointer-events-none z-0" />
@@ -133,13 +174,14 @@ function TankStageInner({ fishList, onFishClick, weatherCode, feedRef }: TankSta
           const pos = positions.get(f.id);
           const feedingClass = getFishFeedingClass(f.id);
           const variant = slugToVariant(f.species?.name ?? f.species?.id);
+          const showNickname = visibleNicknameId === f.id;
 
           return (
             <div
               key={f.id}
-              className="fish-physics-wrapper group"
+              className="fish-physics-wrapper"
               style={fishPositionStyle(pos)}
-              onClick={() => onFishClick?.(f)}
+              onClick={(e) => { e.stopPropagation(); handleFishCardClick(f); }}
             >
               <span className={feedingClass || undefined}>
                 <FishAvatar
@@ -149,8 +191,8 @@ function TankStageInner({ fishList, onFishClick, weatherCode, feedRef }: TankSta
                   animated={false}
                 />
               </span>
-              {/* v9.0 REQ-3: hide label by default, show on hover */}
-              <p className="text-[9px] text-text-primary mt-0.5 font-light drop-shadow text-center truncate max-w-[80px] opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* v9.1 REQ-3: click to show nickname, auto-hide after 2.5s */}
+              <p className={`text-[9px] text-text-primary mt-0.5 font-light drop-shadow text-center truncate max-w-[80px] transition-opacity duration-200 ${showNickname ? 'opacity-100' : 'opacity-0'}`}>
                 {f.name || f.stage}
               </p>
             </div>
