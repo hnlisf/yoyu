@@ -348,7 +348,7 @@ export default function SpeciesPage() {
           <div className="card max-w-md w-full" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2 mb-4">
               <h2 className="font-semibold text-water-600">{t('addCustom')}</h2>
-              <span className="text-xs text-water-400 ml-auto">步骤 {addingStep}/3</span>
+              <span className="text-xs text-water-400 ml-auto">步骤 {addingStep}/2</span>
             </div>
 
             {addingStep === 1 && (
