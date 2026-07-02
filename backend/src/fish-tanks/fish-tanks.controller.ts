@@ -56,6 +56,12 @@ export class FishTanksController {
     return this.service.toggleHeater(id, body.heaterOn);
   }
 
+  @Post(':id/change-water')
+  @ApiOperation({ summary: 'v9.0: Change water — resets temperature to 24°C, heater off, clears temp alert' })
+  async changeWater(@Param('id') id: string) {
+    return this.service.changeWater(id);
+  }
+
   @Patch(':id/temperature')
   @ApiOperation({ summary: 'Update outdoor temperature (triggers water temp physics recalc)' })
   async updateOutdoorTemp(

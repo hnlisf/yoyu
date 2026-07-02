@@ -5,17 +5,12 @@ import { useTranslations } from 'next-intl';
 import { useApi, api, FishSpecies } from '@/lib/api';
 import { FishAvatar } from '@/components/fish/FishAvatar';
 import { slugToVariant } from '@/components/fish/types';
+import { TankSelector } from '@/components/Tank/TankSelector';
 
 const STORAGE_KEY = 'fishgrow.tankId';
 
-/** Sleep helper for exponential backoff */
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/**
- * Fetch with exponential backoff retry (max 3 attempts).
- * 404 errors are NOT retried — they propagate immediately.
- * Network errors and 5xx are retried with 1s/2s/4s backoff.
- */
 async function fetchWithRetry(
   url: string,
   init?: RequestInit,
@@ -26,38 +21,30 @@ async function fetchWithRetry(
       const res = await fetch(url, {
         ...init,
         headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
-        // Abort after 10s per attempt
         signal: AbortSignal.timeout?.(10000),
       });
-      // 404: don't retry
       if (res.status === 404) return res;
-      // 5xx: retry
       if (res.status >= 500 && i < retries - 1) {
         await sleep(1000 * Math.pow(2, i));
         continue;
       }
       return res;
     } catch (e: any) {
-      // Network error / timeout: retry
       if (i < retries - 1) {
         await sleep(1000 * Math.pow(2, i));
         continue;
       }
-      throw e; // exhausted retries
+      throw e;
     }
   }
   throw new Error('Max retries exceeded');
 }
 
-/**
- * Classify fetch errors into 4 categories for tankId handling.
- */
 type ErrorCategory = 'not_found' | 'network' | 'server' | 'timeout';
 function classifyError(e: any, status?: number): ErrorCategory {
   if (status === 404) return 'not_found';
   if (e?.name === 'AbortError' || e?.name === 'TimeoutError') return 'timeout';
   if (status && status >= 500) return 'server';
-  // Network errors: TypeError, Failed to fetch, etc.
   return 'network';
 }
 
@@ -77,22 +64,71 @@ export default function SpeciesPage() {
   const [busy, setBusy] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
+  // v9.0 REQ-1: TankSelector state
+  const [showTankSelector, setShowTankSelector] = useState(false);
+  const [pendingSpecies, setPendingSpecies] = useState<FishSpecies | null>(null);
+  const [selectedTankId, setSelectedTankId] = useState<string | null>(null);
+  // v9.0 REQ-2: Nickname state
+  const [showNicknameInput, setShowNicknameInput] = useState(false);
+  const [nickname, setNickname] = useState('');
+
+  // v9.0 REQ-1 + REQ-2: Initiate add fish flow — show tank selector first
+  const startAddToTank = (sp: FishSpecies) => {
+    setPendingSpecies(sp);
+    setShowTankSelector(true);
+  };
+
+  // Called when user picks a tank from TankSelector
+  const onTankSelected = (tankId: string) => {
+    setShowTankSelector(false);
+    setSelectedTankId(tankId);
+    localStorage.setItem(STORAGE_KEY, tankId);
+    if (pendingSpecies) {
+      setNickname(''); // reset nickname
+      setShowNicknameInput(true);
+    }
+  };
+
+  // v9.0 REQ-1 + REQ-2: Finalize add fish with tank + optional nickname
+  const confirmAddFish = async () => {
+    if (!pendingSpecies || !selectedTankId) return;
+    setBusy(true);
+    setShowNicknameInput(false);
+
+    try {
+      await api('/api/fish', {
+        method: 'POST',
+        body: JSON.stringify({
+          tankId: selectedTankId,
+          speciesId: pendingSpecies.id,
+          name: nickname.trim() || '',
+        }),
+      });
+      setToastMsg(`已添加 ${pendingSpecies.name}${nickname ? ` (${nickname})` : ''} 到鱼缸！`);
+    } catch (e: any) {
+      setToastMsg(`添加失败：${e.message}`);
+    } finally {
+      setBusy(false);
+      setPendingSpecies(null);
+      setSelectedTankId(null);
+      setNickname('');
+    }
+  };
+
+  // Legacy direct add (for backward compatibility — skips TankSelector + nickname)
   const addToTank = async (sp: FishSpecies) => {
     setBusy(true);
     let tankId = localStorage.getItem(STORAGE_KEY);
 
-    // Validate existing tankId with proper error classification
     if (tankId) {
       try {
         const res = await fetchWithRetry(`/api/fish-tanks/${tankId}`);
         if (!res.ok) {
           const category = classifyError(null, res.status);
           if (category === 'not_found') {
-            // 404: tank was deleted — clear stale id, will recreate below
             tankId = null;
             localStorage.removeItem(STORAGE_KEY);
           } else if (category === 'server') {
-            // 5xx: keep tankId, show error, don't create new tank
             setToastMsg('服务器暂时不可用，请稍后重试');
             setBusy(false);
             return;
@@ -101,33 +137,37 @@ export default function SpeciesPage() {
       } catch (e: any) {
         const category = classifyError(e);
         if (category === 'network' || category === 'timeout') {
-          // Network error: keep tankId, retry exhausted, show message
           setToastMsg('网络连接失败，请检查网络后重试');
           setBusy(false);
           return;
         }
-        // Unknown error: keep tankId, show message
         setToastMsg('操作失败，请重试');
         setBusy(false);
         return;
       }
     }
 
-    // Create tank if needed (only when 404 cleared the id or no id yet)
     if (!tankId) {
       try {
-        const res = await fetchWithRetry('/api/fish-tanks', {
-          method: 'POST',
-          body: JSON.stringify({ userId: 'demo-user', name: '我的鱼缸' }),
-        });
-        if (!res.ok) {
-          setToastMsg('创建鱼缸失败，请重试');
-          setBusy(false);
-          return;
+        // Try to reuse existing tank first (avoid DUPLICATE_TANK_NAME dead loop on 404 recovery)
+        const existing = await api<{ id: string }[]>('/api/fish-tanks?userId=demo-user');
+        if (existing && existing.length > 0) {
+          tankId = existing[0].id;
+          localStorage.setItem(STORAGE_KEY, tankId);
+        } else {
+          const res = await fetchWithRetry('/api/fish-tanks', {
+            method: 'POST',
+            body: JSON.stringify({ userId: 'demo-user', name: '我的鱼缸' }),
+          });
+          if (!res.ok) {
+            setToastMsg('创建鱼缸失败，请重试');
+            setBusy(false);
+            return;
+          }
+          const tank = await res.json();
+          tankId = tank.id as string;
+          localStorage.setItem(STORAGE_KEY, tankId!);
         }
-        const tank = await res.json();
-        tankId = tank.id;
-        localStorage.setItem(STORAGE_KEY, tankId);
         // Set as default tank for HomeRedirect
         try {
           await api('/api/user/preferences', {
@@ -142,7 +182,6 @@ export default function SpeciesPage() {
       }
     }
 
-    // Add fish to tank
     try {
       await api('/api/fish', {
         method: 'POST',
@@ -178,10 +217,11 @@ export default function SpeciesPage() {
       });
       setAdding(false);
       setName('');
+      // v9.0 REQ-4: refetch immediately so custom species appears without reload
       refetch();
-      alert(`自定义鱼种「${result.name ?? name}」创建成功！`);
+      setToastMsg(`自定义鱼种「${result.name ?? name}」创建成功！`);
     } catch (e: any) {
-      alert('创建失败：' + (e.message ?? '未知错误'));
+      setToastMsg('创建失败：' + (e.message ?? '未知错误'));
     } finally {
       setBusy(false);
     }
@@ -211,7 +251,7 @@ export default function SpeciesPage() {
         <button onClick={() => setAdding(true)} className="btn-secondary text-sm">+ {t('addCustom')}</button>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
         {species?.map((sp) => (
           <div key={sp.id} className="card hover:shadow-md transition">
             <div className="h-20 rounded-2xl mb-3 bg-water-50 flex items-center justify-center">
@@ -239,12 +279,49 @@ export default function SpeciesPage() {
                 </p>
               </div>
             </div>
-            <button onClick={() => addToTank(sp)} className="btn-primary w-full mt-4 text-sm">
+            <button onClick={() => startAddToTank(sp)} className="btn-primary w-full mt-4 text-sm">
               {t('selectButton')}
             </button>
           </div>
         ))}
       </div>
+
+      {/* v9.0 REQ-1: TankSelector drawer */}
+      <TankSelector
+        isOpen={showTankSelector}
+        onClose={() => { setShowTankSelector(false); setPendingSpecies(null); }}
+        onSelect={onTankSelected}
+      />
+
+      {/* v9.0 REQ-2: Nickname input modal */}
+      {showNicknameInput && pendingSpecies && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowNicknameInput(false)}>
+          <div className="bg-card max-w-sm w-full rounded-3xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-light text-text-primary">给鱼取个名字</h2>
+            <p className="text-xs text-text-secondary">
+              即将添加 <span className="text-accent">{pendingSpecies.name}</span>，可选填昵称
+            </p>
+            <input
+              type="text"
+              placeholder="输入昵称（选填）"
+              maxLength={20}
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              className="w-full px-4 py-2 rounded-xl bg-glass border border-glass-border text-text-primary placeholder:text-text-secondary/50 text-sm outline-none focus:border-accent transition"
+              autoFocus
+            />
+            <p className="text-[10px] text-text-secondary text-right">{nickname.length}/20</p>
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => setShowNicknameInput(false)} className="flex-1 py-2 rounded-xl border border-glass-border text-text-secondary text-sm hover:bg-glass transition">
+                跳过
+              </button>
+              <button onClick={confirmAddFish} disabled={busy} className="flex-1 py-2 rounded-xl bg-accent text-deep text-sm font-medium hover:bg-accent-aux transition disabled:opacity-50">
+                {busy ? '添加中...' : '确认添加'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {adding && (
         <div className="fixed inset-0 bg-water-600/30 backdrop-blur-sm z-40 flex items-center justify-center p-4" onClick={() => setAdding(false)}>

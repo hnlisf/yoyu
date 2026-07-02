@@ -17,6 +17,22 @@ export interface UpdateFishDto {
 export type FeedAmount = 'small' | 'normal' | 'large';
 const FEED_NUTRITION: Record<FeedAmount, number> = { small: 15, normal: 30, large: 50 };
 
+// v9.0: tank capacity mapping
+const TANK_CAPACITY: Record<string, number> = {
+  small: 6,
+  medium: 12,
+  large: 30,
+};
+
+// v9.0: fish status computation
+function computeStatus(health: number, nutrition: number): string {
+  if (nutrition < 20) return 'hungry';
+  if (health < 50) return 'danger';
+  if (health >= 80 && nutrition >= 60) return 'healthy';
+  if (health >= 50 && nutrition >= 40) return 'subhealthy';
+  return 'danger';
+}
+
 @Injectable()
 export class FishService {
   constructor(
@@ -33,14 +49,20 @@ export class FishService {
     return list.map((f) => this.attachI18nSpecies(f, lang));
   }
 
-  /** Get all fish owned by a user (across all tanks) */
+  /** Get all fish owned by a user (across all tanks) — v9.0: enhanced with adoptedDays + status */
   async findAllByUser(userId: string, lang = 'zh') {
     const list = await this.prisma.fish.findMany({
       where: { tank: { userId } },
       include: { species: true, feedRecords: { orderBy: { fedAt: 'desc' }, take: 5 } },
       orderBy: { createdAt: 'asc' },
     });
-    return list.map((f) => this.attachI18nSpecies(f, lang));
+    return list.map((f) => {
+      const result = this.attachI18nSpecies(f, lang);
+      // v9.0: compute adoptedDays and status on the fly
+      const adoptedDays = Math.floor((Date.now() - new Date(f.createdAt).getTime()) / 86400000);
+      const status = computeStatus(f.health, f.nutrition);
+      return { ...result, adoptedDays, status };
+    });
   }
 
   async findOne(id: string, lang = 'zh') {
@@ -60,8 +82,10 @@ export class FishService {
   }
 
   /**
-   * Create a fish. If tankId is not provided, resolve from user's defaultTankId,
-   * fall back to first tank, auto-promote as default.
+   * Create a fish. v9.0 changes:
+   * - Validate tank capacity before creation (REQ-6)
+   * - Generate instanceId
+   * - Support name (nickname) field (REQ-2)
    */
   async create(data: CreateFishDto, userId?: string): Promise<Fish> {
     // Resolve tankId: explicit > user.defaultTankId > first tank > error
@@ -101,11 +125,23 @@ export class FishService {
     const species = await this.prisma.fishSpecies.findUnique({ where: { id: data.speciesId } });
     if (!species) throw new NotFoundException('鱼种不存在');
 
+    // v9.0 REQ-6: capacity check
+    const capacity = TANK_CAPACITY[tank.size] ?? 12;
+    const currentCount = await this.prisma.fish.count({ where: { tankId } });
+    if (currentCount >= capacity) {
+      const sizeLabel = tank.size === 'small' ? '小型缸' : tank.size === 'medium' ? '中型缸' : '大型缸';
+      throw new BadRequestException(`该鱼缸已满（${sizeLabel}最多${capacity}条），请升级或换缸`);
+    }
+
+    // v9.0: generate instanceId
+    const instanceId = `inst_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
     return this.prisma.fish.create({
       data: {
         tankId,
         speciesId: data.speciesId,
         name: data.name ?? '',
+        instanceId,
         stage: 'fry',
         growth: 0,
         health: 100,

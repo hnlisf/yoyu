@@ -13,7 +13,10 @@ export class FishSpeciesService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(lang = 'zh'): Promise<any[]> {
-    const list = await this.prisma.fishSpecies.findMany({ where: { isDefault: true } });
+    const list = await this.prisma.fishSpecies.findMany({
+      where: { OR: [{ isDefault: true }, { userCustomized: true }] },
+      orderBy: { id: 'asc' },
+    });
     return list.map((s) => this.toI18n(s, lang));
   }
 
@@ -68,6 +71,7 @@ export class FishSpeciesService {
         stages: stagesStr,
         color: data.color || '#5BA9C7',
         isDefault: false,
+        userCustomized: true, // v9.0 REQ-4: mark as user-created
       },
     });
   }
@@ -115,6 +119,7 @@ export class FishSpeciesService {
       stages,
       color: s.color,
       isDefault: s.isDefault,
+      userCustomized: (s as any).userCustomized ?? false,
       feedRefuseHint: (s as any).feedRefuseHint,
       variant: this.resolveVariant(zhName),
     };

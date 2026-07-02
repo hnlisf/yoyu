@@ -12,6 +12,7 @@ model User {
   name           String    @default("鱼友")
   locale         String    @default("zh") // zh, en, ja
   defaultTankId  String?   @map("default_tank_id")
+  maxTanks       Int       @default(6) @map("max_tanks") // v9.0: hard limit on tanks per user
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
@@ -36,6 +37,7 @@ model FishSpecies {
   feedRefuseHint String? @map("feed_refuse_hint") // 拒绝投喂时的温馨提醒模板
   color          String  @default("#5BA9C7")
   isDefault      Boolean @default(false) @map("is_default")
+  userCustomized Boolean @default(false) @map("user_customized") // v9.0: user-created species
   createdAt      DateTime @default(now()) @map("created_at")
 
   fish           Fish[]
@@ -51,6 +53,9 @@ model FishTank {
   temp        Float  @default(24.0)
   cityTemp    Float  @default(24.0) @map("city_temp")
   heaterOn    Boolean @default(false) @map("heater_on")
+  temperature Float? // v9.0: current water temperature (°C)
+  weatherSync Json?  @map("weather_sync") // v9.0: {city, currentTemp, lastSyncAt}
+  tempAlert   Json?  @map("temp_alert") // v9.0: {isOverTemp, threshold, dismissedAt}
   cleanliness Float  @default(100.0) @map("cleanliness") // 0-100
   oxygen      Float  @default(100.0) // 0-100
   ph          Float  @default(7.0)
@@ -70,6 +75,9 @@ model Fish {
   tankId      String @map("tank_id")
   speciesId   String @map("species_id")
   name        String @default("")
+  instanceId  String? @map("instance_id") // v9.0: unique instance ID for "my fish" list
+  adoptedDays Int?    @map("adopted_days") // v9.0: computed days since adoption
+  status      String? // v9.0: healthy|subhealthy|danger|hungry|dead
   birthday    DateTime @default(now())
   stage       String @default("fry") // fry -> juvenile -> subadult -> adult
   growth      Float  @default(0.0) // 0-100 成长度

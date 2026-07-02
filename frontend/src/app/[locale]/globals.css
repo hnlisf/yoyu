@@ -39,6 +39,8 @@ body {
   color: var(--text-primary);
   background: var(--bg-deep);
   min-height: 100vh;
+  /* v9.0: Pad/mobile touch optimization — prevent double-tap zoom + Pencil rejection */
+  touch-action: manipulation;
 }
 
 [lang='zh'] body {

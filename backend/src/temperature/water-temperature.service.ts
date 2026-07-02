@@ -76,6 +76,15 @@ export class WaterTemperatureService {
     }
   }
 
+  /** v9.0 REQ-7: Reset temperature (e.g. after water change). Sets temp + heater off. */
+  reset(tankId: string, newTemp: number) {
+    const state = this.states.get(tankId);
+    if (state) {
+      state.currentTemp = newTemp;
+      state.heaterOn = false;
+    }
+  }
+
   /** Get current temperature of a tank (or null if not tracked). */
   getCurrentTemp(tankId: string): number | null {
     return this.states.get(tankId)?.currentTemp ?? null;
