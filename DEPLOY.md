@@ -1,4 +1,4 @@
-# FishGrow Deployment Guide
+# YoYu Deployment Guide
 
 Two free-tier services, no card required, total cost: $0/month.
 
@@ -6,14 +6,14 @@ Two free-tier services, no card required, total cost: $0/month.
 ┌──────────────────┐         ┌──────────────────────┐
 │  Vercel (Free)   │ ──API──▶│  Railway (Free)      │
 │  Next.js frontend│         │  NestJS backend      │
-│  fishgrow.vercel │         │  *.up.railway.app    │
+│  yoyu.vercel │         │  *.up.railway.app    │
 │  .app            │         │  + SQLite volume     │
 └──────────────────┘         └──────────────────────┘
 ```
 
 ## 1. Backend on Railway
 
-1. Go to https://railway.app → New Project → Deploy from GitHub repo → select `hnlisf/fishgrow`.
+1. Go to https://railway.app → New Project → Deploy from GitHub repo → select `hnlisf/yoyu`.
 2. Railway auto-detects Node. Configure:
 
    | Setting | Value |
@@ -25,13 +25,13 @@ Two free-tier services, no card required, total cost: $0/month.
 
 3. Add a **Volume** mounted at `/app/backend/prisma` (this is where `dev.db` lives; without a volume the SQLite data is lost on every redeploy).
 4. Add an env var `DATABASE_URL=file:./prisma/dev.db`.
-5. Wait for first deploy. Note the public URL, e.g. `https://fishgrow-backend.up.railway.app`.
+5. Wait for first deploy. Note the public URL, e.g. `https://yoyu-backend.up.railway.app`.
 
-**Verify**: open `https://fishgrow-backend.up.railway.app/api/docs` — Swagger should load.
+**Verify**: open `https://yoyu-backend.up.railway.app/api/docs` — Swagger should load.
 
 ## 2. Frontend on Vercel
 
-1. Go to https://vercel.com → New Project → import `hnlisf/fishgrow`.
+1. Go to https://vercel.com → New Project → import `hnlisf/yoyu`.
 2. Configure:
 
    | Setting | Value |
@@ -41,7 +41,7 @@ Two free-tier services, no card required, total cost: $0/month.
    | Output Directory | `.next` (default) |
    | Install Command | `npm ci` (default) |
 
-3. Add env var `NEXT_PUBLIC_API_URL=https://fishgrow-backend.up.railway.app` (the Railway URL from step 1).
+3. Add env var `NEXT_PUBLIC_API_URL=https://yoyu-backend.up.railway.app` (the Railway URL from step 1).
 4. Deploy.
 
 **Verify**: open the Vercel URL → it should redirect to `/tank` → click "新建鱼缸" → "选鱼" → the dropdown should show 10 species in your locale.
@@ -52,6 +52,7 @@ Two free-tier services, no card required, total cost: $0/month.
 # Terminal 1 — backend
 cd backend
 npm install
+npx prisma generate
 npx prisma migrate deploy
 npx prisma db seed
 npm run build

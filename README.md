@@ -71,8 +71,10 @@ cd yoyu
 cd backend
 cp .env.example .env
 npm install
+npx prisma generate            # Prisma Client 代码生成（schema 变更后必须）
 npx prisma migrate deploy
 npm run db:seed                # 10 个鱼种 + 演示用户 + 演示鱼缸
+npm run build
 npm run start                  # → http://localhost:3000
 # Swagger: http://localhost:3000/api/docs
 
