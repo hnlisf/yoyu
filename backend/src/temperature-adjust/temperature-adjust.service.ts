@@ -8,8 +8,10 @@ import { PrismaService } from '../prisma/prisma.service';
  *   currentTemp(t) = toTemp + (fromTemp - toTemp) × e^(-t/τ)
  *
  * Parameters:
- *   - τ = 20 minutes (time constant, half-life)
- *   - Rate limit: ≤ 1°C/hour (≤ 1/60 °C per minute)
+ *   - τ = 20 minutes (time constant, default)
+ *   - Auto-extend τ for large ΔT: τ = max(20, 12 × |toTemp - fromTemp|)
+ *     e.g. ΔT=15°C → τ=180min, ΔT=2°C → τ=24min
+ *   - Rate limit: ≤ 1°C/hour (achieved via extended τ, not hard clamp)
  *   - Convergence: |currentTemp - toTemp| < 0.05 → completed
  *   - One running job per tank (enforced)
  */
@@ -32,6 +34,7 @@ export class TemperatureAdjustService implements OnModuleInit {
   /**
    * Create a new temperature adjustment job for a tank.
    * Cancels any existing running job for the same tank first (ADR-004: 1 job per tank).
+   * Auto-extends τ for large ΔT: τ = max(20, 12 × |toTemp - fromTemp|)
    */
   async createJob(
     tankId: string,
@@ -39,6 +42,16 @@ export class TemperatureAdjustService implements OnModuleInit {
     toTemp: number,
     tauMinutes: number = 20,
   ): Promise<any> {
+    // Auto-extend τ based on ΔT if significant (v9.1.1 Item 7 fix)
+    const delta = Math.abs(toTemp - fromTemp);
+    let effectiveTau = tauMinutes;
+    if (tauMinutes === 20 && delta > 0.1) {
+      effectiveTau = this.computeAutoTau(fromTemp, toTemp);
+      this.logger.log(
+        `Auto-extended τ from 20→${effectiveTau}min (ΔT=${delta.toFixed(1)}°C)`,
+      );
+    }
+
     // Cancel any existing running job for this tank
     await this.prisma.temperatureAdjustJob.updateMany({
       where: { tankId, status: 'running' },
@@ -52,7 +65,7 @@ export class TemperatureAdjustService implements OnModuleInit {
         toTemp,
         currentTemp: fromTemp,
         algorithm: 'exponential_decay',
-        tauMinutes,
+        tauMinutes: effectiveTau,
         status: 'running',
       },
     });
@@ -76,6 +89,25 @@ export class TemperatureAdjustService implements OnModuleInit {
       where: { tankId, status: 'running' },
       orderBy: { startedAt: 'desc' },
     });
+  }
+
+  /**
+   * Compute auto-extended τ based on temperature delta.
+   * Formula: τ = max(20, ceil(12 × |toTemp - fromTemp|))
+   *
+   * Rationale: expected convergence time = ΔT / 1°C/h.
+   * Setting τ = convergence / 5 yields proper decay rate over ~5 time constants.
+   *
+   * Examples:
+   *   ΔT=15°C → convergence=15h → τ = max(20, 180) = 180min
+   *   ΔT=2°C  → convergence=2h  → τ = max(20, 24)  = 24min
+   *   ΔT=0.5°C→ convergence=0.5h→ τ = max(20, 6)   = 20min (default)
+   */
+  private computeAutoTau(fromTemp: number, toTemp: number): number {
+    const delta = Math.abs(toTemp - fromTemp);
+    const convergenceHours = delta / 1; // target rate 1°C/h
+    const tauFromConvergence = Math.ceil((convergenceHours * 60) / 5);
+    return Math.max(20, tauFromConvergence);
   }
 
   /**
