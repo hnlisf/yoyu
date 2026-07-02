@@ -107,6 +107,8 @@ describe('FishService async methods', () => {
         create: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
+        // v9.0 REQ-6: capacity check
+        count: jest.fn().mockResolvedValue(0),
       },
       fishTank: { findUnique: jest.fn() },
       fishSpecies: { findUnique: jest.fn() },
@@ -154,13 +156,14 @@ describe('FishService async methods', () => {
     });
 
     it('creates fish with default initial state', async () => {
-      prisma.fishTank.findUnique.mockResolvedValue({ id: 't' });
+      prisma.fishTank.findUnique.mockResolvedValue({ id: 't', size: 'medium' });
       prisma.fishSpecies.findUnique.mockResolvedValue(baseSpecies);
       prisma.fish.create.mockImplementation(({ data }: any) => data);
-      const result = await svc.create({ tankId: 't', speciesId: 's' });
+      const result = await svc.create({ tankId: 't', speciesId: 's', name: '小金' });
       expect(result).toMatchObject({
         tankId: 't', speciesId: 's',
         stage: 'fry', growth: 0, health: 100, nutrition: 100,
+        name: '小金',
       });
     });
   });

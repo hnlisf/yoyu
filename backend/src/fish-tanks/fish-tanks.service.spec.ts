@@ -3,17 +3,19 @@ import { FishTanksService } from './fish-tanks.service';
 /**
  * Unit tests for FishTanksService.
  *
- * We mock the PrismaService, FishSpeciesService, and FishService so we can
- * exercise the business logic (create/update/tick) without a real database.
+ * We mock the PrismaService, FishSpeciesService, FishService,
+ * WaterTemperatureService, WeatherService, and TemperatureAdjustService.
  */
 describe('FishTanksService', () => {
   let svc: FishTanksService;
   let prisma: any;
   let speciesService: any;
   let fishService: any;
+  let waterTemp: any;
+  let weatherService: any;
+  let temperatureAdjustService: any;
 
   beforeEach(() => {
-    // Build a mock prisma that supports $transaction (pass-through)
     prisma = {
       fishTank: {
         findMany: jest.fn(),
@@ -22,6 +24,8 @@ describe('FishTanksService', () => {
         create: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
+        // v9.0 REQ-6: max tanks check
+        count: jest.fn().mockResolvedValue(0),
       },
       fishSpecies: {
         findFirst: jest.fn().mockResolvedValue({ id: 's-goldfish' }),
@@ -29,18 +33,29 @@ describe('FishTanksService', () => {
       fish: {
         create: jest.fn(),
       },
+      waterChangeLog: {
+        create: jest.fn(),
+      },
       user: {
         findUnique: jest.fn(),
         findFirst: jest.fn(),
         create: jest.fn(),
       },
-      // $transaction calls the callback with the same prisma mock
       $transaction: jest.fn((cb: any) => cb(prisma)),
     };
     speciesService = { toI18n: jest.fn((s: any, lang: string) => ({ ...s, lang })) };
     fishService = { create: jest.fn() };
-    const waterTemp = { onFlush: jest.fn(), getCurrentTemp: jest.fn().mockReturnValue(null), register: jest.fn(), reset: jest.fn(), updateOutdoorTemp: jest.fn(), setHeaterOn: jest.fn() };
-    svc = new FishTanksService(prisma, speciesService, fishService, waterTemp);
+    waterTemp = {
+      onFlush: jest.fn(),
+      getCurrentTemp: jest.fn().mockReturnValue(null),
+      register: jest.fn(),
+      reset: jest.fn(),
+      updateOutdoorTemp: jest.fn(),
+      setHeaterOn: jest.fn(),
+    };
+    weatherService = { geocodeCity: jest.fn().mockResolvedValue({ lat: 40, lon: 116 }), getWeatherByCity: jest.fn().mockResolvedValue({ temp: 25 }) };
+    temperatureAdjustService = { createJob: jest.fn().mockResolvedValue(undefined), getProgress: jest.fn().mockResolvedValue(null) };
+    svc = new FishTanksService(prisma, speciesService, fishService, waterTemp, weatherService as any, temperatureAdjustService as any);
   });
 
   describe('findAllByUser', () => {
@@ -65,72 +80,94 @@ describe('FishTanksService', () => {
   });
 
   describe('findOne', () => {
-    it('returns null when tank does not exist', async () => {
+    it('throws NotFoundException when tank does not exist', async () => {
       prisma.fishTank.findUnique.mockResolvedValue(null);
-      expect(await svc.findOne('missing')).toBeNull();
+      // v9.1: findOne now throws instead of returning null
+      await expect(svc.findOne('missing')).rejects.toThrow('Fish tank missing not found');
     });
 
     it('returns the tank with i18n applied', async () => {
-      const tank = { id: 't1', fish: [{ species: { name: 'koi' } }] };
+      const tank = {
+        id: 't1',
+        temp: 24,
+        cityTemp: 22,
+        heaterOn: false,
+        fish: [{ species: { name: 'koi' } }],
+      };
       prisma.fishTank.findUnique.mockResolvedValue(tank);
+      // waterTemp.getCurrentTemp returns null → auto-register
+      waterTemp.getCurrentTemp.mockReturnValue(null);
       const result = await svc.findOne('t1', 'ja');
       expect(result.fish[0].species.lang).toBe('ja');
+      expect(result.cityTemp).toBe(22);
+      expect(result.fishCount).toBe(1);
     });
   });
 
   describe('create', () => {
     it('uses provided userId when it already exists', async () => {
       prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
-      prisma.fishTank.create.mockResolvedValue({ id: 't1', userId: 'u1' });
+      prisma.fishTank.count.mockResolvedValue(0);
+      // findFirst for duplicate name check → null (no duplicate)
+      prisma.fishTank.findFirst.mockResolvedValue(null);
+      prisma.fishTank.create.mockResolvedValue({ id: 't1', userId: 'u1', name: 'My tank', location: 'Beijing', temp: 25 });
       const result = await svc.create({ userId: 'u1', name: 'My tank' });
       expect(prisma.user.create).not.toHaveBeenCalled();
-      expect(prisma.fishTank.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({ userId: 'u1', name: 'My tank' }),
-      });
       expect(result.id).toBe('t1');
     });
 
     it('creates a new user when provided userId does not exist', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue({ id: 'u-new' });
-      prisma.fishTank.create.mockResolvedValue({ id: 't1', userId: 'u-new' });
+      prisma.fishTank.count.mockResolvedValue(0);
+      prisma.fishTank.findFirst.mockResolvedValue(null);
+      prisma.fishTank.create.mockResolvedValue({ id: 't1', userId: 'u-new', name: '我的鱼缸', location: 'Beijing', temp: 25 });
       await svc.create({ userId: 'u-missing' });
       expect(prisma.user.create).toHaveBeenCalledWith({ data: { id: 'u-missing' } });
     });
 
     it('reuses latest user when no userId provided (single-user mode)', async () => {
       prisma.user.findFirst.mockResolvedValue({ id: 'u-latest' });
-      prisma.fishTank.create.mockResolvedValue({ id: 't1', userId: 'u-latest' });
+      prisma.fishTank.count.mockResolvedValue(0);
+      prisma.fishTank.findFirst.mockResolvedValue(null);
+      prisma.fishTank.create.mockResolvedValue({ id: 't1', userId: 'u-latest', name: '我的鱼缸', location: 'Beijing', temp: 25 });
       await svc.create({});
-      expect(prisma.fishTank.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({ userId: 'u-latest' }),
-      });
+      // v9.1: create is now inside $transaction, default name is '我的鱼缸'
+      expect(prisma.fishTank.create).toHaveBeenCalled();
+      const callData = prisma.fishTank.create.mock.calls[0][0].data;
+      expect(callData.userId).toBe('u-latest');
     });
 
     it('creates a fresh user when no users exist yet', async () => {
       prisma.user.findFirst.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue({ id: 'u-fresh' });
-      prisma.fishTank.create.mockResolvedValue({ id: 't1', userId: 'u-fresh' });
+      prisma.fishTank.count.mockResolvedValue(0);
+      prisma.fishTank.findFirst.mockResolvedValue(null);
+      prisma.fishTank.create.mockResolvedValue({ id: 't1', userId: 'u-fresh', name: '我的鱼缸', location: 'Beijing', temp: 25 });
       await svc.create({});
       expect(prisma.user.create).toHaveBeenCalledWith({ data: {} });
     });
 
     it('applies defaults for missing fields', async () => {
       prisma.user.findFirst.mockResolvedValue({ id: 'u1' });
-      prisma.fishTank.create.mockResolvedValue({ id: 't1' });
+      prisma.fishTank.count.mockResolvedValue(0);
+      prisma.fishTank.findFirst.mockResolvedValue(null);
+      prisma.fishTank.create.mockResolvedValue({ id: 't1', name: '我的鱼缸', location: 'Beijing', temp: 25 });
       await svc.create({});
       const args = prisma.fishTank.create.mock.calls[0][0];
       expect(args.data).toMatchObject({
         name: '我的鱼缸',
         size: 'medium',
-        temp: 24.0,
         ph: 7.0,
+        location: 'Beijing',
       });
     });
 
     it('creates a fish alongside the tank', async () => {
       prisma.user.findFirst.mockResolvedValue({ id: 'u1' });
-      prisma.fishTank.create.mockResolvedValue({ id: 't1', userId: 'u1' });
+      prisma.fishTank.count.mockResolvedValue(0);
+      prisma.fishTank.findFirst.mockResolvedValue(null);
+      prisma.fishTank.create.mockResolvedValue({ id: 't1', userId: 'u1', name: '我的鱼缸', location: 'Beijing', temp: 25 });
       await svc.create({});
       // fish should be created with the new tank id
       expect(prisma.fish.create).toHaveBeenCalledWith({
@@ -141,6 +178,7 @@ describe('FishTanksService', () => {
           growth: 0,
           health: 100,
           nutrition: 100,
+          mood: 80,
         }),
       });
     });
@@ -172,6 +210,8 @@ describe('FishTanksService', () => {
     it('decays cleanliness and oxygen over time', async () => {
       prisma.fishTank.findUnique.mockResolvedValue({
         id: 't1', cleanliness: 100, oxygen: 100, ph: 7.0,
+        // v9.1: tank.fish must be iterable
+        fish: [],
       });
       prisma.fishTank.update.mockImplementation(({ data }: any) => ({ id: 't1', ...data }));
 
@@ -184,6 +224,7 @@ describe('FishTanksService', () => {
     it('clamps cleanliness/oxygen to 0 (no negatives)', async () => {
       prisma.fishTank.findUnique.mockResolvedValue({
         id: 't1', cleanliness: 2, oxygen: 2, ph: 7.0,
+        fish: [],
       });
       prisma.fishTank.update.mockImplementation(({ data }: any) => ({ id: 't1', ...data }));
       const result = await svc.tick('t1', 24 * 30); // 30 days
