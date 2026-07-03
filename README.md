@@ -66,10 +66,10 @@ ss -tlnp | grep -E ':3000|:3001'   # 端口应空闲
 >
 > ```bash
 > cd backend
-> pnpm install                  # 1. 安装依赖
+> npm install                    # 1. 安装依赖（项目已删除 packageManager 约束，直接用 npm）
 > npx prisma generate           # 2. 重新生成 Prisma Client（漏掉 = 100+ TS 编译错误）
 > npx prisma migrate deploy     # 3. 应用新 migration
-> pnpm build                    # 4. 编译（应该 0 错误）
+> npm run build                 # 4. 编译（应该 0 错误）
 > node dist/src/main.js         # 5. 启动（不要用 nest start）
 > ```
 >
@@ -77,10 +77,13 @@ ss -tlnp | grep -E ':3000|:3001'   # 端口应空闲
 > - 缺第 2 步 = 100+ TS 编译错误（v9.0.1 和 v9.1.0 两次踩坑）
 > - 缺第 3 步 = 数据库结构不对，运行时报错
 > - 缺第 4 步 = 跑的旧代码，新功能不生效
-> - **顺序不可颠倒**（pnpm install 后必须 prisma generate）
+> - **顺序不可颠倒**（npm install 后必须 prisma generate）
 > - **不要用 `nest start`**（开发模式占用内存大、容易 OOM）
 >
+> **历史教训**：v9.0.1 和 v9.1.0 均因漏第 2 步导致部署失败（`@prisma/client` 没有新表/字段类型）。
 > 如果你看到 `Property 'xxx' does not exist on type 'PrismaService'`，请立即补跑 `npx prisma generate`。
+>
+> 📖 **完整 WSL 部署手册**：[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)（含常见错误修复 + smoke test）
 
 ```bash
 # 克隆仓库
@@ -124,6 +127,8 @@ yoyu/
 │   │   │                            #   fish-demo / fish-only / ui-kit-demo
 │   └── messages/                    # 多语言：zh.json, en.json, ja.json
 ├── docs/                            # 项目文档
+│   ├── DEPLOYMENT.md                # WSL 部署手册（npm 命令版）
+│   ├── API_CONTRACT.md              # API 字段名合约（防字段名错）
 │   ├── v5.0-deployment-guide.md     # 生产部署完整指南
 │   ├── v5.0_PR_Description.md       # v5.0 发布详情
 │   └── phase2-implementation.md     # Phase 2 品牌升级说明
@@ -176,7 +181,8 @@ cd frontend && npm test        # Next.js 组件测试
 
 ## 🌐 生产部署（可选）
 
-完整 Vercel + Railway + PostgreSQL 部署指南见 [`docs/v5.0-deployment-guide.md`](./docs/v5.0-deployment-guide.md)。关键要点：
+- **WSL 本地部署**：见 [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md)（npm 命令版，含常见错误修复）
+- **云部署**：完整 Vercel + Railway + PostgreSQL 部署指南见 [`docs/v5.0-deployment-guide.md`](./docs/v5.0-deployment-guide.md)。关键要点：
 
 - **后端 Railway**：挂载 Volume 到 SQLite 目录，设置 `DATABASE_URL=file:./prisma/dev.db`
 - **前端 Vercel**：设置 `NEXT_PUBLIC_API_URL=<Railway 后端 URL>`
@@ -230,7 +236,9 @@ cd frontend && npm test        # Next.js 组件测试
 
 - **GitHub 仓库**：https://github.com/hnlisf/yoyu
 - **问题反馈**：通过 GitHub Issues 提交
-- **部署详细文档**：[docs/v5.0-deployment-guide.md](./docs/v5.0-deployment-guide.md)
+- **WSL 部署手册**：[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)
+- **API 合约文档**：[docs/API_CONTRACT.md](./docs/API_CONTRACT.md)
+- **云部署指南**：[docs/v5.0-deployment-guide.md](./docs/v5.0-deployment-guide.md)
 
 ---
 
