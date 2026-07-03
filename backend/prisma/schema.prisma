@@ -153,7 +153,7 @@ model TemperatureAdjustJob {
   fromTemp        Float    @map("from_temp")
   toTemp          Float    @map("to_temp")
   currentTemp     Float    @map("current_temp")
-  algorithm       String   @default("exponential_decay")
+  algorithm       String   @default("rate_limited_linear")
   tauMinutes      Int      @default(20) @map("tau_minutes")
   startedAt       DateTime @default(now()) @map("started_at")
   completedAt     DateTime? @map("completed_at")

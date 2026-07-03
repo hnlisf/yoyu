@@ -69,7 +69,7 @@ export class FishTanksController {
   }
 
   @Get(':id/temperature-adjust')
-  @ApiOperation({ summary: 'v9.1: Get temperature adjustment progress (exponential decay τ=20min)' })
+  @ApiOperation({ summary: 'v9.1: Get temperature adjustment progress (rate-limited linear, ≤1°C/h)' })
   async getTemperatureAdjust(@Param('id') tankId: string) {
     const progress = await this.temperatureAdjustService.getProgress(tankId);
     if (!progress) {

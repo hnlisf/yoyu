@@ -8,7 +8,7 @@ CREATE TABLE "temperature_adjust_job" (
     "from_temp" REAL NOT NULL,
     "to_temp" REAL NOT NULL,
     "current_temp" REAL NOT NULL,
-    "algorithm" TEXT NOT NULL DEFAULT 'exponential_decay',
+    "algorithm" TEXT NOT NULL DEFAULT 'rate_limited_linear',
     "tau_minutes" INTEGER NOT NULL DEFAULT 20,
     "started_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "completed_at" DATETIME,

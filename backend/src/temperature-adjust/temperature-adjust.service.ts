@@ -4,12 +4,13 @@ import { PrismaService } from '../prisma/prisma.service';
 /**
  * v9.1 Item 7: Temperature Adjustment Service
  *
- * Implements exponential decay algorithm for water temperature adjustment:
- *   currentTemp(t) = toTemp + (fromTemp - toTemp) × e^(-t/τ)
+ * Implements rate-limited linear approximation for water temperature adjustment:
+ *   Per-tick step: ±1/120°C per 30 seconds (≡ ≤1°C/hour rate limit)
+ *   Converges to target via clamped approach — initially rate-limited, then exponential tail.
  *
  * Parameters:
- *   - τ = 20 minutes (time constant, half-life)
- *   - Rate limit: ≤ 1°C/hour (≤ 1/60 °C per minute)
+ *   - τ = 20 minutes (time constant for the exponential tail)
+ *   - Rate limit: ≤ 1°C/hour (≤ 1/120°C per 30s tick)
  *   - Convergence: |currentTemp - toTemp| < 0.05 → completed
  *   - One running job per tank (enforced)
  */
@@ -51,7 +52,7 @@ export class TemperatureAdjustService implements OnModuleInit {
         fromTemp,
         toTemp,
         currentTemp: fromTemp,
-        algorithm: 'exponential_decay',
+        algorithm: 'rate_limited_linear',
         tauMinutes,
         status: 'running',
       },
@@ -87,16 +88,15 @@ export class TemperatureAdjustService implements OnModuleInit {
 
     const { fromTemp, toTemp, currentTemp, tauMinutes, startedAt, status } = job;
 
-    // Calculate remaining time: τ * ln((from - to) / (current - to))
-    // Only meaningful when there's a significant delta
+    // Calculate remaining time using actual tick behavior:
+    // Each 30s tick moves ±1/120°C → per-second step = 1/3600°C
+    // remainingSeconds = |delta| / (1/3600) = |delta| × 3600
     let remainingSeconds: number | null = null;
     const delta = currentTemp - toTemp;
     const initDelta = fromTemp - toTemp;
 
     if (status === 'running' && Math.abs(delta) > 0.01 && Math.abs(initDelta) > 0.01) {
-      remainingSeconds = Math.round(
-        tauMinutes * 60 * Math.log(Math.abs(initDelta / delta)),
-      );
+      remainingSeconds = Math.ceil(Math.abs(delta) * 3600);
     } else if (status === 'completed') {
       remainingSeconds = 0;
     }
@@ -123,7 +123,7 @@ export class TemperatureAdjustService implements OnModuleInit {
 
   /**
    * Tick all running jobs every 30 seconds.
-   * Applies exponential decay with rate limit protection.
+   * Applies rate-limited linear adjustment with rate limit protection.
    */
   async tickAll() {
     const activeJobs = await this.prisma.temperatureAdjustJob.findMany({
@@ -147,7 +147,8 @@ export class TemperatureAdjustService implements OnModuleInit {
     const elapsedMinutes = (Date.now() - job.startedAt.getTime()) / 60000;
     const deltaFromTarget = job.toTemp - job.currentTemp;
 
-    // Exponential decay: delta per minute = (toTemp - currentTemp) / tau
+    // Rate-limited linear: delta per minute = (toTemp - currentTemp) / τ
+    // Clamped to ±1/120°C per 30s tick (≤1°C/hour)
     const rawDeltaPerMinute = deltaFromTarget / job.tauMinutes;
 
     // Rate limit: ≤ 1°C/hour = 1/120°C per 30 seconds
