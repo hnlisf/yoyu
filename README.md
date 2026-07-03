@@ -62,6 +62,15 @@ ss -tlnp | grep -E ':3000|:3001'   # 端口应空闲
 
 ## 🚀 WSL 本地开发（5 分钟上手）
 
+> ⚠️ **WSL 部署铁律 — 每次 git pull 后必须执行这 3 步，顺序不可颠倒！**
+>
+> 1. `pnpm install` — 安装依赖
+> 2. `npx prisma generate` — **重新生成 Prisma Client**（漏掉 = 100+ TS 编译错误）
+> 3. `npx prisma migrate deploy` — 应用新 migration
+>
+> **历史教训**：v9.0.1 和 v9.1.0 均因漏第 2 步导致部署失败（`@prisma/client` 没有新表/字段类型）。
+> 如果你看到 `Property 'xxx' does not exist on type 'PrismaService'`，请立即补跑 `npx prisma generate`。
+
 ```bash
 # 克隆仓库
 git clone https://github.com/hnlisf/yoyu.git
