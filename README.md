@@ -62,13 +62,24 @@ ss -tlnp | grep -E ':3000|:3001'   # 端口应空闲
 
 ## 🚀 WSL 本地开发（5 分钟上手）
 
-> ⚠️ **WSL 部署铁律 — 每次 git pull 后必须执行这 3 步，顺序不可颠倒！**
+> ⚠️ **WSL 部署铁律 — 每次 git pull 后必须执行这 5 步，顺序不可颠倒！**
 >
-> 1. `pnpm install` — 安装依赖
-> 2. `npx prisma generate` — **重新生成 Prisma Client**（漏掉 = 100+ TS 编译错误）
-> 3. `npx prisma migrate deploy` — 应用新 migration
+> ```bash
+> cd backend
+> pnpm install                  # 1. 安装依赖
+> npx prisma generate           # 2. 重新生成 Prisma Client（漏掉 = 100+ TS 编译错误）
+> npx prisma migrate deploy     # 3. 应用新 migration
+> pnpm build                    # 4. 编译（应该 0 错误）
+> node dist/src/main.js         # 5. 启动（不要用 nest start）
+> ```
 >
-> **历史教训**：v9.0.1 和 v9.1.0 均因漏第 2 步导致部署失败（`@prisma/client` 没有新表/字段类型）。
+> **铁律**：
+> - 缺第 2 步 = 100+ TS 编译错误（v9.0.1 和 v9.1.0 两次踩坑）
+> - 缺第 3 步 = 数据库结构不对，运行时报错
+> - 缺第 4 步 = 跑的旧代码，新功能不生效
+> - **顺序不可颠倒**（pnpm install 后必须 prisma generate）
+> - **不要用 `nest start`**（开发模式占用内存大、容易 OOM）
+>
 > 如果你看到 `Property 'xxx' does not exist on type 'PrismaService'`，请立即补跑 `npx prisma generate`。
 
 ```bash
