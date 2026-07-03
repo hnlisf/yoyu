@@ -33,7 +33,7 @@ interface MyFishItem {
 }
 
 /**
- * v9.1 My Fish List Page — paginated list from /api/users/me/fishes
+ * v9.1 My Fish List Page — paginated list from /api/user/me/fishes
  * Shows fishName, nickname, tankName, daysInTank, status
  * Also keeps "收藏鱼种" (collected species) section at the bottom.
  */
@@ -56,7 +56,7 @@ export default function MyFishPage() {
       setLoading(true);
       try {
         const data = await api<{ total: number; page: number; items: MyFishItem[] }>(
-          `/api/users/me/fishes?userId=${USER_ID}&page=${page}&limit=${PAGE_LIMIT}`
+          `/api/user/me/fishes?userId=${USER_ID}&page=${page}&limit=${PAGE_LIMIT}`
         );
         if (!cancelled) {
           setFishItems(data.items || []);
