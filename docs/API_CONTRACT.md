@@ -7,6 +7,7 @@
 ✅ tempMin / tempMax → 正确
 ❌ name（字符串）→ 400 "鱼种名称不能为空"
 ✅ nameI18n（{zh,en,ja} 对象）→ 正确
+❌ phMin/phMax/growthDays/feedFreq 缺失 → 500（实际为必填，Service 层校验，已修 docs/code mismatch）
 ```
 
 ## POST /api/fish-species/custom
@@ -25,10 +26,10 @@
   "tempMax": 28,                         // 必填，水温上限
   "userId": "test-user",                 // 必填
   "variant": "guppy",                    // 可选，5 种之一：guppy/goldfish/koi/pleco/angelfish
-  "phMin": 6.5,                          // 可选
-  "phMax": 7.5,                          // 可选
-  "growthDays": 60,                      // 可选
-  "feedFreq": "daily",                   // 可选：daily/twice_daily/weekly
+  "phMin": 6.5,                          // 必填
+  "phMax": 7.5,                          // 必填
+  "growthDays": 60,                      // 必填
+  "feedFreq": "daily",                   // 必填，枚举：daily | twice_daily | every_2_days
   "visualVariant": {                     // 可选（v9.1 item1）
     "color": "#FF6B6B",
     "pattern": "striped",
