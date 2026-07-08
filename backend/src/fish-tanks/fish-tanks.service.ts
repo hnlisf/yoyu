@@ -31,6 +31,7 @@ export interface UpdateFishTankDto {
   oxygen?: number;
   ph?: number;
   location?: string;
+  city?: string;  // v10.0: alias for location (per-tank city)
 }
 
 // v9.0: max tanks per user
@@ -338,6 +339,30 @@ export class FishTanksService {
 
   async update(id: string, data: UpdateFishTankDto): Promise<any> {
     await this.ensureExists(id);
+
+    // v10.0 P0-1: Validate tank name (1-20 chars, trim)
+    if (data.name !== undefined) {
+      const trimmed = data.name.trim();
+      if (trimmed.length === 0) {
+        throw new BadRequestException({
+          error: 'NAME_EMPTY',
+          message: '鱼缸名称不能为空',
+        });
+      }
+      if (trimmed.length > 20) {
+        throw new BadRequestException({
+          error: 'NAME_TOO_LONG',
+          message: '鱼缸名称不能超过 20 个字符',
+        });
+      }
+      data.name = trimmed;
+    }
+
+    // v10.0 P0-4: Accept 'city' as alias for 'location'
+    const cityValue = (data as any).city;
+    if (cityValue !== undefined && data.location === undefined) {
+      data.location = cityValue;
+    }
 
     // v9.1 item6a: If location changed, fetch new weather and create temp adjust job
     if (data.location) {

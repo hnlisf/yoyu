@@ -93,6 +93,7 @@ export interface FishTank {
   ph: number;
   cityTemp: number;
   heaterOn: boolean;
+  location?: string; // v10.0: per-tank city
   temperature?: number; // v9.0
   weatherSync?: { city: string; currentTemp: number; lastSyncAt: string } | null; // v9.0
   tempAlert?: { isOverTemp: boolean; threshold: number | null; dismissedAt: string } | null; // v9.0

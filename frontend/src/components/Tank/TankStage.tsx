@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
+import { Link } from '@/i18n/routing';
 import type { Fish } from '@/lib/api';
 import { FishAvatar } from '@/components/fish';
 import { slugToVariant } from '@/components/fish/types';
@@ -192,16 +193,16 @@ function TankStageInner({ fishList, onFishClick, weatherCode, feedRef }: TankSta
                 />
               </span>
               {/* v9.1 REQ-3: click to show nickname, auto-hide after 2.5s */}
-              <p className={`text-[9px] text-text-primary mt-0.5 font-light drop-shadow text-center truncate max-w-[80px] transition-opacity duration-200 ${showNickname ? 'opacity-100' : 'opacity-0'}`}>
+              <p className={`text-[9px] text-text-primary mt-0.5 font-light drop-shadow text-center whitespace-normal break-words leading-tight transition-opacity duration-200 ${showNickname ? 'opacity-100' : 'opacity-0'}`}>
                 {f.name || f.stage}
               </p>
             </div>
           );
         })
       ) : (
-        <div className="relative z-10 flex items-center justify-center py-16 text-text-secondary text-sm">
+        <Link href="/species" className="relative z-10 flex items-center justify-center py-16 text-text-secondary text-sm hover:text-accent transition">
           还没有鱼，快去添加吧~
-        </div>
+        </Link>
       )}
     </div>
   );

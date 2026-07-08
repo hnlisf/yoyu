@@ -77,7 +77,7 @@ export default function YoYuthPage({ params }: PageProps) {
       <GlassCard className="flex items-center gap-4">
         <FishAvatar variant={variant} stage={fish.stage} size={100} animated={false} />
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-light text-text-primary truncate">
+          <h1 className="text-xl font-light text-text-primary whitespace-normal break-words">
             {fish.name || tf(fish.stage)}
           </h1>
           <p className="text-xs text-text-secondary font-light mt-1">

@@ -28,7 +28,7 @@ export default function RecommendedFish() {
               {fish.emoji}
             </div>
             <div className="min-w-0">
-              <p className="text-text-primary font-medium truncate">
+              <p className="text-text-primary font-medium whitespace-normal break-words">
                 {fish.nameKey}
               </p>
               <p className="text-text-secondary text-sm">{fish.desc}</p>

@@ -159,7 +159,7 @@ export default function MyFishPage() {
                       return (
                         <tr key={f.fishId} className="border-b border-glass-border/30 hover:bg-glass/50 transition">
                           <td className="py-2 px-3 text-text-primary text-xs">{f.fishName || '——'}</td>
-                          <td className="py-2 px-3 text-text-primary text-xs truncate max-w-[120px]">{f.nickname || '——'}</td>
+                          <td className="py-2 px-3 text-text-primary text-xs whitespace-normal break-words">{f.nickname || '——'}</td>
                           <td className="py-2 px-3 text-text-secondary text-xs">{f.tankName || '——'}</td>
                           <td className="py-2 px-3 text-center text-text-secondary tabular-nums text-xs">{f.daysInTank} 天</td>
                           <td className="py-2 px-3 text-center">
@@ -183,7 +183,7 @@ export default function MyFishPage() {
                 return (
                   <GlassCard key={f.fishId} hover className="flex items-center gap-3 p-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-text-primary truncate">
+                      <p className="text-sm text-text-primary whitespace-normal break-words">
                         {f.fishName || '——'}
                       </p>
                       <p className="text-[10px] text-text-secondary font-light">
