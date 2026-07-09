@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useApi, api, FishSpecies } from '@/lib/api';
@@ -123,13 +123,19 @@ export default function SpeciesPage() {
   const urlTankId = searchParams.get('tankId');
   const urlSelect = searchParams.get('select') === 'true';
 
-  // Sync localStorage when URL provides a tankId (so TankSelector + legacy flows use correct tank)
+  // v10.0.1 二修: prevent double-trigger of auto-select on re-renders
+  const selectTriggered = useRef(false);
+
+  // Sync localStorage + auto-open add-fish flow when URL provides tankId + ?select=true
   useEffect(() => {
-    if (urlTankId && urlSelect) {
+    if (urlTankId && urlSelect && species && species.length > 0 && !selectTriggered.current) {
+      selectTriggered.current = true;
       localStorage.setItem(STORAGE_KEY, urlTankId);
-      console.debug('[species] tankId source: URL', urlTankId);
+      console.debug('[species] tankId source: URL (auto-select)', urlTankId);
+      // Trigger same flow as clicking "select" button on a species card
+      startAddToTank(species[0]);
     }
-  }, [urlTankId, urlSelect]);
+  }, [urlTankId, urlSelect, species]);
 
   // Legacy direct add (for backward compatibility — skips TankSelector + nickname)
   const addToTank = async (sp: FishSpecies) => {
