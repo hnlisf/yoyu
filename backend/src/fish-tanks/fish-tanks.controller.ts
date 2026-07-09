@@ -80,8 +80,8 @@ export class FishTanksController {
 
   @Post(':id/change-water')
   @ApiOperation({ summary: 'v9.0: Change water — resets temperature to 24°C, heater off, clears temp alert. v9.1: also creates WaterChangeLog' })
-  async changeWater(@Param('id') id: string) {
-    return this.service.changeWater(id);
+  async changeWater(@Param('id') id: string, @Body() body: { userId: string }) {
+    return this.service.changeWater(id, body.userId);
   }
 
   @Get(':id/water-logs')
