@@ -59,7 +59,11 @@ export class FishSpeciesService {
     if (data.growthDays <= 0)
       throw new BadRequestException('生长天数必须大于0');
 
-    // v9.1 item1: validate and stringify visualVariant
+    // v9.1 item1 / v1.2 addendum v2: validate and stringify visualVariant with whitelist
+    const VALID_COLORS = ['red', 'blue', 'gold'];
+    const VALID_PATTERNS = ['solid', 'striped', 'spotted'];
+    const VALID_BODIES = ['slim', 'round', 'elongated'];
+
     let visualVariantStr: string | undefined;
     if (data.visualVariant) {
       const vv = data.visualVariant;
@@ -72,6 +76,12 @@ export class FishSpeciesService {
           `visualVariant 缺少必填字段: ${missing.join(', ')}`,
         );
       }
+      if (!VALID_COLORS.includes(vv.color))
+        throw new BadRequestException(`visualVariant.color 无效，可选值: ${VALID_COLORS.join(', ')}`);
+      if (!VALID_PATTERNS.includes(vv.pattern))
+        throw new BadRequestException(`visualVariant.pattern 无效，可选值: ${VALID_PATTERNS.join(', ')}`);
+      if (!VALID_BODIES.includes(vv.body))
+        throw new BadRequestException(`visualVariant.body 无效，可选值: ${VALID_BODIES.join(', ')}`);
       visualVariantStr = JSON.stringify(vv);
     }
 
