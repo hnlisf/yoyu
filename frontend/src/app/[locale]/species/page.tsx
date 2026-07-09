@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useApi, api, FishSpecies } from '@/lib/api';
 import { FishAvatar } from '@/components/fish/FishAvatar';
@@ -116,10 +117,25 @@ export default function SpeciesPage() {
     }
   };
 
+  // v10.0.1 hotfix: consume URL query params (from tank detail "Add Fish" link)
+  // URL query takes priority over localStorage to prevent fish being added to wrong tank
+  const searchParams = useSearchParams();
+  const urlTankId = searchParams.get('tankId');
+  const urlSelect = searchParams.get('select') === 'true';
+
+  // Sync localStorage when URL provides a tankId (so TankSelector + legacy flows use correct tank)
+  useEffect(() => {
+    if (urlTankId && urlSelect) {
+      localStorage.setItem(STORAGE_KEY, urlTankId);
+      console.debug('[species] tankId source: URL', urlTankId);
+    }
+  }, [urlTankId, urlSelect]);
+
   // Legacy direct add (for backward compatibility — skips TankSelector + nickname)
   const addToTank = async (sp: FishSpecies) => {
     setBusy(true);
-    let tankId = localStorage.getItem(STORAGE_KEY);
+    // v10.0.1 hotfix: URL query 优先 (来自鱼缸详情页 "Add Fish" 跳转)
+    let tankId = urlTankId || localStorage.getItem(STORAGE_KEY);
 
     if (tankId) {
       try {
