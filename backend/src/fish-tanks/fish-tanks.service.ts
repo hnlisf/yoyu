@@ -4,7 +4,6 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FishTank, Prisma } from '@prisma/client';
@@ -156,20 +155,9 @@ export class FishTanksService {
 
   // v9.0 REQ-7: changeWater endpoint — resets temperature to 24°C, heaterOff, clears tempAlert
   // v9.1 Item 6b: also creates a WaterChangeLog record
-  // v12: add owner check (403) + idempotency guard (400 tank_already_fresh)
-  async changeWater(tankId: string, userId: string): Promise<{ id: string; temperature: number; heaterOn: boolean; cityTemp: number }> {
+  async changeWater(tankId: string): Promise<{ id: string; temperature: number; heaterOn: boolean; cityTemp: number }> {
     const tank = await this.prisma.fishTank.findUnique({ where: { id: tankId } });
     if (!tank) throw new NotFoundException('Fish tank not found');
-
-    // BUG-V12-4: ownership check — non-owner returns 403
-    if (tank.userId !== userId) {
-      throw new ForbiddenException('You are not the owner of this tank');
-    }
-
-    // BUG-V12-5: idempotency guard — already-fresh tank returns 400
-    if (tank.temperature === 24.0 && tank.heaterOn === false) {
-      throw new BadRequestException({ message: 'tank_already_fresh' });
-    }
 
     await this.prisma.$transaction(async (tx) => {
       await tx.fishTank.update({
@@ -237,7 +225,7 @@ export class FishTanksService {
     }
 
     const tankName = data.name ?? '我的鱼缸';
-    const location = data.location || '';
+    const location = data.location ?? 'Beijing';
 
     // MBE.1: prevent duplicate tank names for the same user
     const existing = await this.prisma.fishTank.findFirst({
@@ -250,24 +238,21 @@ export class FishTanksService {
       });
     }
 
-    // BUG-V12-3: skip geocode + weather when location is missing, use 25°C fallback
-    let cityTemp = 25.0; // fallback
-    if (location) {
-      // v9.1 item6a: Validate city via geocode API
-      const coords = await this.weatherService.geocodeCity(location);
-      if (!coords) {
-        throw new BadRequestException(`Invalid city: "${location}". Please provide a valid city name.`);
-      }
+    // v9.1 item6a: Validate city via geocode API
+    const coords = await this.weatherService.geocodeCity(location);
+    if (!coords) {
+      throw new BadRequestException(`Invalid city: "${location}". Please provide a valid city name.`);
+    }
 
-      // v9.1 item6a: Fetch weather for the location to determine target temp
-      try {
-        const weather = await this.weatherService.getWeatherByCity(location);
-        if (weather) {
-          cityTemp = weather.temp;
-        }
-      } catch {
-        this.logger.warn(`Weather fetch failed for ${location}, using fallback 25°C`);
+    // v9.1 item6a: Fetch weather for the location to determine target temp
+    let cityTemp = 25.0; // fallback
+    try {
+      const weather = await this.weatherService.getWeatherByCity(location);
+      if (weather) {
+        cityTemp = weather.temp;
       }
+    } catch {
+      this.logger.warn(`Weather fetch failed for ${location}, using fallback 25°C`);
     }
 
     const initialWaterTemp = data.initialWaterTemp ?? cityTemp;
