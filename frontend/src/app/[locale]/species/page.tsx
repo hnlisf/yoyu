@@ -49,10 +49,10 @@ function classifyError(e: any, status?: number): ErrorCategory {
   return 'network';
 }
 
-// v1.2 addendum v2: Visual variant options — 3×3 grid = 27 combinations (per architecture spec)
-const VISUAL_COLORS = ['red', 'blue', 'gold'] as const;
-const VISUAL_PATTERNS = ['solid', 'striped', 'spotted'] as const;
-const VISUAL_BODY_TYPES = ['slim', 'round', 'elongated'] as const;
+// v9.1: Visual variant options
+const VISUAL_COLORS = ['red', 'blue', 'golden', 'green', 'purple', 'orange', 'white', 'black', 'pink'];
+const VISUAL_PATTERNS = ['solid', 'spotted', 'striped'];
+const VISUAL_BODY_TYPES = ['slender', 'round', 'elongated'];
 
 export default function SpeciesPage() {
   const t = useTranslations('species');
@@ -68,7 +68,7 @@ export default function SpeciesPage() {
   const [growthDays, setGrowthDays] = useState(60);
   const [feedFreq, setFeedFreq] = useState<'daily' | 'twice_daily' | 'every_2_days'>('twice_daily');
   const [color, setColor] = useState('#5BA9C7');
-  const [visualVariant, setVisualVariant] = useState({ color: 'red', pattern: 'solid', body: 'slim' });
+  const [visualVariant, setVisualVariant] = useState({ color: 'red', pattern: 'solid', body: 'slender' });
   const [busy, setBusy] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -438,7 +438,7 @@ export default function SpeciesPage() {
                 <div>
                   <label className="label">体型 Body</label>
                   <select className="input" value={visualVariant.body} onChange={(e) => setVisualVariant({ ...visualVariant, body: e.target.value })}>
-                    {VISUAL_BODY_TYPES.map((b) => <option key={b} value={b}>{b === 'slim' ? '纤细 Slim' : b === 'round' ? '圆润 Round' : '细长 Elongated'}</option>)}
+                    {VISUAL_BODY_TYPES.map((b) => <option key={b} value={b}>{b === 'slender' ? '细长 Slender' : b === 'round' ? '圆形 Round' : '延长 Elongated'}</option>)}
                   </select>
                 </div>
                 <div className="bg-water-50 rounded-lg p-3 text-xs text-water-500">
