@@ -5,9 +5,10 @@ import { FishSpeciesModule } from '../fish-species/fish-species.module';
 import { FishModule } from '../fish/fish.module';
 import { WeatherModule } from '../weather/weather.module';
 import { TemperatureAdjustModule } from '../temperature-adjust/temperature-adjust.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [FishSpeciesModule, FishModule, WeatherModule, TemperatureAdjustModule],
+  imports: [FishSpeciesModule, FishModule, WeatherModule, TemperatureAdjustModule, UserModule],
   controllers: [FishTanksController],
   providers: [FishTanksService],
   exports: [FishTanksService],

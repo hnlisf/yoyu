@@ -13,6 +13,7 @@ import { FishService } from '../fish/fish.service';
 import { WaterTemperatureService } from '../temperature/water-temperature.service';
 import { WeatherService } from '../weather/weather.service';
 import { TemperatureAdjustService } from '../temperature-adjust/temperature-adjust.service';
+import { UserService } from '../user/user.service';
 
 export interface CreateFishTankDto {
   userId?: string;
@@ -38,6 +39,9 @@ export interface UpdateFishTankDto {
 // v9.0: max tanks per user
 const MAX_TANKS_PER_USER = 6;
 
+// v10.1.2: changeWater 24h idempotency window (in hours)
+const WATER_CHANGE_COOLDOWN_HOURS = 24;
+
 @Injectable()
 export class FishTanksService {
   private readonly logger = new Logger(FishTanksService.name);
@@ -49,6 +53,7 @@ export class FishTanksService {
     private waterTemp: WaterTemperatureService,
     private weatherService: WeatherService,
     private temperatureAdjustService: TemperatureAdjustService,
+    private userService: UserService,
   ) {
     // Register flush callback: persist temperature to DB every ~30s
     this.waterTemp.onFlush(async (tankId, temp) => {
@@ -156,9 +161,36 @@ export class FishTanksService {
 
   // v9.0 REQ-7: changeWater endpoint — resets temperature to 24°C, heaterOff, clears tempAlert
   // v9.1 Item 6b: also creates a WaterChangeLog record
-  async changeWater(tankId: string): Promise<{ id: string; temperature: number; heaterOn: boolean; cityTemp: number }> {
+  // v10.1.2 Item 6b: owner check (403) + 24h idempotency guard via WaterChangeLog
+  async changeWater(
+    tankId: string,
+    userId: string,
+  ): Promise<{ id: string; temperature: number; heaterOn: boolean; cityTemp: number }> {
     const tank = await this.prisma.fishTank.findUnique({ where: { id: tankId } });
     if (!tank) throw new NotFoundException('Fish tank not found');
+
+    // v10.1.2: ownership check — non-owner returns 403
+    if (tank.userId !== userId) {
+      throw new ForbiddenException('You are not the owner of this tank');
+    }
+
+    // v10.1.2: 24h idempotency guard — check last water change within cooldown window
+    const lastChange = await this.prisma.waterChangeLog.findFirst({
+      where: { tankId },
+      orderBy: { changedAt: 'desc' },
+    });
+    if (lastChange) {
+      const hoursSinceLastChange =
+        (Date.now() - lastChange.changedAt.getTime()) / (1000 * 60 * 60);
+      if (hoursSinceLastChange < WATER_CHANGE_COOLDOWN_HOURS) {
+        throw new BadRequestException({
+          message: 'tank_already_fresh',
+          lastChangedAt: lastChange.changedAt.toISOString(),
+          cooldownHours: WATER_CHANGE_COOLDOWN_HOURS,
+          remainingHours: Math.ceil(WATER_CHANGE_COOLDOWN_HOURS - hoursSinceLastChange),
+        });
+      }
+    }
 
     await this.prisma.$transaction(async (tx) => {
       await tx.fishTank.update({
@@ -272,8 +304,8 @@ export class FishTanksService {
 
   async create(data: CreateFishTankDto): Promise<any> {
     const userId = data.userId
-      ? await this.ensureUser(data.userId)
-      : await this.createDemoUser();
+      ? await this.userService.ensureUser(data.userId)
+      : await this.userService.createDemoUser();
 
     // v9.0 REQ-6: max tanks check
     const tankCount = await this.prisma.fishTank.count({ where: { userId } });
@@ -380,18 +412,6 @@ export class FishTanksService {
       }
       throw e;
     }
-  }
-
-  private async ensureUser(userId: string): Promise<string> {
-    const existing = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (existing) return existing.id;
-    return (await this.prisma.user.create({ data: { id: userId } })).id;
-  }
-
-  private async createDemoUser(): Promise<string> {
-    const latest = await this.prisma.user.findFirst({ orderBy: { createdAt: 'desc' } });
-    if (latest) return latest.id;
-    return (await this.prisma.user.create({ data: {} })).id;
   }
 
   async update(id: string, data: UpdateFishTankDto): Promise<any> {
