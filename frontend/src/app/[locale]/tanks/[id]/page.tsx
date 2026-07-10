@@ -70,7 +70,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [heaterToggling, setHeaterToggling] = useState(false);
 
-  // v9.1 REQ-3: Nickname privacy — hidden by default, click to reveal, auto-hide after 2.5s
+  // v9.1 REQ-3 / v10.1.2 Item 3: Nickname privacy — hidden by default, click to reveal, auto-hide after 2.5s
   const [visibleNicknameId, setVisibleNicknameId] = useState<string | null>(null);
   const nicknameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearNicknameTimer = useCallback(() => {
