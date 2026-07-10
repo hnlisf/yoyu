@@ -296,7 +296,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
     try {
       const result = await api<{ id: string; temperature: number; heaterOn: boolean; cityTemp: number }>(
         `/api/fish-tanks/${tankId}/change-water`,
-        { method: 'POST', body: JSON.stringify({ userId: USER_ID }) }
+        { method: 'POST' }
       );
       setToast(`换水完成！水温已重置为 ${result.temperature}°C`);
       setHeaterOn(false);
