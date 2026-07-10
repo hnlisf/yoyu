@@ -110,6 +110,6 @@ export class FishTanksController {
     @Param('fishId') fishId: string,
     @Body() body: { nickname: string; userId: string },
   ) {
-    return this.fishService.renameFish(tankId, fishId, body.nickname, body.userId);
+    return this.service.renameFish(tankId, fishId, body.nickname, body.userId);
   }
 }

@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FishTank, Prisma } from '@prisma/client';
@@ -200,6 +201,62 @@ export class FishTanksService {
       where: { tankId },
       orderBy: { changedAt: 'desc' },
       take: limit,
+    });
+  }
+
+  /**
+   * v10.1.2 Item 4: Rename a fish (nickname).
+   * Validates: non-empty, 1-20 chars, no emoji, no HTML tags.
+   * Checks tank ownership via userId (403 if not owner).
+   */
+  async renameFish(
+    tankId: string,
+    fishId: string,
+    nickname: string,
+    userId: string,
+  ): Promise<any> {
+    // Validate nickname
+    if (!nickname || typeof nickname !== 'string') {
+      throw new BadRequestException('昵称不能为空');
+    }
+    const trimmed = nickname.trim();
+    if (trimmed.length < 1 || trimmed.length > 20) {
+      throw new BadRequestException('昵称长度须在1-20个字符之间');
+    }
+    // No HTML tags
+    if (/<[^>]*>/.test(trimmed)) {
+      throw new BadRequestException('昵称不能包含HTML标签');
+    }
+    // No emoji
+    if (
+      /[\uD800-\uDBFF][\uDC00-\uDFFF]/.test(trimmed) ||
+      /[\u2600-\u27BF]/.test(trimmed) ||
+      /[\uFE00-\uFE0F]/.test(trimmed) ||
+      /\u200D/.test(trimmed)
+    ) {
+      throw new BadRequestException('昵称不能包含表情符号');
+    }
+
+    // Check fish exists and belongs to the specified tank
+    const fish = await this.prisma.fish.findUnique({
+      where: { id: fishId },
+      include: { tank: true },
+    });
+    if (!fish) throw new NotFoundException('鱼不存在');
+    if (fish.tankId !== tankId) {
+      throw new NotFoundException('鱼不属于该鱼缸');
+    }
+
+    // Check tank ownership
+    const tank = await this.prisma.fishTank.findUnique({ where: { id: tankId } });
+    if (!tank) throw new NotFoundException('鱼缸不存在');
+    if (tank.userId !== userId) {
+      throw new ForbiddenException('无权操作该鱼缸');
+    }
+
+    return this.prisma.fish.update({
+      where: { id: fishId },
+      data: { name: trimmed },
     });
   }
 

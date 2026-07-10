@@ -28,6 +28,8 @@ describe('FishTanksService', () => {
       },
       fish: {
         create: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
       },
       user: {
         findUnique: jest.fn(),
@@ -39,7 +41,10 @@ describe('FishTanksService', () => {
     };
     speciesService = { toI18n: jest.fn((s: any, lang: string) => ({ ...s, lang })) };
     fishService = { create: jest.fn() };
-    svc = new FishTanksService(prisma, speciesService, fishService);
+    const waterTemp = { onFlush: jest.fn(), getCurrentTemp: jest.fn().mockReturnValue(null), register: jest.fn(), setHeaterOn: jest.fn(), updateOutdoorTemp: jest.fn(), reset: jest.fn() };
+    const weatherService = {};
+    const temperatureAdjustService = {};
+    svc = new FishTanksService(prisma, speciesService, fishService, waterTemp as any, weatherService as any, temperatureAdjustService as any);
   });
 
   describe('findAllByUser', () => {
@@ -193,6 +198,63 @@ describe('FishTanksService', () => {
     it('throws NotFound when ticking a missing tank', async () => {
       prisma.fishTank.findUnique.mockResolvedValue(null);
       await expect(svc.tick('missing')).rejects.toThrow();
+    });
+  });
+
+  describe('renameFish', () => {
+    it('renames a fish successfully', async () => {
+      const fish = { id: 'f1', tankId: 't1', name: 'old', tank: { userId: 'u1' } };
+      prisma.fish.findUnique.mockResolvedValue(fish);
+      prisma.fishTank.findUnique.mockResolvedValue({ id: 't1', userId: 'u1' });
+      prisma.fish.update.mockResolvedValue({ ...fish, name: '小黄' });
+
+      const result = await svc.renameFish('t1', 'f1', '小黄', 'u1');
+      expect(result.name).toBe('小黄');
+      expect(prisma.fish.update).toHaveBeenCalledWith({
+        where: { id: 'f1' },
+        data: { name: '小黄' },
+      });
+    });
+
+    it('trims whitespace from nickname', async () => {
+      const fish = { id: 'f1', tankId: 't1', name: 'old', tank: { userId: 'u1' } };
+      prisma.fish.findUnique.mockResolvedValue(fish);
+      prisma.fishTank.findUnique.mockResolvedValue({ id: 't1', userId: 'u1' });
+      prisma.fish.update.mockResolvedValue({ ...fish, name: '小黄' });
+
+      await svc.renameFish('t1', 'f1', '  小黄  ', 'u1');
+      expect(prisma.fish.update).toHaveBeenCalledWith({
+        where: { id: 'f1' },
+        data: { name: '小黄' },
+      });
+    });
+
+    it('throws BadRequest when nickname is empty', async () => {
+      await expect(svc.renameFish('t1', 'f1', '', 'u1')).rejects.toThrow();
+    });
+
+    it('throws BadRequest when nickname exceeds 20 chars', async () => {
+      await expect(svc.renameFish('t1', 'f1', 'a'.repeat(21), 'u1')).rejects.toThrow();
+    });
+
+    it('throws BadRequest when nickname contains HTML', async () => {
+      await expect(svc.renameFish('t1', 'f1', '<b>fish</b>', 'u1')).rejects.toThrow();
+    });
+
+    it('throws NotFound when fish does not exist', async () => {
+      prisma.fish.findUnique.mockResolvedValue(null);
+      await expect(svc.renameFish('t1', 'f1', '小黄', 'u1')).rejects.toThrow();
+    });
+
+    it('throws NotFound when fish belongs to a different tank', async () => {
+      prisma.fish.findUnique.mockResolvedValue({ id: 'f1', tankId: 't2', tank: { userId: 'u1' } });
+      await expect(svc.renameFish('t1', 'f1', '小黄', 'u1')).rejects.toThrow();
+    });
+
+    it('throws Forbidden when user is not the tank owner', async () => {
+      prisma.fish.findUnique.mockResolvedValue({ id: 'f1', tankId: 't1', tank: { userId: 'u1' } });
+      prisma.fishTank.findUnique.mockResolvedValue({ id: 't1', userId: 'u2' });
+      await expect(svc.renameFish('t1', 'f1', '小黄', 'u1')).rejects.toThrow();
     });
   });
 });
