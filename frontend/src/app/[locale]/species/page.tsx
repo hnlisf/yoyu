@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useApi, api, FishSpecies } from '@/lib/api';
@@ -117,25 +117,18 @@ export default function SpeciesPage() {
     }
   };
 
-  // v10.0.1 hotfix: consume URL query params (from tank detail "Add Fish" link)
-  // URL query takes priority over localStorage to prevent fish being added to wrong tank
+  // v10.1.3: consume URL query params (from tank detail "Add Fish" link)
+  // URL query syncs localStorage so the tank context is preserved for the manual select flow
   const searchParams = useSearchParams();
   const urlTankId = searchParams.get('tankId');
-  const urlSelect = searchParams.get('select') === 'true';
 
-  // v10.0.1 二修: prevent double-trigger of auto-select on re-renders
-  const selectTriggered = useRef(false);
-
-  // Sync localStorage + auto-open add-fish flow when URL provides tankId + ?select=true
+  // v10.1.3 fix BUG-V10.1.3-8: only sync localStorage, do NOT auto-trigger add-fish
+  // User must manually click a species card → naming modal (PRD v10 §2.1.4 full flow)
   useEffect(() => {
-    if (urlTankId && urlSelect && species && species.length > 0 && !selectTriggered.current) {
-      selectTriggered.current = true;
+    if (urlTankId) {
       localStorage.setItem(STORAGE_KEY, urlTankId);
-      console.debug('[species] tankId source: URL (auto-select)', urlTankId);
-      // Trigger same flow as clicking "select" button on a species card
-      startAddToTank(species[0]);
     }
-  }, [urlTankId, urlSelect, species]);
+  }, [urlTankId]);
 
   // Legacy direct add (for backward compatibility — skips TankSelector + nickname)
   const addToTank = async (sp: FishSpecies) => {
