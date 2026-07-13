@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FishTank, Prisma } from '@prisma/client';
@@ -12,6 +13,7 @@ import { FishService } from '../fish/fish.service';
 import { WaterTemperatureService } from '../temperature/water-temperature.service';
 import { WeatherService } from '../weather/weather.service';
 import { TemperatureAdjustService } from '../temperature-adjust/temperature-adjust.service';
+import { UserService } from '../user/user.service';
 
 export interface CreateFishTankDto {
   userId?: string;
@@ -31,10 +33,14 @@ export interface UpdateFishTankDto {
   oxygen?: number;
   ph?: number;
   location?: string;
+  city?: string;  // v10.0: alias for location (per-tank city)
 }
 
 // v9.0: max tanks per user
 const MAX_TANKS_PER_USER = 6;
+
+// v10.1.2: changeWater 24h idempotency window (in hours)
+const WATER_CHANGE_COOLDOWN_HOURS = 24;
 
 @Injectable()
 export class FishTanksService {
@@ -47,6 +53,7 @@ export class FishTanksService {
     private waterTemp: WaterTemperatureService,
     private weatherService: WeatherService,
     private temperatureAdjustService: TemperatureAdjustService,
+    private userService: UserService,
   ) {
     // Register flush callback: persist temperature to DB every ~30s
     this.waterTemp.onFlush(async (tankId, temp) => {
@@ -154,9 +161,36 @@ export class FishTanksService {
 
   // v9.0 REQ-7: changeWater endpoint — resets temperature to 24°C, heaterOff, clears tempAlert
   // v9.1 Item 6b: also creates a WaterChangeLog record
-  async changeWater(tankId: string): Promise<{ id: string; temperature: number; heaterOn: boolean; cityTemp: number }> {
+  // v10.1.2 Item 6b: owner check (403) + 24h idempotency guard via WaterChangeLog
+  async changeWater(
+    tankId: string,
+    userId: string,
+  ): Promise<{ id: string; temperature: number; heaterOn: boolean; cityTemp: number }> {
     const tank = await this.prisma.fishTank.findUnique({ where: { id: tankId } });
     if (!tank) throw new NotFoundException('Fish tank not found');
+
+    // v10.1.2: ownership check — non-owner returns 403
+    if (tank.userId !== userId) {
+      throw new ForbiddenException('You are not the owner of this tank');
+    }
+
+    // v10.1.2: 24h idempotency guard — check last water change within cooldown window
+    const lastChange = await this.prisma.waterChangeLog.findFirst({
+      where: { tankId },
+      orderBy: { changedAt: 'desc' },
+    });
+    if (lastChange) {
+      const hoursSinceLastChange =
+        (Date.now() - lastChange.changedAt.getTime()) / (1000 * 60 * 60);
+      if (hoursSinceLastChange < WATER_CHANGE_COOLDOWN_HOURS) {
+        throw new BadRequestException({
+          message: 'tank_already_fresh',
+          lastChangedAt: lastChange.changedAt.toISOString(),
+          cooldownHours: WATER_CHANGE_COOLDOWN_HOURS,
+          remainingHours: Math.ceil(WATER_CHANGE_COOLDOWN_HOURS - hoursSinceLastChange),
+        });
+      }
+    }
 
     await this.prisma.$transaction(async (tx) => {
       await tx.fishTank.update({
@@ -202,6 +236,62 @@ export class FishTanksService {
     });
   }
 
+  /**
+   * v10.1.2 Item 4: Rename a fish (nickname).
+   * Validates: non-empty, 1-20 chars, no emoji, no HTML tags.
+   * Checks tank ownership via userId (403 if not owner).
+   */
+  async renameFish(
+    tankId: string,
+    fishId: string,
+    nickname: string,
+    userId: string,
+  ): Promise<any> {
+    // Validate nickname
+    if (!nickname || typeof nickname !== 'string') {
+      throw new BadRequestException('昵称不能为空');
+    }
+    const trimmed = nickname.trim();
+    if (trimmed.length < 1 || trimmed.length > 20) {
+      throw new BadRequestException('昵称长度须在1-20个字符之间');
+    }
+    // No HTML tags
+    if (/<[^>]*>/.test(trimmed)) {
+      throw new BadRequestException('昵称不能包含HTML标签');
+    }
+    // No emoji
+    if (
+      /[\uD800-\uDBFF][\uDC00-\uDFFF]/.test(trimmed) ||
+      /[\u2600-\u27BF]/.test(trimmed) ||
+      /[\uFE00-\uFE0F]/.test(trimmed) ||
+      /\u200D/.test(trimmed)
+    ) {
+      throw new BadRequestException('昵称不能包含表情符号');
+    }
+
+    // Check fish exists and belongs to the specified tank
+    const fish = await this.prisma.fish.findUnique({
+      where: { id: fishId },
+      include: { tank: true },
+    });
+    if (!fish) throw new NotFoundException('鱼不存在');
+    if (fish.tankId !== tankId) {
+      throw new NotFoundException('鱼不属于该鱼缸');
+    }
+
+    // Check tank ownership
+    const tank = await this.prisma.fishTank.findUnique({ where: { id: tankId } });
+    if (!tank) throw new NotFoundException('鱼缸不存在');
+    if (tank.userId !== userId) {
+      throw new ForbiddenException('无权操作该鱼缸');
+    }
+
+    return this.prisma.fish.update({
+      where: { id: fishId },
+      data: { name: trimmed },
+    });
+  }
+
   private attachI18n(tank: any, lang: string) {
     if (tank.fish) {
       tank.fish = tank.fish.map((f: any) => {
@@ -214,8 +304,8 @@ export class FishTanksService {
 
   async create(data: CreateFishTankDto): Promise<any> {
     const userId = data.userId
-      ? await this.ensureUser(data.userId)
-      : await this.createDemoUser();
+      ? await this.userService.ensureUser(data.userId)
+      : await this.userService.createDemoUser();
 
     // v9.0 REQ-6: max tanks check
     const tankCount = await this.prisma.fishTank.count({ where: { userId } });
@@ -324,20 +414,32 @@ export class FishTanksService {
     }
   }
 
-  private async ensureUser(userId: string): Promise<string> {
-    const existing = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (existing) return existing.id;
-    return (await this.prisma.user.create({ data: { id: userId } })).id;
-  }
-
-  private async createDemoUser(): Promise<string> {
-    const latest = await this.prisma.user.findFirst({ orderBy: { createdAt: 'desc' } });
-    if (latest) return latest.id;
-    return (await this.prisma.user.create({ data: {} })).id;
-  }
-
   async update(id: string, data: UpdateFishTankDto): Promise<any> {
     await this.ensureExists(id);
+
+    // v10.0 P0-1: Validate tank name (1-20 chars, trim)
+    if (data.name !== undefined) {
+      const trimmed = data.name.trim();
+      if (trimmed.length === 0) {
+        throw new BadRequestException({
+          error: 'NAME_EMPTY',
+          message: '鱼缸名称不能为空',
+        });
+      }
+      if (trimmed.length > 20) {
+        throw new BadRequestException({
+          error: 'NAME_TOO_LONG',
+          message: '鱼缸名称不能超过 20 个字符',
+        });
+      }
+      data.name = trimmed;
+    }
+
+    // v10.0 P0-4: Accept 'city' as alias for 'location'
+    const cityValue = (data as any).city;
+    if (cityValue !== undefined && data.location === undefined) {
+      data.location = cityValue;
+    }
 
     // v9.1 item6a: If location changed, fetch new weather and create temp adjust job
     if (data.location) {

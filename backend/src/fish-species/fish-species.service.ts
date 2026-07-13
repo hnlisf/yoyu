@@ -72,6 +72,21 @@ export class FishSpeciesService {
           `visualVariant 缺少必填字段: ${missing.join(', ')}`,
         );
       }
+      // v10.1.2: whitelist validation — 3 colors × 3 patterns × 3 body types
+      const ALLOWED_VV = {
+        color: ['red', 'blue', 'golden'],
+        pattern: ['solid', 'spotted', 'striped'],
+        body: ['slim', 'round', 'elongated'],
+      };
+      if (!ALLOWED_VV.color.includes(vv.color)) {
+        throw new BadRequestException(`visualVariant.color 不合法: ${vv.color}`);
+      }
+      if (!ALLOWED_VV.pattern.includes(vv.pattern)) {
+        throw new BadRequestException(`visualVariant.pattern 不合法: ${vv.pattern}`);
+      }
+      if (!ALLOWED_VV.body.includes(vv.body)) {
+        throw new BadRequestException(`visualVariant.body 不合法: ${vv.body}`);
+      }
       visualVariantStr = JSON.stringify(vv);
     }
 

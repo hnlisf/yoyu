@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { api, Fish } from '@/lib/api';
 import { FishAvatar } from '@/components/fish';
@@ -40,6 +41,7 @@ interface MyFishItem {
 export default function MyFishPage() {
   const t = useTranslations('fish');
   const tProfile = useTranslations('profile');
+  const router = useRouter();
   const [fishItems, setFishItems] = useState<MyFishItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -157,9 +159,9 @@ export default function MyFishPage() {
                       const status = f.status ?? 'healthy';
                       const statusCfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.healthy;
                       return (
-                        <tr key={f.fishId} className="border-b border-glass-border/30 hover:bg-glass/50 transition">
+                        <tr key={f.fishId} onClick={() => router.push(`/tanks/${f.tankId}`)} className="border-b border-glass-border/30 hover:bg-glass/50 transition cursor-pointer">
                           <td className="py-2 px-3 text-text-primary text-xs">{f.fishName || '——'}</td>
-                          <td className="py-2 px-3 text-text-primary text-xs truncate max-w-[120px]">{f.nickname || '——'}</td>
+                          <td className="py-2 px-3 text-text-primary text-xs whitespace-normal break-words">{f.nickname || '——'}</td>
                           <td className="py-2 px-3 text-text-secondary text-xs">{f.tankName || '——'}</td>
                           <td className="py-2 px-3 text-center text-text-secondary tabular-nums text-xs">{f.daysInTank} 天</td>
                           <td className="py-2 px-3 text-center">
@@ -181,19 +183,21 @@ export default function MyFishPage() {
                 const status = f.status ?? 'healthy';
                 const statusCfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.healthy;
                 return (
-                  <GlassCard key={f.fishId} hover className="flex items-center gap-3 p-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-text-primary truncate">
-                        {f.fishName || '——'}
-                      </p>
-                      <p className="text-[10px] text-text-secondary font-light">
-                        昵称: {f.nickname || '——'} · {f.tankName || '——'} · {f.daysInTank} 天
-                      </p>
-                    </div>
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] ${statusCfg.color}`}>
-                      {statusCfg.label}
-                    </span>
-                  </GlassCard>
+                  <Link href={`/tanks/${f.tankId}`} key={f.fishId} className="block">
+                    <GlassCard hover className="flex items-center gap-3 p-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-text-primary whitespace-normal break-words">
+                          {f.fishName || '——'}
+                        </p>
+                        <p className="text-[10px] text-text-secondary font-light">
+                          昵称: {f.nickname || '——'} · {f.tankName || '——'} · {f.daysInTank} 天
+                        </p>
+                      </div>
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] ${statusCfg.color}`}>
+                        {statusCfg.label}
+                      </span>
+                    </GlassCard>
+                  </Link>
                 );
               })}
             </div>

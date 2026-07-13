@@ -1,11 +1,46 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { UserService } from './user.service';
+import type { CreateUserDto, UpdateUserDto } from './user.service';
 
 @ApiTags('user')
 @Controller('api/user')
 export class UserController {
   constructor(private readonly service: UserService) {}
+
+  // ── User CRUD (项 5) ──
+
+  @Get()
+  @ApiOperation({ summary: 'List all users' })
+  async list() {
+    return this.service.findAll();
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get user by ID' })
+  async detail(@Param('id') id: string) {
+    return this.service.findOne(id);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create a new user' })
+  async create(@Body() body: CreateUserDto) {
+    return this.service.create(body);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update user' })
+  async update(@Param('id') id: string, @Body() body: UpdateUserDto) {
+    return this.service.update(id, body);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete user' })
+  async remove(@Param('id') id: string) {
+    return this.service.remove(id);
+  }
+
+  // ── Existing endpoints ──
 
   @Get('me/default-tank')
   @ApiOperation({ summary: 'Get the default tank for the current user' })

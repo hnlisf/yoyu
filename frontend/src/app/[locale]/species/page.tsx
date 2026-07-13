@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useApi, api, FishSpecies } from '@/lib/api';
 import { FishAvatar } from '@/components/fish/FishAvatar';
@@ -49,9 +50,9 @@ function classifyError(e: any, status?: number): ErrorCategory {
 }
 
 // v9.1: Visual variant options
-const VISUAL_COLORS = ['red', 'blue', 'golden', 'green', 'purple', 'orange', 'white', 'black', 'pink'];
+const VISUAL_COLORS = ['red', 'blue', 'golden'];
 const VISUAL_PATTERNS = ['solid', 'spotted', 'striped'];
-const VISUAL_BODY_TYPES = ['slender', 'round', 'elongated'];
+const VISUAL_BODY_TYPES = ['slim', 'round', 'elongated'];
 
 export default function SpeciesPage() {
   const t = useTranslations('species');
@@ -67,7 +68,7 @@ export default function SpeciesPage() {
   const [growthDays, setGrowthDays] = useState(60);
   const [feedFreq, setFeedFreq] = useState<'daily' | 'twice_daily' | 'every_2_days'>('twice_daily');
   const [color, setColor] = useState('#5BA9C7');
-  const [visualVariant, setVisualVariant] = useState({ color: 'red', pattern: 'solid', body: 'slender' });
+  const [visualVariant, setVisualVariant] = useState({ color: 'red', pattern: 'solid', body: 'slim' });
   const [busy, setBusy] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -116,10 +117,31 @@ export default function SpeciesPage() {
     }
   };
 
+  // v10.0.1 hotfix: consume URL query params (from tank detail "Add Fish" link)
+  // URL query takes priority over localStorage to prevent fish being added to wrong tank
+  const searchParams = useSearchParams();
+  const urlTankId = searchParams.get('tankId');
+  const urlSelect = searchParams.get('select') === 'true';
+
+  // v10.0.1 二修: prevent double-trigger of auto-select on re-renders
+  const selectTriggered = useRef(false);
+
+  // Sync localStorage + auto-open add-fish flow when URL provides tankId + ?select=true
+  useEffect(() => {
+    if (urlTankId && urlSelect && species && species.length > 0 && !selectTriggered.current) {
+      selectTriggered.current = true;
+      localStorage.setItem(STORAGE_KEY, urlTankId);
+      console.debug('[species] tankId source: URL (auto-select)', urlTankId);
+      // Trigger same flow as clicking "select" button on a species card
+      startAddToTank(species[0]);
+    }
+  }, [urlTankId, urlSelect, species]);
+
   // Legacy direct add (for backward compatibility — skips TankSelector + nickname)
   const addToTank = async (sp: FishSpecies) => {
     setBusy(true);
-    let tankId = localStorage.getItem(STORAGE_KEY);
+    // v10.0.1 hotfix: URL query 优先 (来自鱼缸详情页 "Add Fish" 跳转)
+    let tankId = urlTankId || localStorage.getItem(STORAGE_KEY);
 
     if (tankId) {
       try {
@@ -416,7 +438,7 @@ export default function SpeciesPage() {
                 <div>
                   <label className="label">体型 Body</label>
                   <select className="input" value={visualVariant.body} onChange={(e) => setVisualVariant({ ...visualVariant, body: e.target.value })}>
-                    {VISUAL_BODY_TYPES.map((b) => <option key={b} value={b}>{b === 'slender' ? '细长 Slender' : b === 'round' ? '圆形 Round' : '延长 Elongated'}</option>)}
+                    {VISUAL_BODY_TYPES.map((b) => <option key={b} value={b}>{b === 'slim' ? '细长 Slim' : b === 'round' ? '圆形 Round' : '延长 Elongated'}</option>)}
                   </select>
                 </div>
                 <div className="bg-water-50 rounded-lg p-3 text-xs text-water-500">

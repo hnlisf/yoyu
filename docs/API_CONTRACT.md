@@ -1,4 +1,6 @@
-# YoYu API 合约文档（v9.1.0）
+# YoYu API 合约文档（v10.0）
+
+> 最后更新: 2026-07-08 | v10.0 全流程重构 — P0-1/2/4 MVP
 
 ## ⚠️ 重要：常见字段名错误
 
@@ -9,6 +11,48 @@
 ✅ nameI18n（{zh,en,ja} 对象）→ 正确
 ❌ phMin/phMax/growthDays/feedFreq 缺失 → 500（实际为必填，Service 层校验，已修 docs/code mismatch）
 ```
+
+## v10.0 新增/变更
+
+### PATCH /api/fish-tanks/{id}（扩写 v10.0 P0-1/P0-4）
+
+扩写已有 PATCH 端点，新增 `name` 校验 + `city` 别名。
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `name` | string | 否 | 鱼缸名称，1-20 字符（trim 后校验） |
+| `city` | string | 否 | 鱼缸所在城市（v10.0 新增，映射到 `location` 字段） |
+| `location` | string | 否 | 同上（等价字段） |
+| `size` | enum | 否 | small/medium/large |
+| `temp` | number | 否 | |
+| `cleanliness` | number | 否 | |
+| `oxygen` | number | 否 | |
+| `ph` | number | 否 | |
+
+**错误响应**（v10.0 新增）：
+- 400 `{"error":"NAME_EMPTY","message":"鱼缸名称不能为空"}` — name trim 后为空
+- 400 `{"error":"NAME_TOO_LONG","message":"鱼缸名称不能超过 20 个字符"}` — name > 20 字符
+
+### GET /api/weather（已有，v10.0 复用于每缸城市）
+
+**查询参数**：
+- `city` — 城市名（如 "上海"）
+- `lat` / `lon` — 或按坐标查询
+
+**响应**：
+```json
+{
+  "temp": 26.5,
+  "feelsLike": 27.0,
+  "humidity": 60,
+  "weatherCode": 0,
+  "description": "晴朗",
+  "windSpeed": 2,
+  "source": "cache"
+}
+```
+
+## 已有接口（不变）
 
 ## POST /api/fish-species/custom
 

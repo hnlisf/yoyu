@@ -78,10 +78,17 @@ export class FishTanksController {
     return progress;
   }
 
+  // v10.1.2 Item 6b: changeWater now requires userId for owner check + 24h idempotency
   @Post(':id/change-water')
-  @ApiOperation({ summary: 'v9.0: Change water — resets temperature to 24°C, heater off, clears temp alert. v9.1: also creates WaterChangeLog' })
-  async changeWater(@Param('id') id: string) {
-    return this.service.changeWater(id);
+  @ApiOperation({ summary: 'v9.0: Change water — resets temperature to 24°C, heater off, clears temp alert. v9.1: also creates WaterChangeLog. v10.1.2: owner check + 24h idempotency' })
+  async changeWater(
+    @Param('id') id: string,
+    @Body() body: { userId: string },
+  ) {
+    if (!body?.userId) {
+      return { error: 'userId_required', message: 'userId is required for changeWater' };
+    }
+    return this.service.changeWater(id, body.userId);
   }
 
   @Get(':id/water-logs')
@@ -110,6 +117,6 @@ export class FishTanksController {
     @Param('fishId') fishId: string,
     @Body() body: { nickname: string; userId: string },
   ) {
-    return this.fishService.renameFish(tankId, fishId, body.nickname, body.userId);
+    return this.service.renameFish(tankId, fishId, body.nickname, body.userId);
   }
 }

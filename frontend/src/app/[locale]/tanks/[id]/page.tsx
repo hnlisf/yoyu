@@ -58,12 +58,19 @@ function TankPageContent({ tankId }: { tankId: string }) {
     status: string; remainingSeconds: number; deltaPerMinute: number;
   } | null>(null);
 
+  // v10.0 P0-1: Tank name inline edit
+  const [editingTankName, setEditingTankName] = useState(false);
+  const [tankNameValue, setTankNameValue] = useState('');
+  // v10.0 P0-4: City selector
+  const [editingCity, setEditingCity] = useState(false);
+  const [cityValue, setCityValue] = useState('');
+
   const [heaterOn, setHeaterOn] = useState(false);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [heaterToggling, setHeaterToggling] = useState(false);
 
-  // v9.1 REQ-3: Nickname privacy — hidden by default, click to reveal, auto-hide after 2.5s
+  // v9.1 REQ-3 / v10.1.2 Item 3: Nickname privacy — hidden by default, click to reveal, auto-hide after 2.5s
   const [visibleNicknameId, setVisibleNicknameId] = useState<string | null>(null);
   const nicknameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearNicknameTimer = useCallback(() => {
@@ -106,10 +113,8 @@ function TankPageContent({ tankId }: { tankId: string }) {
   const loadWeather = useCallback(async () => {
     setWeatherLoading(true);
     try {
-      // BUG-4 fix: 方案B 前端两跳 (ADR-001)
-      // Step 1: Get user city preference
-      const pref = await api<{ city?: string }>(`/api/user/preferences?userId=${USER_ID}`);
-      const city = pref?.city || 'Beijing';
+      // v10.0 P0-4: Use tank's location (per-tank city), fallback to 'Beijing'
+      const city = tank?.location || 'Beijing';
       const w = await api<WeatherData>(`/api/weather?city=${encodeURIComponent(city)}`);
       setWeather(w);
 
@@ -122,7 +127,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
     } finally {
       setWeatherLoading(false);
     }
-  }, [tankId]);
+  }, [tankId, tank?.location]);
 
   useEffect(() => {
     load();
@@ -177,6 +182,53 @@ function TankPageContent({ tankId }: { tankId: string }) {
       await load();
     } catch (e: any) {
       setToast('重命名失败: ' + e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // v10.0 P0-1: Save tank name
+  const handleSaveTankName = async () => {
+    const trimmed = tankNameValue.trim();
+    if (!trimmed || trimmed.length > 20) {
+      setToast('鱼缸名称需要 1-20 个字符');
+      return;
+    }
+    setBusy(true);
+    try {
+      await api(`/api/fish-tanks/${tankId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name: trimmed }),
+      });
+      setToast('鱼缸名称已更新');
+      setEditingTankName(false);
+      await load();
+    } catch (e: any) {
+      setToast('更新失败: ' + e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // v10.0 P0-4: Save tank city
+  const handleSaveCity = async () => {
+    const trimmed = cityValue.trim();
+    if (!trimmed) {
+      setToast('请输入城市名称');
+      return;
+    }
+    setBusy(true);
+    try {
+      await api(`/api/fish-tanks/${tankId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ city: trimmed }),
+      });
+      setToast('城市已更新');
+      setEditingCity(false);
+      await load();
+      loadWeather();
+    } catch (e: any) {
+      setToast('更新失败: ' + e.message);
     } finally {
       setBusy(false);
     }
@@ -244,7 +296,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
     try {
       const result = await api<{ id: string; temperature: number; heaterOn: boolean; cityTemp: number }>(
         `/api/fish-tanks/${tankId}/change-water`,
-        { method: 'POST' }
+        { method: 'POST', body: JSON.stringify({ userId: USER_ID }) }
       );
       setToast(`换水完成！水温已重置为 ${result.temperature}°C`);
       setHeaterOn(false);
@@ -286,19 +338,66 @@ function TankPageContent({ tankId }: { tankId: string }) {
     <div className="flex flex-col justify-between h-screen max-h-screen overflow-hidden pb-40 sm:pb-0">
       {/* Header — shrinks to fit */}
       <header className="flex items-baseline justify-between shrink-0 px-1 pt-2 pb-1">
-        <div>
+        <div className="flex-1 min-w-0">
           <Link
             href="/tanks"
             className="text-[11px] font-light text-accent tracking-wide inline-block mb-2"
           >
             ← {tCommon('back')}
           </Link>
-          <h1 className="text-2xl font-light text-text-primary tracking-wide">
-            {tName(tank.name)}
-          </h1>
-          <p className="text-xs text-text-secondary font-light mt-1">
-            {tkSize(tank.size, t)}
-          </p>
+          {/* v10.0 P0-1: Tank name inline edit */}
+          {editingTankName ? (
+            <div className="flex items-center gap-1">
+              <input
+                className="text-2xl font-light text-text-primary bg-glass/50 border border-glass-border rounded px-2 py-0.5 w-full max-w-[300px]"
+                value={tankNameValue}
+                onChange={(e) => setTankNameValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTankName(); if (e.key === 'Escape') setEditingTankName(false); }}
+                autoFocus
+                maxLength={20}
+              />
+              <button onClick={handleSaveTankName} className="text-sm text-accent px-1" disabled={busy}>✓</button>
+              <button onClick={() => setEditingTankName(false)} className="text-sm text-text-secondary px-1">✕</button>
+            </div>
+          ) : (
+            <h1 className="text-2xl font-light text-text-primary tracking-wide flex items-center gap-2">
+              {tName(tank.name)}
+              <button
+                onClick={() => { setEditingTankName(true); setTankNameValue(tank.name); }}
+                className="text-text-secondary hover:text-accent transition text-base opacity-50 hover:opacity-100"
+                title="编辑鱼缸名称"
+              >✎</button>
+            </h1>
+          )}
+          {/* v10.0 P0-4: City display + edit */}
+          <div className="flex items-center gap-1.5 mt-1">
+            <p className="text-xs text-text-secondary font-light">
+              {tkSize(tank.size, t)}
+            </p>
+            <span className="text-text-secondary/40">·</span>
+            {editingCity ? (
+              <div className="flex items-center gap-1">
+                <input
+                  className="text-xs text-text-primary bg-glass/50 border border-glass-border rounded px-1.5 py-0.5 w-24"
+                  value={cityValue}
+                  onChange={(e) => setCityValue(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveCity(); if (e.key === 'Escape') setEditingCity(false); }}
+                  placeholder="城市名"
+                  autoFocus
+                />
+                <button onClick={handleSaveCity} className="text-[10px] text-accent px-0.5" disabled={busy}>✓</button>
+                <button onClick={() => setEditingCity(false)} className="text-[10px] text-text-secondary px-0.5">✕</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setEditingCity(true); setCityValue(tank.location || ''); }}
+                className="text-xs text-text-secondary hover:text-accent transition font-light"
+                title="切换城市"
+              >
+                🏙 {tank.location || '未设置'} ✎
+              </button>
+            )}
+          </div>
         </div>
         {/* CapacityBar: shown in header on md+ (top horizontal) */}
         <div className="hidden md:block w-48">
@@ -468,13 +567,19 @@ function TankPageContent({ tankId }: { tankId: string }) {
         </div>
 
         {/* Action buttons */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Button variant="accent" onClick={feedAll} disabled={busy || !fishList.length}>
             <Icon name="feed" size={14} /> {t('feedAll')}
           </Button>
           <Button variant="primary" onClick={waterChange} disabled={busy}>
             <Icon name="water" size={14} /> 换水
           </Button>
+          {/* v10.0 P0-1: Add fish entry point */}
+          <Link href={`/species?select=true&tankId=${tankId}`}>
+            <Button variant="accent" disabled={busy || fishCount >= capacity}>
+              + 添加鱼
+            </Button>
+          </Link>
         </div>
 
         {/* Water change button — also in sidebar on md+ */}
@@ -525,12 +630,12 @@ function TankPageContent({ tankId }: { tankId: string }) {
                           </div>
                         ) : (
                           <p
-                            className="text-sm text-text-primary truncate cursor-pointer"
+                            className="text-sm text-text-primary whitespace-normal break-words cursor-pointer"
                             data-nickname="true"
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (f.name) revealNickname(f.id); }}
                           >
                             {f.name
-                              ? (visibleNicknameId === f.id ? f.name : '•••••')
+                              ? (visibleNicknameId === f.id ? f.name : '●●●●●')
                               : tf(f.stage)
                             } <span className="text-xs">{moodEmoji}</span>
                           </p>
@@ -610,12 +715,12 @@ function TankPageContent({ tankId }: { tankId: string }) {
                         </div>
                       ) : (
                         <p
-                          className="text-xs text-text-primary truncate cursor-pointer"
+                          className="text-xs text-text-primary whitespace-normal break-words cursor-pointer"
                           data-nickname="true"
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (f.name) revealNickname(f.id); }}
                         >
                           {f.name
-                            ? (visibleNicknameId === f.id ? f.name : '•••••')
+                            ? (visibleNicknameId === f.id ? f.name : '●●●●●')
                             : tf(f.stage)
                           } <span>{moodEmoji}</span>
                         </p>

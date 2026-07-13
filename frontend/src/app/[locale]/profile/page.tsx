@@ -168,7 +168,7 @@ export default function ProfilePage() {
                       animated={false}
                     />
                   </div>
-                  <p className="text-[11px] text-text-primary truncate">
+                  <p className="text-[11px] text-text-primary whitespace-normal break-words text-center">
                     {f.species?.name ?? f.name}
                   </p>
                 </GlassCard>

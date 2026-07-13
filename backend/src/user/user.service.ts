@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface DefaultTankResult {
@@ -22,6 +22,20 @@ export interface MyFishListResult {
   items: MyFishItem[];
 }
 
+export interface CreateUserDto {
+  id?: string;
+  name?: string;
+  locale?: string;
+  maxTanks?: number;
+}
+
+export interface UpdateUserDto {
+  name?: string;
+  locale?: string;
+  defaultTankId?: string | null;
+  maxTanks?: number;
+}
+
 function parseI18nName(nameI18n: string): string {
   try {
     const parsed = JSON.parse(nameI18n);
@@ -34,6 +48,76 @@ function parseI18nName(nameI18n: string): string {
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) {}
+
+  // ── User CRUD ──
+
+  async findAll() {
+    return this.prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { tanks: true } } },
+    });
+  }
+
+  async findOne(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: { tanks: true, _count: { select: { tanks: true } } },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
+
+  async create(data: CreateUserDto) {
+    const id = data.id || undefined;
+    if (id) {
+      const existing = await this.prisma.user.findUnique({ where: { id } });
+      if (existing) throw new ConflictException('User with this id already exists');
+    }
+    return this.prisma.user.create({
+      data: {
+        id,
+        name: data.name ?? '鱼友',
+        locale: data.locale ?? 'zh',
+        maxTanks: data.maxTanks ?? 6,
+      },
+    });
+  }
+
+  async update(id: string, data: UpdateUserDto) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.locale !== undefined && { locale: data.locale }),
+        ...(data.defaultTankId !== undefined && { defaultTankId: data.defaultTankId }),
+        ...(data.maxTanks !== undefined && { maxTanks: data.maxTanks }),
+      },
+    });
+  }
+
+  async remove(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+    return this.prisma.user.delete({ where: { id } });
+  }
+
+  // ── Utility (moved from FishTanksService) ──
+
+  async ensureUser(userId: string): Promise<string> {
+    const existing = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (existing) return existing.id;
+    return (await this.prisma.user.create({ data: { id: userId } })).id;
+  }
+
+  async createDemoUser(): Promise<string> {
+    const latest = await this.prisma.user.findFirst({ orderBy: { createdAt: 'desc' } });
+    if (latest) return latest.id;
+    return (await this.prisma.user.create({ data: {} })).id;
+  }
+
+  // ── Default Tank ──
 
   async getDefaultTank(userId: string): Promise<DefaultTankResult> {
     const user = await this.prisma.user.findUnique({
