@@ -575,7 +575,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
             <Icon name="water" size={14} /> 换水
           </Button>
           {/* v10.0 P0-1: Add fish entry point */}
-          <Link href={`/species?select=true&tankId=${tankId}`}>
+          <Link href={`/species?tankId=${tankId}`}>
             <Button variant="accent" disabled={busy || fishCount >= capacity}>
               + 添加鱼
             </Button>
