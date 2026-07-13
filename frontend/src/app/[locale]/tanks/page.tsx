@@ -240,25 +240,12 @@ export default function TanksHomePage() {
             <p className="text-xs text-text-secondary font-light">选择鱼缸所在城市，用于获取当地天气</p>
             <input
               type="text"
-              list="city-list"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder={'输入城市名，如"北京"'}
               className="w-full px-4 py-2 rounded-xl bg-glass border border-glass-border text-text-primary placeholder:text-text-secondary/50 text-sm outline-none focus:border-accent transition"
               autoFocus
             />
-            <datalist id="city-list">
-              <option value="Beijing" />
-              <option value="Shanghai" />
-              <option value="Guangzhou" />
-              <option value="Shenzhen" />
-              <option value="Chengdu" />
-              <option value="Hangzhou" />
-              <option value="Nanjing" />
-              <option value="Wuhan" />
-              <option value="Xi'an" />
-              <option value="Chongqing" />
-            </datalist>
             <div className="flex gap-2 pt-2">
               <Button variant="ghost" onClick={() => setCreateStep(1)} className="flex-1">
                 上一步

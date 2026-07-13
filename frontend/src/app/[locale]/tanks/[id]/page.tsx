@@ -296,7 +296,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
     try {
       const result = await api<{ id: string; temperature: number; heaterOn: boolean; cityTemp: number }>(
         `/api/fish-tanks/${tankId}/change-water`,
-        { method: 'POST' }
+        { method: 'POST', body: JSON.stringify({ userId: USER_ID }) }
       );
       setToast(`换水完成！水温已重置为 ${result.temperature}°C`);
       setHeaterOn(false);
@@ -635,7 +635,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (f.name) revealNickname(f.id); }}
                           >
                             {f.name
-                              ? (visibleNicknameId === f.id ? f.name : '•••••')
+                              ? (visibleNicknameId === f.id ? f.name : '●●●●●')
                               : tf(f.stage)
                             } <span className="text-xs">{moodEmoji}</span>
                           </p>
@@ -720,7 +720,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (f.name) revealNickname(f.id); }}
                         >
                           {f.name
-                            ? (visibleNicknameId === f.id ? f.name : '•••••')
+                            ? (visibleNicknameId === f.id ? f.name : '●●●●●')
                             : tf(f.stage)
                           } <span>{moodEmoji}</span>
                         </p>

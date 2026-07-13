@@ -178,25 +178,39 @@ function TankStageInner({ fishList, onFishClick, weatherCode, feedRef }: TankSta
           const showNickname = visibleNicknameId === f.id;
 
           return (
-            <div
-              key={f.id}
-              className="fish-physics-wrapper"
-              style={fishPositionStyle(pos)}
-              onClick={(e) => { e.stopPropagation(); handleFishCardClick(f); }}
-            >
-              <span className={feedingClass || undefined}>
-                <FishAvatar
-                  variant={variant}
-                  stage={f.stage}
-                  size={64}
-                  animated={false}
-                />
-              </span>
+            <React.Fragment key={f.id}>
+              <div
+                className="fish-physics-wrapper"
+                style={fishPositionStyle(pos)}
+                onClick={(e) => { e.stopPropagation(); handleFishCardClick(f); }}
+              >
+                <span className={feedingClass || undefined}>
+                  <FishAvatar
+                    variant={variant}
+                    stage={f.stage}
+                    size={64}
+                    animated={false}
+                  />
+                </span>
+              </div>
               {/* v9.1 REQ-3: click to show nickname, auto-hide after 2.5s */}
-              <p className={`text-[9px] text-text-primary mt-0.5 font-light drop-shadow text-center whitespace-normal break-words leading-tight transition-opacity duration-200 ${showNickname ? 'opacity-100' : 'opacity-0'}`}>
-                {f.name || f.stage}
-              </p>
-            </div>
+              {/* Moved outside fish-physics-wrapper to avoid scaleX inheritance (BUG-V10.1.3-6) */}
+              {pos && (
+                <p
+                  className={`text-[9px] text-text-primary mt-0.5 font-light drop-shadow text-center whitespace-normal break-words leading-tight transition-opacity duration-200 ${showNickname ? 'opacity-100' : 'opacity-0'}`}
+                  style={{
+                    position: 'absolute',
+                    left: pos.x,
+                    top: pos.y - 32,
+                    transform: 'translateX(-50%)',
+                    pointerEvents: showNickname ? 'auto' : 'none',
+                  }}
+                  onClick={(e) => { e.stopPropagation(); handleFishCardClick(f); }}
+                >
+                  {f.name || f.stage}
+                </p>
+              )}
+            </React.Fragment>
           );
         })
       ) : (

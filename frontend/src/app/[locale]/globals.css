@@ -255,6 +255,14 @@ body {
   .input:focus {
     border-color: rgba(125, 211, 252, 0.5);
   }
+  /* Force dark background on select dropdown options (BUG-V10.1.3-3) */
+  select.input {
+    color-scheme: dark;
+  }
+  select.input option {
+    background: var(--bg-card);
+    color: var(--text-primary);
+  }
 
   /* Switch */
   .switch-track {
