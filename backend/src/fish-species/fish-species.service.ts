@@ -62,7 +62,10 @@ export class FishSpeciesService {
     // v9.1 item1: validate and stringify visualVariant
     let visualVariantStr: string | undefined;
     if (data.visualVariant) {
-      const vv = data.visualVariant;
+      // v10.1.3: Parse JSON string if client sends stringified (matching nameI18n/descI18n/stages pattern)
+      const vv = typeof data.visualVariant === 'string'
+        ? JSON.parse(data.visualVariant)
+        : data.visualVariant;
       const missing: string[] = [];
       if (typeof vv.color !== 'string' || !vv.color) missing.push('color');
       if (typeof vv.pattern !== 'string' || !vv.pattern) missing.push('pattern');
