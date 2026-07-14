@@ -11,20 +11,46 @@ const ERROR_MESSAGE_MAP: Array<{ pattern: RegExp; zh: string; en: string }> = [
   { pattern: /userId required/i, zh: '用户信息缺失', en: 'User information missing' },
 ];
 
-function humanizeError(responseText: string): string {
+/** v10.1.3-w1: structured error that preserves raw response data for callers to consume error_code etc. */
+export class ApiError extends Error {
+  data: any;
+  constructor(message: string, data?: any) {
+    super(message);
+    this.name = 'ApiError';
+    this.data = data;
+  }
+}
+
+interface HumanizedResult {
+  message: string;
+  data?: any;
+}
+
+function humanizeError(responseText: string): HumanizedResult {
   let message = responseText;
+  let parsed: any = null;
   try {
-    const parsed = JSON.parse(responseText);
-    message = parsed.message || responseText;
+    parsed = JSON.parse(responseText);
+    message = parsed.message || message;
   } catch {}
+
+  // v10.1.3-w1: if the backend returned an error_code, use it for the friendly message
+  // but preserve the raw parsed data so callers can consume remainingHours etc.
+  if (parsed && parsed.error_code) {
+    return {
+      message: `[${parsed.error_code}] ${message}`,
+      data: parsed,
+    };
+  }
+
   for (const entry of ERROR_MESSAGE_MAP) {
-    if (entry.pattern.test(message)) return entry.zh;
+    if (entry.pattern.test(message)) return { message: entry.zh };
   }
-  if (/[\u4e00-\u9fff]/.test(message)) return message;
+  if (/[\u4e00-\u9fff]/.test(message)) return { message };
   if (/^[a-zA-Z\s.!?,:;()]+$/.test(message) && message.length < 200) {
-    return `操作失败：${message}`;
+    return { message: `操作失败：${message}` };
   }
-  return '操作失败，请稍后再试';
+  return { message: '操作失败，请稍后再试' };
 }
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -34,13 +60,13 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const rawText = await res.text();
-    const friendly = humanizeError(rawText);
+    const { message: friendly, data } = humanizeError(rawText);
     console.error(`[API Error ${res.status}] ${path}: ${rawText.slice(0, 200)}`);
     if (typeof window !== 'undefined' && window.location.pathname.includes('/stats')) {
       console.warn(`[API Silent Fallback] ${path} → stats mock data used`);
       return null as unknown as T;
     }
-    throw new Error(friendly);
+    throw new ApiError(friendly, data);
   }
   return res.json() as Promise<T>;
 }

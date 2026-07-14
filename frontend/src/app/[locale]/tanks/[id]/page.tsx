@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { api, FishTank, Fish, WeatherData } from '@/lib/api';
+import { api, FishTank, Fish, WeatherData, ApiError } from '@/lib/api';
 import { FishAvatar } from '@/components/fish';
 import { slugToVariant } from '@/components/fish/types';
 import { TankStage } from '@/components/Tank/TankStage';
@@ -15,6 +15,7 @@ import { Toast } from '@/components/ui/Toast';
 import { Icon } from '@/components/ui/Icon';
 import { HeaterSwitch } from '@/components/Tank/HeaterSwitch';
 import { useTranslateTankName } from '@/lib/i18n/tankName';
+import { getTankErrorMessage, getErrorSeverity } from '@/lib/errorMessages';
 import { BottomDrawer } from '@/components/BottomDrawer';
 import { CapacityBar } from '@/components/ui/CapacityBar';
 import { TempAlertBanner } from '@/components/Tank/TempAlertBanner';
@@ -47,6 +48,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'warning' | 'error' | undefined>(undefined);
 
   // v9.1 REQ-4: Rename state
   const [renamingFishId, setRenamingFishId] = useState<string | null>(null);
@@ -299,10 +301,20 @@ function TankPageContent({ tankId }: { tankId: string }) {
         { method: 'POST', body: JSON.stringify({ userId: USER_ID }) }
       );
       setToast(`换水完成！水温已重置为 ${result.temperature}°C`);
+      setToastType('success');
       setHeaterOn(false);
       await load();
     } catch (e: any) {
-      setToast('换水失败: ' + e.message);
+      // v10.1.3-w1: consume error_code + remainingHours from ApiError
+      if (e instanceof ApiError && e.data?.error_code) {
+        const msg = getTankErrorMessage(e.data.error_code, e.data);
+        const severity = getErrorSeverity(e.data.error_code);
+        setToast(msg);
+        setToastType(severity as 'warning' | 'error');
+      } else {
+        setToast('换水失败: ' + (e.message || '未知错误'));
+        setToastType('error');
+      }
     } finally {
       setBusy(false);
     }
@@ -467,7 +479,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
         />
       </div>
 
-      <Toast message={toast} onDismiss={() => setToast(null)} />
+      <Toast message={toast} type={toastType} onDismiss={() => { setToast(null); setToastType(undefined); }} />
     </div>
   );
 
