@@ -8,6 +8,7 @@ export { PlecoFishSVG } from './PlecoFishSVG';
 export { OtocinclusFishSVG } from './OtocinclusFishSVG';
 export { AngelFishSVG } from './AngelFishSVG';
 export { BettaFishSVG } from './BettaFishSVG';
+export { CustomFishSVG } from './CustomFishSVG';
 export { FishAvatar } from './FishAvatar';
 export type { FishVariant, FishStage } from './types';
 export { FISH_VARIANTS, slugToVariant } from './types';

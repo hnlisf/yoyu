@@ -163,6 +163,7 @@ export default function ProfilePage() {
                   <div className="flex justify-center mb-2">
                     <FishAvatar
                       variant={slugToVariant(f.species?.name ?? f.species?.id)}
+                      visualVariant={f.species?.visualVariant}
                       stage={f.stage}
                       size={56}
                       animated={false}

@@ -49,10 +49,10 @@ function classifyError(e: any, status?: number): ErrorCategory {
   return 'network';
 }
 
-// v9.1: Visual variant options
-const VISUAL_COLORS = ['red', 'blue', 'golden'];
-const VISUAL_PATTERNS = ['solid', 'spotted', 'striped'];
-const VISUAL_BODY_TYPES = ['slim', 'round', 'elongated'];
+// v10.1.3-w3b: Visual variant options — 5 colors × 5 patterns × 5 body types = 125 combinations
+const VISUAL_COLORS = ['red', 'orange', 'yellow', 'blue', 'purple'];
+const VISUAL_PATTERNS = ['solid', 'stripe', 'spots', 'scale', 'gradient'];
+const VISUAL_BODY_TYPES = ['slim', 'normal', 'plump', 'elongated', 'round'];
 
 export default function SpeciesPage() {
   const t = useTranslations('species');
@@ -68,7 +68,7 @@ export default function SpeciesPage() {
   const [growthDays, setGrowthDays] = useState(60);
   const [feedFreq, setFeedFreq] = useState<'daily' | 'twice_daily' | 'every_2_days'>('twice_daily');
   const [color, setColor] = useState('#5BA9C7');
-  const [visualVariant, setVisualVariant] = useState({ color: 'red', pattern: 'solid', body: 'slim' });
+  const [visualVariant, setVisualVariant] = useState({ color: 'red', pattern: 'solid', body: 'normal' });
   const [busy, setBusy] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -270,14 +270,17 @@ export default function SpeciesPage() {
 
       <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
         {species?.map((sp) => {
-          let visualVariantObj: { color?: string; pattern?: string; body?: string } | null = null;
-          if (sp.variant && typeof sp.variant === 'string' && sp.variant.startsWith('{')) {
-            try { visualVariantObj = JSON.parse(sp.variant); } catch {}
-          }
+          // v10.1.3-w3b: use sp.visualVariant (parsed JSON from API), not sp.variant (species type)
+          const visualVariantObj = sp.visualVariant || null;
           return (
           <div key={sp.id} className="card hover:shadow-md transition">
             <div className="h-20 rounded-2xl mb-3 bg-water-50 flex items-center justify-center">
-              <FishAvatar variant={(sp.variant as any) ?? slugToVariant(sp.name)} size={64} animated={false} />
+              <FishAvatar
+                variant={slugToVariant(sp.name)}
+                visualVariant={visualVariantObj ?? undefined}
+                size={64}
+                animated={false}
+              />
             </div>
             <h3 className="font-semibold text-water-600 text-lg">{sp.name}</h3>
             <p className="text-sm text-water-500 mt-1 line-clamp-2">{sp.description}</p>
@@ -415,23 +418,23 @@ export default function SpeciesPage() {
 
             {addingStep === 2 && (
               <div className="space-y-3">
-                <p className="text-sm text-water-500">选择外观特征（{VISUAL_COLORS.length} × {VISUAL_PATTERNS.length} × {VISUAL_BODY_TYPES.length} = 27 种组合）</p>
+                <p className="text-sm text-water-500">选择外观特征（{VISUAL_COLORS.length} × {VISUAL_PATTERNS.length} × {VISUAL_BODY_TYPES.length} = 125 种组合）</p>
                 <div>
                   <label className="label">颜色 Color</label>
                   <select className="input" value={visualVariant.color} onChange={(e) => setVisualVariant({ ...visualVariant, color: e.target.value })}>
-                    {VISUAL_COLORS.map((c) => <option key={c} value={c}>{c}</option>)}
+                    {VISUAL_COLORS.map((c) => <option key={c} value={c}>{c === 'red' ? '🔴 红色 Red' : c === 'orange' ? '🟠 橙色 Orange' : c === 'yellow' ? '🟡 黄色 Yellow' : c === 'blue' ? '🔵 蓝色 Blue' : '🟣 紫色 Purple'}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="label">花纹 Pattern</label>
                   <select className="input" value={visualVariant.pattern} onChange={(e) => setVisualVariant({ ...visualVariant, pattern: e.target.value })}>
-                    {VISUAL_PATTERNS.map((p) => <option key={p} value={p}>{p === 'solid' ? '纯色 Solid' : p === 'spotted' ? '斑点 Spotted' : '条纹 Striped'}</option>)}
+                    {VISUAL_PATTERNS.map((p) => <option key={p} value={p}>{p === 'solid' ? '纯色 Solid' : p === 'stripe' ? '条纹 Stripe' : p === 'spots' ? '斑点 Spots' : p === 'scale' ? '鳞片 Scale' : '渐变 Gradient'}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="label">体型 Body</label>
                   <select className="input" value={visualVariant.body} onChange={(e) => setVisualVariant({ ...visualVariant, body: e.target.value })}>
-                    {VISUAL_BODY_TYPES.map((b) => <option key={b} value={b}>{b === 'slim' ? '细长 Slim' : b === 'round' ? '圆形 Round' : '延长 Elongated'}</option>)}
+                    {VISUAL_BODY_TYPES.map((b) => <option key={b} value={b}>{b === 'slim' ? '细长 Slim' : b === 'normal' ? '标准 Normal' : b === 'plump' ? '圆胖 Plump' : b === 'elongated' ? '延长 Elongated' : '圆形 Round'}</option>)}
                   </select>
                 </div>
                 <div className="bg-water-50 rounded-lg p-3 text-xs text-water-500">
