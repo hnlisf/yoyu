@@ -16,11 +16,45 @@ export interface WeatherData {
 
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
 
+// w4+§1: static city coordinate whitelist (Open-Meteo geocoding unreliable for Chinese names)
+const CITY_COORDS: Record<string, { lat: number; lon: number }> = {
+  changsha: { lat: 28.2282, lon: 112.9388 },
+  beijing: { lat: 39.9042, lon: 116.4074 },
+  shanghai: { lat: 31.2304, lon: 121.4737 },
+  guangzhou: { lat: 23.1291, lon: 113.2644 },
+  shenzhen: { lat: 22.5431, lon: 114.0579 },
+  hangzhou: { lat: 30.2741, lon: 120.1551 },
+  chengdu: { lat: 30.5728, lon: 104.0668 },
+  tokyo: { lat: 35.6762, lon: 139.6503 },
+  'new york': { lat: 40.7128, lon: -74.006 },
+};
+
 @Injectable()
 export class WeatherService {
   private readonly logger = new Logger(WeatherService.name);
 
   constructor(private prisma: PrismaService) {}
+
+  /** Look up a city's coordinates — static whitelist first, then Open-Meteo geocoding */
+  async geocodeCity(city: string): Promise<{ lat: number; lon: number } | null> {
+    const key = city.toLowerCase().trim();
+    const staticCoord = CITY_COORDS[key];
+    if (staticCoord) return staticCoord;
+
+    // Fallback: Open-Meteo geocoding
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh`;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) return null;
+      const json: any = await resp.json();
+      const result = json.results?.[0];
+      if (!result) return null;
+      return { lat: result.latitude, lon: result.longitude };
+    } catch {
+      this.logger.warn(`Geocoding failed for city: ${city}`);
+      return null;
+    }
+  }
 
   async getWeather(lat: number, lon: number): Promise<WeatherData> {
     // Round coords to 2 decimals (~1.1km) to increase cache hits
@@ -57,24 +91,6 @@ export class WeatherService {
     const coords = await this.geocodeCity(city);
     if (!coords) return null;
     return this.getWeather(coords.lat, coords.lon);
-  }
-
-  /**
-   * Geocode city name to coordinates using Open-Meteo Geocoding API.
-   */
-  async geocodeCity(city: string): Promise<{ lat: number; lon: number } | null> {
-    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh`;
-    try {
-      const resp = await fetch(url);
-      if (!resp.ok) return null;
-      const json: any = await resp.json();
-      const result = json.results?.[0];
-      if (!result) return null;
-      return { lat: result.latitude, lon: result.longitude };
-    } catch {
-      this.logger.warn(`Geocoding failed for city: ${city}`);
-      return null;
-    }
   }
 
   private async fetchLive(lat: number, lon: number): Promise<WeatherData> {
