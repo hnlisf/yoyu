@@ -30,6 +30,16 @@ const COLOR_FALLBACK: Record<string, string> = {
   purple: 'purple',
 };
 
+const PATTERN_FALLBACK: Record<string, string> = {
+  solid: 'solid',
+  spotted: 'spots',
+  striped: 'stripe',
+  stripe: 'stripe',
+  spots: 'spots',
+  scale: 'scale',
+  gradient: 'gradient',
+};
+
 // Body shape: rx, ry for main ellipse (centered at 110, 60 on 200×120 viewBox)
 const BODY_SHAPE: Record<string, { rx: number; ry: number }> = {
   slim: { rx: 40, ry: 18 },
@@ -72,8 +82,9 @@ export function CustomFishSVG({ size, className, visualVariant, nickname }: Cust
   const hex = COLOR_MAP[colorKey] ?? '#3B82F6';
   const c = deriveColors(hex);
 
-  // Resolve pattern
+  // Resolve pattern — support both new 5-value and old 3-value names
   const rawPattern = visualVariant.pattern?.toLowerCase() ?? 'solid';
+  const patternKey = PATTERN_FALLBACK[rawPattern] ?? rawPattern;
 
   // Resolve body
   const rawBody = visualVariant.body?.toLowerCase() ?? 'normal';
@@ -88,8 +99,8 @@ export function CustomFishSVG({ size, className, visualVariant, nickname }: Cust
   const gradPattern = `cGrad_${uid}`;
 
   // Determine which pattern def to use
-  const hasPattern = rawPattern !== 'solid';
-  const patternFill = hasPattern ? `url(#${rawPattern === 'stripe' ? stripePattern : rawPattern === 'spots' ? spotsPattern : rawPattern === 'scale' ? scalePattern : gradPattern})` : `url(#${bodyGrad})`;
+  const hasPattern = patternKey !== 'solid';
+  const patternFill = hasPattern ? `url(#${patternKey === 'stripe' ? stripePattern : patternKey === 'spots' ? spotsPattern : patternKey === 'scale' ? scalePattern : gradPattern})` : `url(#${bodyGrad})`;
 
   return (
     <svg
