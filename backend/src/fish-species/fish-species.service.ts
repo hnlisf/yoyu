@@ -37,7 +37,7 @@ export class FishSpeciesService {
     feedFreq: string;
     stages?: any;
     color?: string;
-    visualVariant?: { color: string; pattern: string; body: string };
+    visualVariant?: { color: string; pattern: string; body: string }; // v10.1.3-w3b: 5×5×5 values
   }): Promise<FishSpecies> {
     // DB columns are String (we store JSON-encoded), so stringify if client sent objects
     const nameI18nStr =
@@ -75,11 +75,11 @@ export class FishSpeciesService {
           `visualVariant 缺少必填字段: ${missing.join(', ')}`,
         );
       }
-      // v10.1.2: whitelist validation — 3 colors × 3 patterns × 3 body types
+      // v10.1.3-w3b: whitelist validation — 5 colors × 5 patterns × 5 body types = 125 combinations
       const ALLOWED_VV = {
-        color: ['red', 'blue', 'golden'],
-        pattern: ['solid', 'spotted', 'striped'],
-        body: ['slim', 'round', 'elongated'],
+        color: ['red', 'orange', 'yellow', 'blue', 'purple'],
+        pattern: ['solid', 'stripe', 'spots', 'scale', 'gradient'],
+        body: ['slim', 'normal', 'plump', 'elongated', 'round'],
       };
       if (!ALLOWED_VV.color.includes(vv.color)) {
         throw new BadRequestException(`visualVariant.color 不合法: ${vv.color}`);

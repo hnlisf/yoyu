@@ -623,7 +623,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
                 return (
                   <div key={f.id} className="flex items-center gap-2 p-2 rounded-xl hover:bg-glass transition">
                     <Link href={`/growth/${f.id}`} className="flex items-center gap-2 flex-1 min-w-0">
-                      <FishAvatar variant={variant} stage={f.stage} size={40} animated={false} />
+                      <FishAvatar variant={variant} stage={f.stage} size={40} animated={false} visualVariant={f.species?.visualVariant} />
                       <div className="flex-1 min-w-0">
                         {isRenaming ? (
                           <div className="flex items-center gap-1">
@@ -708,7 +708,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
               return (
                 <div key={f.id} className="block p-2 rounded-xl hover:bg-glass transition">
                   <Link href={`/growth/${f.id}`} className="flex items-center gap-2 mb-1">
-                    <FishAvatar variant={variant} stage={f.stage} size={32} animated={false} />
+                    <FishAvatar variant={variant} stage={f.stage} size={32} animated={false} visualVariant={f.species?.visualVariant} />
                     <div className="min-w-0">
                       {isRenaming ? (
                         <div className="flex items-center gap-1">

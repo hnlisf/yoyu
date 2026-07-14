@@ -11,6 +11,7 @@ import { PlecoFishSVG } from './PlecoFishSVG';
 import { OtocinclusFishSVG } from './OtocinclusFishSVG';
 import { AngelFishSVG } from './AngelFishSVG';
 import { BettaFishSVG } from './BettaFishSVG';
+import { CustomFishSVG } from './CustomFishSVG';
 
 interface FishAvatarProps {
   variant: FishVariant;
@@ -18,6 +19,9 @@ interface FishAvatarProps {
   stage?: FishStage;
   animated?: boolean;
   className?: string;
+  /** v10.1.3-w3b: visualVariant for custom species 5×5×5 rendering */
+  visualVariant?: { color: string; pattern: string; body: string };
+  nickname?: string;
 }
 
 const COMPONENT: Record<FishVariant, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -44,6 +48,9 @@ const STAGE_SCALE: Record<FishStage, number> = {
 /**
  * Wrapper component that picks the right SVG for a variant and applies
  * stage + size + optional swim animation.
+ *
+ * v10.1.3-w3b: When visualVariant is provided, uses CustomFishSVG for
+ * algorithmically-generated 5×5×5 visual differentiation.
  */
 export function FishAvatar({
   variant,
@@ -51,16 +58,23 @@ export function FishAvatar({
   stage = 'adult',
   animated = true,
   className = '',
+  visualVariant,
+  nickname,
 }: FishAvatarProps) {
-  const Comp = COMPONENT[variant];
   const scaledSize = Math.round(size * STAGE_SCALE[stage]);
+  const Comp = COMPONENT[variant];
+
   return (
     <div
       className={`inline-block ${animated ? 'animate-swim' : ''} ${className}`}
       style={{ width: scaledSize, height: (scaledSize * 3) / 5 }}
-      aria-label={`${variant} ${stage}`}
+      aria-label={nickname ? `${nickname} (${variant} ${stage})` : `${variant} ${stage}`}
     >
-      <Comp size={scaledSize} />
+      {visualVariant ? (
+        <CustomFishSVG size={scaledSize} visualVariant={visualVariant} nickname={nickname} />
+      ) : (
+        <Comp size={scaledSize} />
+      )}
     </div>
   );
 }
