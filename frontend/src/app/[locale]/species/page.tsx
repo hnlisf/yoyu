@@ -9,6 +9,7 @@ import { slugToVariant } from '@/components/fish/types';
 import { TankSelector } from '@/components/Tank/TankSelector';
 
 const STORAGE_KEY = 'fishgrow.tankId';
+const USER_ID = 'demo-user';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -71,6 +72,33 @@ export default function SpeciesPage() {
   const [visualVariant, setVisualVariant] = useState({ color: 'red', pattern: 'solid', body: 'normal' });
   const [busy, setBusy] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // v10.1.3-w4 §3: favorites
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [favLoading, setFavLoading] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    api<string[]>(`/api/favorites?userId=${USER_ID}`)
+      .then((ids) => setFavorites(new Set(ids)))
+      .catch(() => {});
+  }, []);
+
+  const toggleFavorite = async (speciesId: string) => {
+    setFavLoading((prev) => ({ ...prev, [speciesId]: true }));
+    try {
+      if (favorites.has(speciesId)) {
+        await api(`/api/favorites?userId=${USER_ID}&speciesId=${encodeURIComponent(speciesId)}`, { method: 'DELETE' });
+        setFavorites((prev) => { const n = new Set(prev); n.delete(speciesId); return n; });
+      } else {
+        await api('/api/favorites', { method: 'POST', body: JSON.stringify({ userId: USER_ID, speciesId }) });
+        setFavorites((prev) => new Set(prev).add(speciesId));
+      }
+    } catch {
+      // silent fail
+    } finally {
+      setFavLoading((prev) => ({ ...prev, [speciesId]: false }));
+    }
+  };
 
   // v9.1 REQ-2: Nickname modal FIRST, then tank selector
   const [showNicknameFirst, setShowNicknameFirst] = useState(false);
@@ -273,7 +301,16 @@ export default function SpeciesPage() {
           // v10.1.3-w3b: use sp.visualVariant (parsed JSON from API), not sp.variant (species type)
           const visualVariantObj = sp.visualVariant || null;
           return (
-          <div key={sp.id} className="card hover:shadow-md transition">
+          <div key={sp.id} className="card hover:shadow-md transition relative">
+            {/* v10.1.3-w4 §3: favorite toggle */}
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleFavorite(sp.id); }}
+              disabled={favLoading[sp.id]}
+              className="absolute top-3 right-3 z-10 text-lg transition-transform hover:scale-110 active:scale-95"
+              title={favorites.has(sp.id) ? '取消收藏' : '收藏'}
+            >
+              {favLoading[sp.id] ? '⏳' : favorites.has(sp.id) ? '❤️' : '🤍'}
+            </button>
             <div className="h-20 rounded-2xl mb-3 bg-water-50 flex items-center justify-center">
               <FishAvatar
                 variant={slugToVariant(sp.name)}
