@@ -132,7 +132,10 @@
     "citySet": "Set",
     "citySave": "Save",
     "cityCurrent": "Current",
-    "cityPlaceholder": "Enter city, e.g. \"Tokyo\""
+    "cityPlaceholder": "Enter city, e.g. \"Tokyo\"",
+    "noFishYet": "No fish yet",
+    "noFishHint": "Browse the species library to pick your first fish",
+    "browseSpecies": "Browse species"
   },
   "species": {
     "title": "Species Library",
@@ -179,6 +182,7 @@
     "locationTitle": "Your location",
     "fallback": "Default city",
     "live": "Live",
+    "refresh": "Refresh",
     "noFishHint": "Add a fish to your tank first to get personalized advice"
   },
   "reminders": {

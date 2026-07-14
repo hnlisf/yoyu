@@ -17,9 +17,18 @@
     "startButton": "育成を始める",
     "tankButton": "水槽を開く",
     "features": {
-      "species": { "title": "10 種類の魚", "desc": "金魚、錦鯉、グッピーなど" },
-      "weather": { "title": "天気に連動", "desc": "地域の天気に基づく餌やり提案" },
-      "reminders": { "title": "スマート通知", "desc": "餌やり・換水・掃除を忘れずに" }
+      "species": {
+        "title": "10 種類の魚",
+        "desc": "金魚、錦鯉、グッピーなど"
+      },
+      "weather": {
+        "title": "天気に連動",
+        "desc": "地域の天気に基づく餌やり提案"
+      },
+      "reminders": {
+        "title": "スマート通知",
+        "desc": "餌やり・換水・掃除を忘れずに"
+      }
     }
   },
   "tanks": {
@@ -131,7 +140,10 @@
     "citySet": "設定",
     "citySave": "保存",
     "cityCurrent": "現在",
-    "cityPlaceholder": "都市名を入力、例「東京」"
+    "cityPlaceholder": "都市名を入力、例「東京」",
+    "noFishYet": "まだ魚がいません",
+    "noFishHint": "魚種図鑑で最初の魚を選びましょう",
+    "browseSpecies": "魚種を見に行く"
   },
   "species": {
     "title": "魚種図鑑",
@@ -178,7 +190,8 @@
     "locationTitle": "現在地",
     "fallback": "デフォルト都市",
     "live": "リアルタイム",
-    "noFishHint": "先に魚缸に魚を追加してから、個別の提案を確認してください"
+    "noFishHint": "先に魚缸に魚を追加してから、個別の提案を確認してください",
+    "refresh": "更新"
   },
   "reminders": {
     "title": "通知センター",

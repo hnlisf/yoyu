@@ -141,6 +141,14 @@ export interface FeedingAdvice {
   actionItems: string[];
 }
 
+export interface CityItem {
+  id: string;
+  nameZh: string;
+  nameEn: string;
+  lat: number;
+  lon: number;
+}
+
 export { api };
 
 export function useApi<T>(path: string | null) {
