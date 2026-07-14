@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter, usePathname } from '@/i18n/routing';
-import { api, FishTank, Fish } from '@/lib/api';
+import { api, FishTank, Fish, CityItem } from '@/lib/api';
 import { FishAvatar } from '@/components/fish';
 import { slugToVariant } from '@/components/fish/types';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -24,11 +24,12 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [notif, setNotif] = useState(true);
   const [langOpen, setLangOpen] = useState(false);
-  const [city, setCity] = useState('');
-  const [cityInput, setCityInput] = useState('');
+  const [city, setCity] = useState('changsha');
+  const [cities, setCities] = useState<CityItem[]>([]);
   const [cityOpen, setCityOpen] = useState(false);
   const [citySaving, setCitySaving] = useState(false);
 
+  // Load tanks and fish
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -52,26 +53,30 @@ export default function ProfilePage() {
     };
   }, []);
 
+  // Load cities list
+  useEffect(() => {
+    api<CityItem[]>('/api/cities')
+      .then(setCities)
+      .catch(() => {});
+  }, []);
+
   // Load user city preference
   useEffect(() => {
     api<{ city?: string }>(`/api/user/preferences?userId=${USER_ID}`)
       .then((pref) => {
-        if (pref?.city) {
-          setCity(pref.city);
-          setCityInput(pref.city);
-        }
+        if (pref?.city) setCity(pref.city);
       })
       .catch(() => {});
   }, []);
 
-  const saveCity = async () => {
+  const saveCity = async (cityId: string) => {
     setCitySaving(true);
     try {
       await api(`/api/user/preferences`, {
         method: 'PUT',
-        body: JSON.stringify({ userId: USER_ID, city: cityInput }),
+        body: JSON.stringify({ userId: USER_ID, city: cityId }),
       });
-      setCity(cityInput);
+      setCity(cityId);
       setCityOpen(false);
     } catch {
       // ignore
@@ -93,14 +98,12 @@ export default function ProfilePage() {
   const speciesUnlocked = new Set(allFish.map((f) => f.species?.id ?? f.id)).size;
 
   const changeLocale = (locale: string) => {
-    // Persist to cookie for next-intl detection
     document.cookie = `locale=${locale};path=/;max-age=${365 * 24 * 60 * 60}`;
-    // Navigate to the same page with new locale
     router.push(pathname, { locale: locale as 'zh' | 'en' | 'ja' });
   };
 
-  // Get language label from i18n
   const languages = t.raw('languages') as Record<string, string>;
+  const selectedCityItem = cities.find((c) => c.id === city);
 
   return (
     <div className="space-y-5">
@@ -148,7 +151,21 @@ export default function ProfilePage() {
         </Link>
       </div>
 
-      {/* Favorites */}
+      {/* §3: Empty state for no fish */}
+      {!loading && allFish.length === 0 && (
+        <GlassCard className="text-center py-8">
+          <div className="text-4xl mb-3">🐠</div>
+          <p className="text-text-primary font-light mb-2">{t('noFishYet') || '还没有养鱼'}</p>
+          <p className="text-text-secondary text-xs mb-4">{t('noFishHint') || '去鱼种图鉴挑选你的第一条鱼吧'}</p>
+          <Link href="/species">
+            <Button variant="accent" className="text-sm">
+              {t('browseSpecies') || '去逛逛鱼种'} →
+            </Button>
+          </Link>
+        </GlassCard>
+      )}
+
+      {/* Favorites — §3: show owned fish species as favorites */}
       {favoriteFish.length > 0 && (
         <GlassCard>
           <h2 className="text-sm font-normal text-text-primary mb-3">{t('favorites')}</h2>
@@ -161,6 +178,8 @@ export default function ProfilePage() {
               >
                 <GlassCard hover className="text-center py-3">
                   <div className="flex justify-center mb-2">
+                    {/* TODO §3: integrate FishAvatar from Task C (125-combo) when available
+                        Currently using existing FishAvatar with variant prop */}
                     <FishAvatar
                       variant={slugToVariant(f.species?.name ?? f.species?.id)}
                       visualVariant={f.species?.visualVariant}
@@ -204,14 +223,16 @@ export default function ProfilePage() {
         />
         <SettingRow
           label={t('cityLabel') || '城市设置'}
-          desc={city ? `${t('cityCurrent') || '当前'}: ${city}` : (t('cityDesc') || '设置城市以获取当地天气')}
+          desc={city
+            ? `${t('cityCurrent') || '当前'}: ${selectedCityItem?.nameZh || city}`
+            : (t('cityDesc') || '设置城市以获取当地天气')}
           control={
             <button
-              onClick={() => { setCityInput(city); setCityOpen(true); }}
+              onClick={() => setCityOpen(true)}
               className="focus:outline-none"
             >
               <Tag variant="gold" className="text-[11px] cursor-pointer hover:opacity-80 transition">
-                {city || (t('citySet') || '设置')}
+                {selectedCityItem?.nameZh || city || (t('citySet') || '设置')}
               </Tag>
             </button>
           }
@@ -245,38 +266,27 @@ export default function ProfilePage() {
         </div>
       </BottomSheet>
 
-      {/* City picker BottomSheet */}
+      {/* §1 City picker BottomSheet — dropdown from /api/cities */}
       <BottomSheet
         open={cityOpen}
         onClose={() => setCityOpen(false)}
         title={t('cityLabel') || '城市设置'}
       >
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <input
-              className="input flex-1"
-              value={cityInput}
-              onChange={(e) => setCityInput(e.target.value)}
-              placeholder={t('cityPlaceholder') || '输入城市名，如"北京"'}
-              onKeyDown={(e) => e.key === 'Enter' && saveCity()}
-            />
-            <Button variant="accent" onClick={saveCity} disabled={citySaving || !cityInput.trim()}>
-              {citySaving ? '...' : (t('citySave') || '保存')}
+        <div className="space-y-2">
+          {cities.map((c) => (
+            <Button
+              key={c.id}
+              variant={c.id === city ? 'accent' : 'ghost'}
+              onClick={() => saveCity(c.id)}
+              disabled={citySaving}
+              className="w-full justify-start text-left"
+            >
+              <span className="text-sm text-text-primary font-light">
+                {c.nameZh} <span className="text-text-secondary text-xs ml-1">{c.nameEn}</span>
+              </span>
+              {c.id === city && <span className="ml-auto text-accent text-xs">✓</span>}
             </Button>
-          </div>
-          {/* Quick city suggestions */}
-          <div className="flex flex-wrap gap-2">
-            {['北京', '上海', '广州', '深圳', '杭州', '成都', '东京', 'New York'].map((c) => (
-              <Tag
-                key={c}
-                variant="neutral"
-                className="cursor-pointer hover:bg-glass transition"
-                onClick={() => { setCityInput(c); }}
-              >
-                {c}
-              </Tag>
-            ))}
-          </div>
+          ))}
         </div>
       </BottomSheet>
 

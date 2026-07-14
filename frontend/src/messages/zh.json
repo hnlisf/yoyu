@@ -132,7 +132,10 @@
     "citySet": "设置",
     "citySave": "保存",
     "cityCurrent": "当前",
-    "cityPlaceholder": "输入城市名，如\"北京\""
+    "cityPlaceholder": "输入城市名，如\"北京\"",
+    "noFishYet": "还没有养鱼",
+    "noFishHint": "去鱼种图鉴挑选你的第一条鱼吧",
+    "browseSpecies": "去逛逛鱼种"
   },
   "species": {
     "title": "鱼种图鉴",
@@ -179,6 +182,7 @@
     "locationTitle": "当前位置",
     "fallback": "默认城市",
     "live": "实时",
+    "refresh": "刷新",
     "noFishHint": "先去鱼缸添加鱼，再来获取个性化投喂建议"
   },
   "reminders": {
