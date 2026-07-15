@@ -228,5 +228,28 @@
     "fishFriendDescription": "Unlock all 5 base species",
     "dedication": "Dedication",
     "dedicationDescription": "Accumulate 100 days of fish keeping"
+  },
+  "visualVariant": {
+    "color": {
+      "red": "Red",
+      "orange": "Orange",
+      "yellow": "Yellow",
+      "green": "Green",
+      "blue": "Blue"
+    },
+    "pattern": {
+      "solid": "Solid",
+      "stripe": "Striped",
+      "spots": "Spotted",
+      "gradient": "Gradient",
+      "camouflage": "Camouflage"
+    },
+    "body": {
+      "oval": "Oval",
+      "diamond": "Diamond",
+      "streamlined": "Streamlined",
+      "disc": "Disc",
+      "elongated": "Elongated"
+    }
   }
 }

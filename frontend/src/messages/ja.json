@@ -236,5 +236,28 @@
     "fishFriendDescription": "基本5種すべてをアンロック",
     "dedication": "こだわりの養魚",
     "dedicationDescription": "累計100日間魚を育てる"
+  },
+  "visualVariant": {
+    "color": {
+      "red": "赤",
+      "orange": "橙",
+      "yellow": "黄",
+      "green": "緑",
+      "blue": "青"
+    },
+    "pattern": {
+      "solid": "無地",
+      "stripe": "縞",
+      "spots": "斑",
+      "gradient": "グラデーション",
+      "camouflage": "迷彩"
+    },
+    "body": {
+      "oval": "楕円",
+      "diamond": "菱形",
+      "streamlined": "流線型",
+      "disc": "円盤",
+      "elongated": "長細"
+    }
   }
 }

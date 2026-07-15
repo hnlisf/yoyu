@@ -76,10 +76,11 @@ export class FishSpeciesService {
         );
       }
       // v10.1.3-w3b: whitelist validation — 5 colors × 5 patterns × 5 body types = 125 combinations
+      // v10.1.4: aligned with Tomas architecture §2.2 — 5×5×5=125 spec
       const ALLOWED_VV = {
-        color: ['red', 'orange', 'yellow', 'blue', 'purple'],
-        pattern: ['solid', 'stripe', 'spots', 'scale', 'gradient'],
-        body: ['slim', 'normal', 'plump', 'elongated', 'round'],
+        color: ['red', 'orange', 'yellow', 'green', 'blue'],
+        pattern: ['solid', 'stripe', 'spots', 'gradient', 'camouflage'],
+        body: ['oval', 'diamond', 'streamlined', 'disc', 'elongated'],
       };
       if (!ALLOWED_VV.color.includes(vv.color)) {
         throw new BadRequestException(`visualVariant.color 不合法: ${vv.color}`);

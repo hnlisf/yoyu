@@ -228,5 +228,28 @@
     "fishFriendDescription": "解锁全部5种基础鱼种",
     "dedication": "执着养鱼",
     "dedicationDescription": "累计养鱼100天"
+  },
+  "visualVariant": {
+    "color": {
+      "red": "红",
+      "orange": "橙",
+      "yellow": "黄",
+      "green": "绿",
+      "blue": "蓝"
+    },
+    "pattern": {
+      "solid": "纯色",
+      "stripe": "条纹",
+      "spots": "斑点",
+      "gradient": "渐变",
+      "camouflage": "迷彩"
+    },
+    "body": {
+      "oval": "椭圆",
+      "diamond": "菱形",
+      "streamlined": "流线型",
+      "disc": "圆盘型",
+      "elongated": "长条型"
+    }
   }
 }
