@@ -51,9 +51,10 @@ function classifyError(e: any, status?: number): ErrorCategory {
 }
 
 // v10.1.3-w3b: Visual variant options — 5 colors × 5 patterns × 5 body types = 125 combinations
-const VISUAL_COLORS = ['red', 'orange', 'yellow', 'blue', 'purple'];
-const VISUAL_PATTERNS = ['solid', 'stripe', 'spots', 'scale', 'gradient'];
-const VISUAL_BODY_TYPES = ['slim', 'normal', 'plump', 'elongated', 'round'];
+// Aligned with Tomas §2.2 / backend ALLOWED_VV (v10.1.4)
+const VISUAL_COLORS = ['red', 'orange', 'yellow', 'green', 'blue'];
+const VISUAL_PATTERNS = ['solid', 'stripe', 'spots', 'gradient', 'camouflage'];
+const VISUAL_BODY_TYPES = ['oval', 'diamond', 'streamlined', 'disc', 'elongated'];
 
 export default function SpeciesPage() {
   const t = useTranslations('species');
@@ -69,7 +70,7 @@ export default function SpeciesPage() {
   const [growthDays, setGrowthDays] = useState(60);
   const [feedFreq, setFeedFreq] = useState<'daily' | 'twice_daily' | 'every_2_days'>('twice_daily');
   const [color, setColor] = useState('#5BA9C7');
-  const [visualVariant, setVisualVariant] = useState({ color: 'red', pattern: 'solid', body: 'normal' });
+  const [visualVariant, setVisualVariant] = useState({ color: 'red', pattern: 'solid', body: 'oval' });
   const [busy, setBusy] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -459,19 +460,19 @@ export default function SpeciesPage() {
                 <div>
                   <label className="label">颜色 Color</label>
                   <select className="input" value={visualVariant.color} onChange={(e) => setVisualVariant({ ...visualVariant, color: e.target.value })}>
-                    {VISUAL_COLORS.map((c) => <option key={c} value={c}>{c === 'red' ? '🔴 红色 Red' : c === 'orange' ? '🟠 橙色 Orange' : c === 'yellow' ? '🟡 黄色 Yellow' : c === 'blue' ? '🔵 蓝色 Blue' : '🟣 紫色 Purple'}</option>)}
+                    {VISUAL_COLORS.map((c) => <option key={c} value={c}>{c === 'red' ? '🔴 红色 Red 赤' : c === 'orange' ? '🟠 橙色 Orange 橙' : c === 'yellow' ? '🟡 黄色 Yellow 黄' : c === 'green' ? '🟢 绿色 Green 緑' : '🔵 蓝色 Blue 青'}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="label">花纹 Pattern</label>
                   <select className="input" value={visualVariant.pattern} onChange={(e) => setVisualVariant({ ...visualVariant, pattern: e.target.value })}>
-                    {VISUAL_PATTERNS.map((p) => <option key={p} value={p}>{p === 'solid' ? '纯色 Solid' : p === 'stripe' ? '条纹 Stripe' : p === 'spots' ? '斑点 Spots' : p === 'scale' ? '鳞片 Scale' : '渐变 Gradient'}</option>)}
+                    {VISUAL_PATTERNS.map((p) => <option key={p} value={p}>{p === 'solid' ? '纯色 Solid 無地' : p === 'stripe' ? '条纹 Stripe 縞' : p === 'spots' ? '斑点 Spots 斑' : p === 'gradient' ? '渐变 Gradient グラデーション' : '迷彩 Camouflage 迷彩'}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="label">体型 Body</label>
                   <select className="input" value={visualVariant.body} onChange={(e) => setVisualVariant({ ...visualVariant, body: e.target.value })}>
-                    {VISUAL_BODY_TYPES.map((b) => <option key={b} value={b}>{b === 'slim' ? '细长 Slim' : b === 'normal' ? '标准 Normal' : b === 'plump' ? '圆胖 Plump' : b === 'elongated' ? '延长 Elongated' : '圆形 Round'}</option>)}
+                    {VISUAL_BODY_TYPES.map((b) => <option key={b} value={b}>{b === 'oval' ? '椭圆 Oval 楕円' : b === 'diamond' ? '菱形 Diamond 菱形' : b === 'streamlined' ? '流线型 Streamlined 流線型' : b === 'disc' ? '圆盘型 Disc 円盤' : '长条型 Elongated 長細'}</option>)}
                   </select>
                 </div>
                 <div className="bg-water-50 rounded-lg p-3 text-xs text-water-500">
