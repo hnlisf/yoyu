@@ -641,15 +641,8 @@ function TankPageContent({ tankId }: { tankId: string }) {
                             <button onClick={() => setRenamingFishId(null)} className="text-xs text-text-secondary px-1">✕</button>
                           </div>
                         ) : (
-                          <p
-                            className="text-sm text-text-primary whitespace-normal break-words cursor-pointer"
-                            data-nickname="true"
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (f.name) revealNickname(f.id); }}
-                          >
-                            {f.name
-                              ? (visibleNicknameId === f.id ? f.name : '●●●●●')
-                              : tf(f.stage)
-                            } <span className="text-xs">{moodEmoji}</span>
+                          <p className="text-sm text-text-primary whitespace-normal break-words cursor-pointer">
+                            {f.name || tf(f.stage)} <span className="text-xs">{moodEmoji}</span>
                           </p>
                         )}
                         <p className="text-[10px] font-light text-text-secondary">

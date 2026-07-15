@@ -55,6 +55,13 @@ export class UserController {
     return this.service.setDefaultTank(body.tankId);
   }
 
+  @Get('me/fish-summary')
+  @ApiOperation({ summary: 'v10.1.4 §4: Aggregated fish summary for /profile page' })
+  @ApiQuery({ name: 'userId', required: true })
+  async fishSummary(@Query('userId') userId: string) {
+    return this.service.getFishSummary(userId);
+  }
+
   @Get('me/fishes')
   @ApiOperation({ summary: 'v9.1 Item 5: Get all fish belonging to the user across all tanks, paginated' })
   @ApiQuery({ name: 'userId', required: true })
