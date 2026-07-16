@@ -123,6 +123,7 @@ export default function ProfilePage() {
   };
 
   const languages = t.raw('languages') as Record<string, string>;
+  const selectedCityItem = cities.find((c) => c.id === city);
   const cityDisplayName = (item: CityItem | undefined) => {
     if (!item) return '';
     if (locale === 'en') return item.nameEn;
