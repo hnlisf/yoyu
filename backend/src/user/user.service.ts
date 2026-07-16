@@ -223,7 +223,7 @@ export class UserService {
         existing.count += 1;
         if (f.growth > existing.latestGrowthCm) {
           existing.latestGrowthCm = f.growth;
-          existing.visualVariant = f.visualVariant;
+          existing.visualVariant = f.species?.visualVariant ?? null;
         }
       } else {
         speciesMap.set(sp.id, {
