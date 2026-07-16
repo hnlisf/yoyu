@@ -72,32 +72,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [heaterToggling, setHeaterToggling] = useState(false);
 
-  // v9.1 REQ-3 / v10.1.2 Item 3: Nickname privacy — hidden by default, click to reveal, auto-hide after 2.5s
-  const [visibleNicknameId, setVisibleNicknameId] = useState<string | null>(null);
-  const nicknameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const clearNicknameTimer = useCallback(() => {
-    if (nicknameTimerRef.current) { clearTimeout(nicknameTimerRef.current); nicknameTimerRef.current = null; }
-  }, []);
-  const revealNickname = useCallback((fishId: string) => {
-    clearNicknameTimer();
-    setVisibleNicknameId(fishId);
-    nicknameTimerRef.current = setTimeout(() => setVisibleNicknameId(null), 2500);
-  }, [clearNicknameTimer]);
-  // Cleanup timer on unmount, and global click-to-hide
-  useEffect(() => {
-    const handleDocClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('[data-nickname]')) {
-        clearNicknameTimer();
-        setVisibleNicknameId(null);
-      }
-    };
-    document.addEventListener('click', handleDocClick);
-    return () => {
-      clearNicknameTimer();
-      document.removeEventListener('click', handleDocClick);
-    };
-  }, [clearNicknameTimer]);
+  // §1 方案 A: 昵称默认直接展示，无任何隐藏机制（老板 2026-07-15 13:11 UTC 拍板）
 
   const load = async () => {
     try {
@@ -719,15 +694,8 @@ function TankPageContent({ tankId }: { tankId: string }) {
                           <button onClick={() => setRenamingFishId(null)} className="text-[10px] text-text-secondary px-1">✕</button>
                         </div>
                       ) : (
-                        <p
-                          className="text-xs text-text-primary whitespace-normal break-words cursor-pointer"
-                          data-nickname="true"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (f.name) revealNickname(f.id); }}
-                        >
-                          {f.name
-                            ? (visibleNicknameId === f.id ? f.name : '●●●●●')
-                            : tf(f.stage)
-                          } <span>{moodEmoji}</span>
+                        <p className="text-xs text-text-primary whitespace-normal break-words">
+                          {f.name || tf(f.stage)} <span>{moodEmoji}</span>
                         </p>
                       )}
                       <p className="text-[9px] text-text-secondary">{tf(f.stage)}</p>
