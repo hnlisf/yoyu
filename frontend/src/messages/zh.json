@@ -139,7 +139,10 @@
     "myFishStatus": "我的鱼 · 状态",
     "recentFish": "最近养的鱼",
     "viewAll": "查看全部",
-    "speciesDistribution": "鱼种分布"
+    "speciesDistribution": "鱼种分布",
+    "sortCountDesc": "数量最多",
+    "sortRecent": "最近添加",
+    "sortGrowth": "成长度"
   },
   "species": {
     "title": "鱼种图鉴",

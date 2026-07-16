@@ -147,7 +147,10 @@
     "myFishStatus": "私の魚・状態",
     "recentFish": "最近の魚",
     "viewAll": "すべて見る",
-    "speciesDistribution": "魚種分布"
+    "speciesDistribution": "魚種分布",
+    "sortCountDesc": "数量順",
+    "sortRecent": "最近追加",
+    "sortGrowth": "成長度"
   },
   "species": {
     "title": "魚種図鑑",

@@ -139,7 +139,10 @@
     "myFishStatus": "My Fish · Status",
     "recentFish": "Recent Fish",
     "viewAll": "View All",
-    "speciesDistribution": "Species Distribution"
+    "speciesDistribution": "Species Distribution",
+    "sortCountDesc": "Most Count",
+    "sortRecent": "Recently Added",
+    "sortGrowth": "Growth"
   },
   "species": {
     "title": "Species Library",

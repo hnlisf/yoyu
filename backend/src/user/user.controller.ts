@@ -58,8 +58,9 @@ export class UserController {
   @Get('me/fish-summary')
   @ApiOperation({ summary: 'v10.1.4 §4: Aggregated fish summary for /profile page' })
   @ApiQuery({ name: 'userId', required: true })
-  async fishSummary(@Query('userId') userId: string) {
-    return this.service.getFishSummary(userId);
+  @ApiQuery({ name: 'sort', required: false, description: 'Sort bySpecies: count_desc | recent | growth' })
+  async fishSummary(@Query('userId') userId: string, @Query('sort') sort?: string) {
+    return this.service.getFishSummary(userId, sort);
   }
 
   @Get('me/fishes')

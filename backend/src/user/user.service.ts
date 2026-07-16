@@ -186,8 +186,9 @@ export class UserService {
    */
   /**
    * v10.1.4 §4: Fish summary for /profile page — aggregated stats.
+   * @param sort 'count_desc' | 'recent' | 'growth' — sorts bySpecies
    */
-  async getFishSummary(userId: string) {
+  async getFishSummary(userId: string, sort?: string) {
     const tanks = await this.prisma.fishTank.findMany({
       where: { userId },
       select: { id: true },
@@ -258,7 +259,36 @@ export class UserService {
       totalFish: fish.length,
       totalTanks,
       byStatus,
-      bySpecies: bySpecies.sort((a, b) => b.count - a.count),
+    // Sort bySpecies
+    const sortKey = sort ?? 'count_desc';
+    if (sortKey === 'recent') {
+      // For 'recent' sort, order species by most recently added fish
+      const recentSpeciesOrder = new Map<string, number>();
+      fish.forEach((f, idx) => recentSpeciesOrder.set(f.species.id, fish.length - idx));
+      bySpecies.sort((a, b) => (recentSpeciesOrder.get(b.speciesId) ?? 0) - (recentSpeciesOrder.get(a.speciesId) ?? 0));
+    } else if (sortKey === 'growth') {
+      // For 'growth' sort, order by average growth per species
+      const growthMap = new Map<string, { total: number; count: number }>();
+      for (const f of fish) {
+        const spId = f.species.id;
+        const g = growthMap.get(spId) ?? { total: 0, count: 0 };
+        g.total += f.growth;
+        g.count += 1;
+        growthMap.set(spId, g);
+      }
+      bySpecies.sort((a, b) => {
+        const ga = growthMap.get(a.speciesId) ?? { total: 0, count: 0 };
+        const gb = growthMap.get(b.speciesId) ?? { total: 0, count: 0 };
+        const avgA = ga.count > 0 ? ga.total / ga.count : 0;
+        const avgB = gb.count > 0 ? gb.total / gb.count : 0;
+        return avgB - avgA;
+      });
+    } else {
+      // Default: count_desc
+      bySpecies.sort((a, b) => b.count - a.count);
+    }
+
+    return {
       recentFish,
       favorites,
     };

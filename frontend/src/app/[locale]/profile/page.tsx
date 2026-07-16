@@ -77,12 +77,15 @@ export default function ProfilePage() {
       .catch(() => {});
   }, []);
 
-  // v10.1.4 §4: Load fish summary from new endpoint
+  // v10.1.4 §4: fish summary — sort state
+  const [fishSort, setFishSort] = useState('count_desc');
+
+  // Load fish summary from new endpoint
   useEffect(() => {
-    api(`/api/user/me/fish-summary?userId=${USER_ID}`)
+    api(`/api/user/me/fish-summary?userId=${USER_ID}&sort=${fishSort}`)
       .then((data) => setFishSummary(data as any))
       .catch(() => {});
-  }, []);
+  }, [fishSort]);
 
   const saveCity = async (cityId: string) => {
     setCitySaving(true);
@@ -232,7 +235,18 @@ export default function ProfilePage() {
             </div>
             {fishSummary.bySpecies.length > 0 && (
               <div className="mt-3 pt-3 border-t border-glass-border">
-                <p className="text-[10px] text-text-secondary mb-1">{t('speciesDistribution')}</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] text-text-secondary">{t('speciesDistribution')}</p>
+                  <select
+                    value={fishSort}
+                    onChange={(e) => setFishSort(e.target.value)}
+                    className="text-[10px] bg-transparent text-accent border border-glass-border rounded px-1 py-0.5 cursor-pointer"
+                  >
+                    <option value="count_desc">{t('sortCountDesc')}</option>
+                    <option value="recent">{t('sortRecent')}</option>
+                    <option value="growth">{t('sortGrowth')}</option>
+                  </select>
+                </div>
                 <div className="flex gap-1.5 flex-wrap">
                   {fishSummary.bySpecies.map((sp) => (
                     <Link key={sp.speciesId} href={`/my-fish?species=${sp.speciesId}`}>
