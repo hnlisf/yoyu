@@ -135,7 +135,11 @@
     "cityPlaceholder": "输入城市名，如\"北京\"",
     "noFishYet": "还没有养鱼",
     "noFishHint": "去鱼种图鉴挑选你的第一条鱼吧",
-    "browseSpecies": "去逛逛鱼种"
+    "browseSpecies": "去逛逛鱼种",
+    "myFishStatus": "我的鱼 · 状态",
+    "recentFish": "最近养的鱼",
+    "viewAll": "查看全部",
+    "speciesDistribution": "鱼种分布"
   },
   "species": {
     "title": "鱼种图鉴",

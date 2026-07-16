@@ -135,7 +135,11 @@
     "cityPlaceholder": "Enter city, e.g. \"Tokyo\"",
     "noFishYet": "No fish yet",
     "noFishHint": "Browse the species library to pick your first fish",
-    "browseSpecies": "Browse species"
+    "browseSpecies": "Browse species",
+    "myFishStatus": "My Fish · Status",
+    "recentFish": "Recent Fish",
+    "viewAll": "View All",
+    "speciesDistribution": "Species Distribution"
   },
   "species": {
     "title": "Species Library",

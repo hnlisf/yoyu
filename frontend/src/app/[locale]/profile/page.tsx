@@ -185,7 +185,7 @@ export default function ProfilePage() {
         <>
           {/* Status breakdown pills */}
           <GlassCard>
-            <h2 className="text-sm font-normal text-text-primary mb-3">我的鱼 · 状态</h2>
+            <h2 className="text-sm font-normal text-text-primary mb-3">{t('myFishStatus')}</h2>
             <div className="flex gap-2 flex-wrap">
               {(['healthy','subhealthy','danger','hungry','dead'] as const).map((status) => {
                 const count = fishSummary.byStatus[status] || 0;
@@ -204,8 +204,8 @@ export default function ProfilePage() {
           {/* Recent fish as cards */}
           <GlassCard>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-normal text-text-primary">最近养的鱼</h2>
-              <Link href="/my-fish" className="text-xs text-accent hover:underline">查看全部 →</Link>
+              <h2 className="text-sm font-normal text-text-primary">{t('recentFish')}</h2>
+              <Link href="/my-fish" className="text-xs text-accent hover:underline">{t('viewAll')} →</Link>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {fishSummary.recentFish.map((f) => (
@@ -232,7 +232,7 @@ export default function ProfilePage() {
             </div>
             {fishSummary.bySpecies.length > 0 && (
               <div className="mt-3 pt-3 border-t border-glass-border">
-                <p className="text-[10px] text-text-secondary mb-1">鱼种分布</p>
+                <p className="text-[10px] text-text-secondary mb-1">{t('speciesDistribution')}</p>
                 <div className="flex gap-1.5 flex-wrap">
                   {fishSummary.bySpecies.map((sp) => (
                     <Tag key={sp.speciesId} variant="neutral" className="text-[10px]">
