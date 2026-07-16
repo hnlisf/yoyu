@@ -59,6 +59,7 @@ const VISUAL_BODY_TYPES = ['oval', 'diamond', 'streamlined', 'disc', 'elongated'
 export default function SpeciesPage() {
   const t = useTranslations('species');
   const tf = useTranslations('fish');
+  const tv = useTranslations('visualVariant');
   const { data: species, loading, refetch } = useApi<FishSpecies[]>('/api/fish-species?lang=' + (typeof window !== 'undefined' ? (document.cookie.match(/locale=(\w+)/)?.[1] ?? 'zh') : 'zh'));
   const [adding, setAdding] = useState(false);
   const [addingStep, setAddingStep] = useState(1); // v9.1: wizard steps 1-3
@@ -324,9 +325,9 @@ export default function SpeciesPage() {
             <p className="text-sm text-water-500 mt-1 line-clamp-2">{sp.description}</p>
             {visualVariantObj && (
               <div className="flex gap-1 mt-1.5 text-[10px] text-water-400">
-                <span className="bg-water-50 px-1.5 py-0.5 rounded">{visualVariantObj.color}</span>
-                <span className="bg-water-50 px-1.5 py-0.5 rounded">{visualVariantObj.pattern}</span>
-                <span className="bg-water-50 px-1.5 py-0.5 rounded">{visualVariantObj.body}</span>
+                <span className="bg-water-50 px-1.5 py-0.5 rounded">{tv(`color.${visualVariantObj.color}`)}</span>
+                <span className="bg-water-50 px-1.5 py-0.5 rounded">{tv(`pattern.${visualVariantObj.pattern}`)}</span>
+                <span className="bg-water-50 px-1.5 py-0.5 rounded">{tv(`body.${visualVariantObj.body}`)}</span>
               </div>
             )}
             <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
@@ -460,19 +461,19 @@ export default function SpeciesPage() {
                 <div>
                   <label className="label">颜色 Color</label>
                   <select className="input" value={visualVariant.color} onChange={(e) => setVisualVariant({ ...visualVariant, color: e.target.value })}>
-                    {VISUAL_COLORS.map((c) => <option key={c} value={c}>{c === 'red' ? '🔴 红色 Red 赤' : c === 'orange' ? '🟠 橙色 Orange 橙' : c === 'yellow' ? '🟡 黄色 Yellow 黄' : c === 'green' ? '🟢 绿色 Green 緑' : '🔵 蓝色 Blue 青'}</option>)}
+                    {VISUAL_COLORS.map((c) => <option key={c} value={c}>{tv(`color.${c}`)}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="label">花纹 Pattern</label>
                   <select className="input" value={visualVariant.pattern} onChange={(e) => setVisualVariant({ ...visualVariant, pattern: e.target.value })}>
-                    {VISUAL_PATTERNS.map((p) => <option key={p} value={p}>{p === 'solid' ? '纯色 Solid 無地' : p === 'stripe' ? '条纹 Stripe 縞' : p === 'spots' ? '斑点 Spots 斑' : p === 'gradient' ? '渐变 Gradient グラデーション' : '迷彩 Camouflage 迷彩'}</option>)}
+                    {VISUAL_PATTERNS.map((p) => <option key={p} value={p}>{tv(`pattern.${p}`)}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="label">体型 Body</label>
                   <select className="input" value={visualVariant.body} onChange={(e) => setVisualVariant({ ...visualVariant, body: e.target.value })}>
-                    {VISUAL_BODY_TYPES.map((b) => <option key={b} value={b}>{b === 'oval' ? '椭圆 Oval 楕円' : b === 'diamond' ? '菱形 Diamond 菱形' : b === 'streamlined' ? '流线型 Streamlined 流線型' : b === 'disc' ? '圆盘型 Disc 円盤' : '长条型 Elongated 長細'}</option>)}
+                    {VISUAL_BODY_TYPES.map((b) => <option key={b} value={b}>{tv(`body.${b}`)}</option>)}
                   </select>
                 </div>
                 <div className="bg-water-50 rounded-lg p-3 text-xs text-water-500">
