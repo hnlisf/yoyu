@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useLocale } from 'next-intl';
 import { Link, useRouter, usePathname } from '@/i18n/routing';
 import { api, FishTank, Fish, CityItem } from '@/lib/api';
 import { FishAvatar } from '@/components/fish';
@@ -17,6 +18,7 @@ const LOCALES = ['zh', 'en', 'ja'] as const;
 
 export default function ProfilePage() {
   const t = useTranslations('profile');
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const [tanks, setTanks] = useState<FishTank[]>([]);
@@ -121,7 +123,12 @@ export default function ProfilePage() {
   };
 
   const languages = t.raw('languages') as Record<string, string>;
-  const selectedCityItem = cities.find((c) => c.id === city);
+  const cityDisplayName = (item: CityItem | undefined) => {
+    if (!item) return '';
+    if (locale === 'en') return item.nameEn;
+    if (locale === 'ja') return item.nameJa;
+    return item.nameZh;
+  };
 
   return (
     <div className="space-y-5">

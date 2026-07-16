@@ -213,33 +213,51 @@ export class UserService {
       byStatus[s] = (byStatus[s] || 0) + 1;
     }
 
-    // By species (grouped by speciesId)
-    const speciesMap = new Map<string, { name: string; count: number }>();
+    // By species (grouped by speciesId) — Tomas §3.2 spec schema
+    // v10.1.4 FAIL-8: restructured to {data:[{speciesId, name, count, latestGrowthCm, visualVariant}], pagination}
+    const speciesMap = new Map<string, { name: string; count: number; latestGrowthCm: number; visualVariant?: any }>();
     for (const f of fish) {
       const sp = f.species;
       const existing = speciesMap.get(sp.id);
       if (existing) {
         existing.count += 1;
+        if (f.growth > existing.latestGrowthCm) {
+          existing.latestGrowthCm = f.growth;
+          existing.visualVariant = f.visualVariant;
+        }
       } else {
-        speciesMap.set(sp.id, { name: parseI18nName(sp.nameI18n), count: 1 });
+        speciesMap.set(sp.id, {
+          name: parseI18nName(sp.nameI18n),
+          count: 1,
+          latestGrowthCm: f.growth,
+          visualVariant: f.visualVariant,
+        });
       }
     }
-    const bySpecies = Array.from(speciesMap.entries()).map(([id, v]) => ({ speciesId: id, name: v.name, count: v.count }));
 
-    // Recent fish (top 5)
-    const now = Date.now();
-    const recentFish = fish.slice(0, 5).map((f) => ({
-      fishId: f.id,
-      name: f.name || parseI18nName(f.species.nameI18n),
-      species: parseI18nName(f.species.nameI18n),
-      tankId: f.tankId,
-      tankName: f.tank.name,
-      daysInTank: Math.floor((now - f.createdAt.getTime()) / (1000 * 60 * 60 * 24)),
-      status: f.status,
-      growth: Math.round(f.growth),
+    // Sort bySpecies per sort key
+    const sortKey = sort ?? 'count_desc';
+    const speciesEntries = Array.from(speciesMap.entries());
+    if (sortKey === 'recent') {
+      const recentSpeciesOrder = new Map<string, number>();
+      fish.forEach((f, idx) => recentSpeciesOrder.set(f.species.id, fish.length - idx));
+      speciesEntries.sort((a, b) => (recentSpeciesOrder.get(b[0]) ?? 0) - (recentSpeciesOrder.get(a[0]) ?? 0));
+    } else if (sortKey === 'growth') {
+      speciesEntries.sort((a, b) => b[1].latestGrowthCm - a[1].latestGrowthCm);
+    } else {
+      // Default: count_desc
+      speciesEntries.sort((a, b) => b[1].count - a[1].count);
+    }
+
+    const data = speciesEntries.map(([id, v]) => ({
+      speciesId: id,
+      name: v.name,
+      count: v.count,
+      latestGrowthCm: Math.round(v.latestGrowthCm * 10) / 10,
+      visualVariant: v.visualVariant,
     }));
 
-    // Favorites from user preferences
+    // Favorites from user preferences — kept for legacy frontend compatibility
     let favorites: { speciesId: string; name: string }[] = [];
     try {
       const pref = await this.prisma.userPreference.findUnique({ where: { userId } });
@@ -256,40 +274,27 @@ export class UserService {
     }
 
     return {
+      // Tomas §3.2 spec schema — FAIL-8
+      data,
+      pagination: {
+        total: data.length,
+        page: 1,
+        pageSize: data.length,
+      },
+      // Legacy fields kept for frontend backward compatibility
       totalFish: fish.length,
       totalTanks,
       byStatus,
-    // Sort bySpecies
-    const sortKey = sort ?? 'count_desc';
-    if (sortKey === 'recent') {
-      // For 'recent' sort, order species by most recently added fish
-      const recentSpeciesOrder = new Map<string, number>();
-      fish.forEach((f, idx) => recentSpeciesOrder.set(f.species.id, fish.length - idx));
-      bySpecies.sort((a, b) => (recentSpeciesOrder.get(b.speciesId) ?? 0) - (recentSpeciesOrder.get(a.speciesId) ?? 0));
-    } else if (sortKey === 'growth') {
-      // For 'growth' sort, order by average growth per species
-      const growthMap = new Map<string, { total: number; count: number }>();
-      for (const f of fish) {
-        const spId = f.species.id;
-        const g = growthMap.get(spId) ?? { total: 0, count: 0 };
-        g.total += f.growth;
-        g.count += 1;
-        growthMap.set(spId, g);
-      }
-      bySpecies.sort((a, b) => {
-        const ga = growthMap.get(a.speciesId) ?? { total: 0, count: 0 };
-        const gb = growthMap.get(b.speciesId) ?? { total: 0, count: 0 };
-        const avgA = ga.count > 0 ? ga.total / ga.count : 0;
-        const avgB = gb.count > 0 ? gb.total / gb.count : 0;
-        return avgB - avgA;
-      });
-    } else {
-      // Default: count_desc
-      bySpecies.sort((a, b) => b.count - a.count);
-    }
-
-    return {
-      recentFish,
+      recentFish: fish.slice(0, 5).map((f) => ({
+        fishId: f.id,
+        name: f.name || parseI18nName(f.species.nameI18n),
+        species: parseI18nName(f.species.nameI18n),
+        tankId: f.tankId,
+        tankName: f.tank.name,
+        daysInTank: Math.floor((Date.now() - f.createdAt.getTime()) / (1000 * 60 * 60 * 24)),
+        status: f.status,
+        growth: Math.round(f.growth),
+      })),
       favorites,
     };
   }

@@ -171,8 +171,11 @@ export interface CityItem {
   id: string;
   nameZh: string;
   nameEn: string;
+  nameJa: string;
   lat: number;
   lon: number;
+  country: string;
+  continent: string;
 }
 
 export { api };

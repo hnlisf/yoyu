@@ -77,6 +77,16 @@ export class FishSpeciesService {
       }
       // v10.1.3-w3b: whitelist validation — 5 colors × 5 patterns × 5 body types = 125 combinations
       // v10.1.4: aligned with Tomas architecture §2.2 — 5×5×5=125 spec
+      // v10.1.4 FAIL-9: legacy visualVariant mapping — convert old 3-option values to new 5×5×5
+      const LEGACY_VV_MAPPING: Record<string, Record<string, string>> = {
+        color: { purple: 'blue' },   // purple→blue (indigo approximation)
+        pattern: { spotted: 'spots', striped: 'stripe' },
+        body: { slim: 'elongated' },
+      };
+      if (LEGACY_VV_MAPPING.color[vv.color]) vv.color = LEGACY_VV_MAPPING.color[vv.color];
+      if (LEGACY_VV_MAPPING.pattern[vv.pattern]) vv.pattern = LEGACY_VV_MAPPING.pattern[vv.pattern];
+      if (LEGACY_VV_MAPPING.body[vv.body]) vv.body = LEGACY_VV_MAPPING.body[vv.body];
+
       const ALLOWED_VV = {
         color: ['red', 'orange', 'yellow', 'green', 'blue'],
         pattern: ['solid', 'stripe', 'spots', 'gradient', 'camouflage'],
