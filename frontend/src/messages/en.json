@@ -258,5 +258,12 @@
       "disc": "Disc",
       "elongated": "Elongated"
     }
+  },
+  "errors": {
+    "tank_already_fresh": "This tank was last water-changed {hours} hours ago. Wait {hours} more hours. 🐟",
+    "not_enough_water": "Not enough water to change.",
+    "tank_not_found": "Tank not found. It may have been deleted.",
+    "permission_denied": "You do not have permission to operate this tank.",
+    "operation_failed": "Operation failed. Please try again later."
   }
 }

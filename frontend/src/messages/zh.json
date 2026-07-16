@@ -258,5 +258,12 @@
       "disc": "圆盘型",
       "elongated": "长条型"
     }
+  },
+  "errors": {
+    "tank_already_fresh": "此缸上次换水才{hours}小时，建议再等{hours}小时再换。请耐心等等，小鱼不喜欢频繁换水 🐟",
+    "not_enough_water": "水量不足，无法换水",
+    "tank_not_found": "鱼缸不存在，可能已被删除",
+    "permission_denied": "您没有操作此鱼缸的权限",
+    "operation_failed": "操作失败，请稍后再试"
   }
 }

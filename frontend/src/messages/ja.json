@@ -266,5 +266,12 @@
       "disc": "円盤",
       "elongated": "長細"
     }
+  },
+  "errors": {
+    "tank_already_fresh": "この水槽は前回{items}時間前に水替えしました。あと{items}時間待ちましょう 🐟",
+    "not_enough_water": "水量不足で水替えできません",
+    "tank_not_found": "水槽が見つかりません。削除された可能性があります",
+    "permission_denied": "この水槽を操作する権限がありません",
+    "operation_failed": "操作に失敗しました。しばらくしてからもう一度お試しください"
   }
 }

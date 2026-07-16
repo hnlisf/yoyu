@@ -15,7 +15,7 @@ import { Toast } from '@/components/ui/Toast';
 import { Icon } from '@/components/ui/Icon';
 import { HeaterSwitch } from '@/components/Tank/HeaterSwitch';
 import { useTranslateTankName } from '@/lib/i18n/tankName';
-import { getTankErrorMessage, getErrorSeverity } from '@/lib/errorMessages';
+import { getErrorSeverity } from '@/lib/errorMessages';
 import { BottomDrawer } from '@/components/BottomDrawer';
 import { CapacityBar } from '@/components/ui/CapacityBar';
 import { TempAlertBanner } from '@/components/Tank/TempAlertBanner';
@@ -39,6 +39,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
   const t = useTranslations('tankDetail');
   const tf = useTranslations('fish.stage');
   const tCommon = useTranslations('common');
+  const tErrors = useTranslations('errors');
   const tName = useTranslateTankName();
 
   const feedRef = useRef<((count?: number, fishIds?: string[]) => void) | null>(null);
@@ -282,7 +283,25 @@ function TankPageContent({ tankId }: { tankId: string }) {
     } catch (e: any) {
       // v10.1.3-w1: consume error_code + remainingHours from ApiError
       if (e instanceof ApiError && e.data?.error_code) {
-        const msg = getTankErrorMessage(e.data.error_code, e.data);
+        const ec = e.data.error_code;
+        const remaining = e.data.remainingHours ?? e.data.cooldownHours ?? 24;
+        let msg: string;
+        switch (ec) {
+          case 'tank_already_fresh':
+            msg = tErrors('tank_already_fresh', { hours: remaining });
+            break;
+          case 'not_enough_water':
+            msg = tErrors('not_enough_water');
+            break;
+          case 'tank_not_found':
+            msg = tErrors('tank_not_found');
+            break;
+          case 'permission_denied':
+            msg = tErrors('permission_denied');
+            break;
+          default:
+            msg = tErrors('operation_failed');
+        }
         const severity = getErrorSeverity(e.data.error_code);
         setToast(msg);
         setToastType(severity as 'warning' | 'error');
