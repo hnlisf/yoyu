@@ -230,7 +230,7 @@ export class UserService {
           name: parseI18nName(sp.nameI18n),
           count: 1,
           latestGrowthCm: f.growth,
-          visualVariant: f.visualVariant,
+          visualVariant: f.species?.visualVariant ?? null,
         });
       }
     }
