@@ -150,7 +150,7 @@ export default function ProfilePage() {
             <p className="text-[11px] text-text-secondary font-light mt-1">{t('myTanks')}</p>
           </GlassCard>
         </Link>
-        <Link href="/my-fish" className="block">
+        <Link href="/my-fish?species=all" className="block">
           <GlassCard hover className="text-center py-4 cursor-pointer">
             <p className="text-2xl text-accent font-light tabular-nums">{allFish.length}</p>
             <p className="text-[11px] text-text-secondary font-light mt-1">{t('myFish')}</p>
@@ -205,7 +205,7 @@ export default function ProfilePage() {
           <GlassCard>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-normal text-text-primary">{t('recentFish')}</h2>
-              <Link href="/my-fish" className="text-xs text-accent hover:underline">{t('viewAll')} →</Link>
+              <Link href="/my-fish?species=all" className="text-xs text-accent hover:underline">{t('viewAll')} →</Link>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {fishSummary.recentFish.map((f) => (
@@ -235,9 +235,11 @@ export default function ProfilePage() {
                 <p className="text-[10px] text-text-secondary mb-1">{t('speciesDistribution')}</p>
                 <div className="flex gap-1.5 flex-wrap">
                   {fishSummary.bySpecies.map((sp) => (
-                    <Tag key={sp.speciesId} variant="neutral" className="text-[10px]">
-                      {sp.name} ×{sp.count}
-                    </Tag>
+                    <Link key={sp.speciesId} href={`/my-fish?species=${sp.speciesId}`}>
+                      <Tag variant="neutral" className="text-[10px] cursor-pointer hover:opacity-80">
+                        {sp.name} ×{sp.count}
+                      </Tag>
+                    </Link>
                   ))}
                 </div>
               </div>
