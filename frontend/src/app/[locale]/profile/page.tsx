@@ -326,7 +326,7 @@ export default function ProfilePage() {
         <SettingRow
           label={t('cityLabel') || '城市设置'}
           desc={city
-            ? `${t('cityCurrent') || '当前'}: ${selectedCityItem?.nameZh || city}`
+            ? `${t('cityCurrent') || '当前'}: ${cityDisplayName(selectedCityItem) || city}`
             : (t('cityDesc') || '设置城市以获取当地天气')}
           control={
             <button
@@ -334,7 +334,7 @@ export default function ProfilePage() {
               className="focus:outline-none"
             >
               <Tag variant="gold" className="text-[11px] cursor-pointer hover:opacity-80 transition">
-                {selectedCityItem?.nameZh || city || (t('citySet') || '设置')}
+                {cityDisplayName(selectedCityItem) || city || (t('citySet') || '设置')}
               </Tag>
             </button>
           }
@@ -384,7 +384,7 @@ export default function ProfilePage() {
               className="w-full justify-start text-left"
             >
               <span className="text-sm text-text-primary font-light">
-                {c.nameZh} <span className="text-text-secondary text-xs ml-1">{c.nameEn}</span>
+                {cityDisplayName(c)} <span className="text-text-secondary text-xs ml-1">({c.id})</span>
               </span>
               {c.id === city && <span className="ml-auto text-accent text-xs">✓</span>}
             </Button>

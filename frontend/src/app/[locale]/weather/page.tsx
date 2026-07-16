@@ -112,6 +112,14 @@ export default function WeatherPage() {
 
   const selectedCityItem = cities.find((c) => c.id === selectedCity);
 
+  // v10.1.4 FAIL-7: i18n city name display
+  const cityDisplayName = (item: CityItem | undefined) => {
+    if (!item) return '';
+    if (locale === 'en') return item.nameEn;
+    if (locale === 'ja') return item.nameJa;
+    return item.nameZh;
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-water-600">{t('title')}</h1>
@@ -125,7 +133,7 @@ export default function WeatherPage() {
             onChange={(e) => onCityChange(e.target.value)}
           >
             {cities.map((c) => (
-              <option key={c.id} value={c.id}>{c.nameZh} {c.nameEn}</option>
+              <option key={c.id} value={c.id}>{cityDisplayName(c)}</option>
             ))}
           </select>
         </div>
@@ -164,7 +172,7 @@ export default function WeatherPage() {
               <p className="text-5xl font-light text-water-600">{weather.temp}°</p>
               <p className="text-water-500 mt-1">{weather.description}</p>
               <p className="text-xs text-water-400 mt-0.5">
-                {selectedCityItem?.nameZh || selectedCity}
+                {cityDisplayName(selectedCityItem) || selectedCity}
                 {weather.source === 'live' && <span className="ml-1">● {t('live')}</span>}
               </p>
             </div>
