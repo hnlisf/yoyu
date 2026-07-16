@@ -81,7 +81,7 @@ export class FishSpeciesService {
       const LEGACY_VV_MAPPING: Record<string, Record<string, string>> = {
         color: { purple: 'blue' },   // purple→blue (indigo approximation)
         pattern: { spotted: 'spots', striped: 'stripe' },
-        body: { slim: 'elongated' },
+        body: { slim: 'elongated', normal: 'oval', round: 'disc', plump: 'diamond' },
       };
       if (LEGACY_VV_MAPPING.color[vv.color]) vv.color = LEGACY_VV_MAPPING.color[vv.color];
       if (LEGACY_VV_MAPPING.pattern[vv.pattern]) vv.pattern = LEGACY_VV_MAPPING.pattern[vv.pattern];
