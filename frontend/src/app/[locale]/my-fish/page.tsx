@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { api, Fish } from '@/lib/api';
 import { FishAvatar } from '@/components/fish';
@@ -42,15 +42,25 @@ export default function MyFishPage() {
   const t = useTranslations('fish');
   const tProfile = useTranslations('profile');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [fishItems, setFishItems] = useState<MyFishItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-
-  // Also load legacy fish list for collected species display
   const [legacyFish, setLegacyFish] = useState<Fish[]>([]);
 
+  const speciesFilter = searchParams.get('species') ?? 'all';
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT));
+
+  // Species filter — derived from fishItems after load
+  const filteredFishItems = useMemo(() => {
+    if (speciesFilter === 'all') return fishItems;
+    return fishItems.filter((f) => {
+      // match by fishName (species name) or fishId
+      return f.fishName === speciesFilter || f.fishId === speciesFilter;
+    });
+  }, [fishItems, speciesFilter]);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,10 +140,10 @@ export default function MyFishPage() {
           <h1 className="text-xl font-light text-text-primary tracking-wide">
             我养的鱼
           </h1>
-          <span className="text-sm text-text-secondary font-light">共 {total} 条</span>
+          <span className="text-sm text-text-secondary font-light">共 {filteredFishItems.length} 条</span>
         </div>
 
-        {fishItems.length === 0 ? (
+        {filteredFishItems.length === 0 ? (
           <GlassCard>
             <p className="text-text-secondary text-sm font-light text-center py-8">
               还没有鱼，去鱼缸添加吧~
@@ -155,7 +165,7 @@ export default function MyFishPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {fishItems.map((f) => {
+                    {filteredFishItems.map((f) => {
                       const status = f.status ?? 'healthy';
                       const statusCfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.healthy;
                       return (
@@ -179,7 +189,7 @@ export default function MyFishPage() {
 
             {/* Mobile: card view */}
             <div className="sm:hidden space-y-2">
-              {fishItems.map((f) => {
+              {filteredFishItems.map((f) => {
                 const status = f.status ?? 'healthy';
                 const statusCfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.healthy;
                 return (
