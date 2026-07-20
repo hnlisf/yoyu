@@ -132,7 +132,17 @@
     "citySet": "Set",
     "citySave": "Save",
     "cityCurrent": "Current",
-    "cityPlaceholder": "Enter city, e.g. \"Tokyo\""
+    "cityPlaceholder": "Enter city, e.g. \"Tokyo\"",
+    "noFishYet": "No fish yet",
+    "noFishHint": "Browse the species library to pick your first fish",
+    "browseSpecies": "Browse species",
+    "myFishStatus": "My Fish · Status",
+    "recentFish": "Recent Fish",
+    "viewAll": "View All",
+    "speciesDistribution": "Species Distribution",
+    "sortCountDesc": "Most Count",
+    "sortRecent": "Recently Added",
+    "sortGrowth": "Growth"
   },
   "species": {
     "title": "Species Library",
@@ -179,6 +189,7 @@
     "locationTitle": "Your location",
     "fallback": "Default city",
     "live": "Live",
+    "refresh": "Refresh",
     "noFishHint": "Add a fish to your tank first to get personalized advice"
   },
   "reminders": {
@@ -224,5 +235,35 @@
     "fishFriendDescription": "Unlock all 5 base species",
     "dedication": "Dedication",
     "dedicationDescription": "Accumulate 100 days of fish keeping"
+  },
+  "visualVariant": {
+    "color": {
+      "red": "Red",
+      "orange": "Orange",
+      "yellow": "Yellow",
+      "green": "Green",
+      "blue": "Blue"
+    },
+    "pattern": {
+      "solid": "Solid",
+      "stripe": "Striped",
+      "spots": "Spotted",
+      "gradient": "Gradient",
+      "camouflage": "Camouflage"
+    },
+    "body": {
+      "oval": "Oval",
+      "diamond": "Diamond",
+      "streamlined": "Streamlined",
+      "disc": "Disc",
+      "elongated": "Elongated"
+    }
+  },
+  "errors": {
+    "tank_already_fresh": "This tank was last water-changed {hours} hours ago. Wait {hours} more hours. 🐟",
+    "not_enough_water": "Not enough water to change.",
+    "tank_not_found": "Tank not found. It may have been deleted.",
+    "permission_denied": "You do not have permission to operate this tank.",
+    "operation_failed": "Operation failed. Please try again later."
   }
 }

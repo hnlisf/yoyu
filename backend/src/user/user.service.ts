@@ -184,6 +184,121 @@ export class UserService {
   /**
    * v9.1 Item 5: Get all fish belonging to the user (across all tanks) with pagination.
    */
+  /**
+   * v10.1.4 §4: Fish summary for /profile page — aggregated stats.
+   * @param sort 'count_desc' | 'recent' | 'growth' — sorts bySpecies
+   */
+  async getFishSummary(userId: string, sort?: string) {
+    const tanks = await this.prisma.fishTank.findMany({
+      where: { userId },
+      select: { id: true },
+    });
+    const tankIds = tanks.map((t) => t.id);
+
+    const totalTanks = tankIds.length;
+    if (totalTanks === 0) {
+      return { totalFish: 0, totalTanks: 0, byStatus: {}, bySpecies: [], recentFish: [], favorites: [] };
+    }
+
+    const fish = await this.prisma.fish.findMany({
+      where: { tankId: { in: tankIds } },
+      include: { species: true, tank: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // By status
+    const byStatus: Record<string, number> = { healthy: 0, subhealthy: 0, danger: 0, hungry: 0, dead: 0 };
+    for (const f of fish) {
+      const s = f.status || 'healthy';
+      byStatus[s] = (byStatus[s] || 0) + 1;
+    }
+
+    // By species (grouped by speciesId) — Tomas §3.2 spec schema
+    // v10.1.4 FAIL-8: restructured to {data:[{speciesId, name, count, latestGrowthCm, visualVariant}], pagination}
+    const speciesMap = new Map<string, { name: string; count: number; latestGrowthCm: number; visualVariant?: any }>();
+    for (const f of fish) {
+      const sp = f.species;
+      const existing = speciesMap.get(sp.id);
+      if (existing) {
+        existing.count += 1;
+        if (f.growth > existing.latestGrowthCm) {
+          existing.latestGrowthCm = f.growth;
+          existing.visualVariant = f.species?.visualVariant ?? null;
+        }
+      } else {
+        speciesMap.set(sp.id, {
+          name: parseI18nName(sp.nameI18n),
+          count: 1,
+          latestGrowthCm: f.growth,
+          visualVariant: f.species?.visualVariant ?? null,
+        });
+      }
+    }
+
+    // Sort bySpecies per sort key
+    const sortKey = sort ?? 'count_desc';
+    const speciesEntries = Array.from(speciesMap.entries());
+    if (sortKey === 'recent') {
+      const recentSpeciesOrder = new Map<string, number>();
+      fish.forEach((f, idx) => recentSpeciesOrder.set(f.species.id, fish.length - idx));
+      speciesEntries.sort((a, b) => (recentSpeciesOrder.get(b[0]) ?? 0) - (recentSpeciesOrder.get(a[0]) ?? 0));
+    } else if (sortKey === 'growth') {
+      speciesEntries.sort((a, b) => b[1].latestGrowthCm - a[1].latestGrowthCm);
+    } else {
+      // Default: count_desc
+      speciesEntries.sort((a, b) => b[1].count - a[1].count);
+    }
+
+    const data = speciesEntries.map(([id, v]) => ({
+      speciesId: id,
+      name: v.name,
+      count: v.count,
+      latestGrowthCm: Math.round(v.latestGrowthCm * 10) / 10,
+      visualVariant: v.visualVariant,
+    }));
+
+    // Favorites from user preferences — kept for legacy frontend compatibility
+    let favorites: { speciesId: string; name: string }[] = [];
+    try {
+      const pref = await this.prisma.userPreference.findUnique({ where: { userId } });
+      if (pref?.favorites) {
+        const favIds: string[] = JSON.parse(pref.favorites);
+        const favSpecies = await this.prisma.fishSpecies.findMany({
+          where: { id: { in: favIds } },
+          select: { id: true, nameI18n: true },
+        });
+        favorites = favSpecies.map((sp) => ({ speciesId: sp.id, name: parseI18nName(sp.nameI18n) }));
+      }
+    } catch {
+      // Silent — favorites not available
+    }
+
+    return {
+      // Tomas §3.2 spec schema — FAIL-8
+      data,
+      pagination: {
+        total: data.length,
+        page: 1,
+        pageSize: data.length,
+      },
+      // Legacy fields kept for frontend backward compatibility
+      totalFish: fish.length,
+      totalTanks,
+      byStatus,
+      recentFish: fish.slice(0, 5).map((f) => ({
+        fishId: f.id,
+        name: f.name || parseI18nName(f.species.nameI18n),
+        species: parseI18nName(f.species.nameI18n),
+        tankId: f.tankId,
+        tankName: f.tank.name,
+        daysInTank: Math.floor((Date.now() - f.createdAt.getTime()) / (1000 * 60 * 60 * 24)),
+        status: f.status,
+        growth: Math.round(f.growth),
+      })),
+      favorites,
+    };
+  }
+
   async getMyFishes(userId: string, page: number = 1, limit: number = 20): Promise<MyFishListResult> {
     // Get all tank IDs belonging to this user
     const tanks = await this.prisma.fishTank.findMany({

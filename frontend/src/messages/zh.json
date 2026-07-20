@@ -132,7 +132,17 @@
     "citySet": "设置",
     "citySave": "保存",
     "cityCurrent": "当前",
-    "cityPlaceholder": "输入城市名，如\"北京\""
+    "cityPlaceholder": "输入城市名，如\"北京\"",
+    "noFishYet": "还没有养鱼",
+    "noFishHint": "去鱼种图鉴挑选你的第一条鱼吧",
+    "browseSpecies": "去逛逛鱼种",
+    "myFishStatus": "我的鱼 · 状态",
+    "recentFish": "最近养的鱼",
+    "viewAll": "查看全部",
+    "speciesDistribution": "鱼种分布",
+    "sortCountDesc": "数量最多",
+    "sortRecent": "最近添加",
+    "sortGrowth": "成长度"
   },
   "species": {
     "title": "鱼种图鉴",
@@ -179,6 +189,7 @@
     "locationTitle": "当前位置",
     "fallback": "默认城市",
     "live": "实时",
+    "refresh": "刷新",
     "noFishHint": "先去鱼缸添加鱼，再来获取个性化投喂建议"
   },
   "reminders": {
@@ -224,5 +235,35 @@
     "fishFriendDescription": "解锁全部5种基础鱼种",
     "dedication": "执着养鱼",
     "dedicationDescription": "累计养鱼100天"
+  },
+  "visualVariant": {
+    "color": {
+      "red": "红",
+      "orange": "橙",
+      "yellow": "黄",
+      "green": "绿",
+      "blue": "蓝"
+    },
+    "pattern": {
+      "solid": "纯色",
+      "stripe": "条纹",
+      "spots": "斑点",
+      "gradient": "渐变",
+      "camouflage": "迷彩"
+    },
+    "body": {
+      "oval": "椭圆",
+      "diamond": "菱形",
+      "streamlined": "流线型",
+      "disc": "圆盘型",
+      "elongated": "长条型"
+    }
+  },
+  "errors": {
+    "tank_already_fresh": "此缸上次换水才{hours}小时，建议再等{hours}小时再换。请耐心等等，小鱼不喜欢频繁换水 🐟",
+    "not_enough_water": "水量不足，无法换水",
+    "tank_not_found": "鱼缸不存在，可能已被删除",
+    "permission_denied": "您没有操作此鱼缸的权限",
+    "operation_failed": "操作失败，请稍后再试"
   }
 }

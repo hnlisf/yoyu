@@ -12,6 +12,8 @@ interface FishSpriteProps {
   stage: FishStage;
   size?: number;
   onClick?: () => void;
+  /** v10.1.3-w3b: visualVariant for custom species rendering */
+  visualVariant?: { color: string; pattern: string; body: string };
 }
 
 /**
@@ -27,6 +29,7 @@ export function FishSprite({
   stage,
   size = 64,
   onClick,
+  visualVariant,
 }: FishSpriteProps) {
   return (
     <div
@@ -42,6 +45,7 @@ export function FishSprite({
     >
       <FishAvatar
         variant={variant}
+        visualVariant={visualVariant}
         stage={stage}
         size={size}
         animated={false}

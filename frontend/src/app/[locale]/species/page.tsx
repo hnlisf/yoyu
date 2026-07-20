@@ -9,6 +9,7 @@ import { slugToVariant } from '@/components/fish/types';
 import { TankSelector } from '@/components/Tank/TankSelector';
 
 const STORAGE_KEY = 'fishgrow.tankId';
+const USER_ID = 'demo-user';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -49,14 +50,16 @@ function classifyError(e: any, status?: number): ErrorCategory {
   return 'network';
 }
 
-// v9.1: Visual variant options
-const VISUAL_COLORS = ['red', 'blue', 'golden'];
-const VISUAL_PATTERNS = ['solid', 'spotted', 'striped'];
-const VISUAL_BODY_TYPES = ['slim', 'round', 'elongated'];
+// v10.1.3-w3b: Visual variant options — 5 colors × 5 patterns × 5 body types = 125 combinations
+// Aligned with Tomas §2.2 / backend ALLOWED_VV (v10.1.4)
+const VISUAL_COLORS = ['red', 'orange', 'yellow', 'green', 'blue'];
+const VISUAL_PATTERNS = ['solid', 'stripe', 'spots', 'gradient', 'camouflage'];
+const VISUAL_BODY_TYPES = ['oval', 'diamond', 'streamlined', 'disc', 'elongated'];
 
 export default function SpeciesPage() {
   const t = useTranslations('species');
   const tf = useTranslations('fish');
+  const tv = useTranslations('visualVariant');
   const { data: species, loading, refetch } = useApi<FishSpecies[]>('/api/fish-species?lang=' + (typeof window !== 'undefined' ? (document.cookie.match(/locale=(\w+)/)?.[1] ?? 'zh') : 'zh'));
   const [adding, setAdding] = useState(false);
   const [addingStep, setAddingStep] = useState(1); // v9.1: wizard steps 1-3
@@ -68,9 +71,36 @@ export default function SpeciesPage() {
   const [growthDays, setGrowthDays] = useState(60);
   const [feedFreq, setFeedFreq] = useState<'daily' | 'twice_daily' | 'every_2_days'>('twice_daily');
   const [color, setColor] = useState('#5BA9C7');
-  const [visualVariant, setVisualVariant] = useState({ color: 'red', pattern: 'solid', body: 'slim' });
+  const [visualVariant, setVisualVariant] = useState({ color: 'red', pattern: 'solid', body: 'oval' });
   const [busy, setBusy] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // v10.1.3-w4 §3: favorites
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [favLoading, setFavLoading] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    api<string[]>(`/api/favorites?userId=${USER_ID}`)
+      .then((ids) => setFavorites(new Set(ids)))
+      .catch(() => {});
+  }, []);
+
+  const toggleFavorite = async (speciesId: string) => {
+    setFavLoading((prev) => ({ ...prev, [speciesId]: true }));
+    try {
+      if (favorites.has(speciesId)) {
+        await api(`/api/favorites?userId=${USER_ID}&speciesId=${encodeURIComponent(speciesId)}`, { method: 'DELETE' });
+        setFavorites((prev) => { const n = new Set(prev); n.delete(speciesId); return n; });
+      } else {
+        await api('/api/favorites', { method: 'POST', body: JSON.stringify({ userId: USER_ID, speciesId }) });
+        setFavorites((prev) => new Set(prev).add(speciesId));
+      }
+    } catch {
+      // silent fail
+    } finally {
+      setFavLoading((prev) => ({ ...prev, [speciesId]: false }));
+    }
+  };
 
   // v9.1 REQ-2: Nickname modal FIRST, then tank selector
   const [showNicknameFirst, setShowNicknameFirst] = useState(false);
@@ -270,22 +300,34 @@ export default function SpeciesPage() {
 
       <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
         {species?.map((sp) => {
-          let visualVariantObj: { color?: string; pattern?: string; body?: string } | null = null;
-          if (sp.variant && typeof sp.variant === 'string' && sp.variant.startsWith('{')) {
-            try { visualVariantObj = JSON.parse(sp.variant); } catch {}
-          }
+          // v10.1.3-w3b: use sp.visualVariant (parsed JSON from API), not sp.variant (species type)
+          const visualVariantObj = sp.visualVariant || null;
           return (
-          <div key={sp.id} className="card hover:shadow-md transition">
+          <div key={sp.id} className="card hover:shadow-md transition relative">
+            {/* v10.1.3-w4 §3: favorite toggle */}
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleFavorite(sp.id); }}
+              disabled={favLoading[sp.id]}
+              className="absolute top-3 right-3 z-10 text-lg transition-transform hover:scale-110 active:scale-95"
+              title={favorites.has(sp.id) ? '取消收藏' : '收藏'}
+            >
+              {favLoading[sp.id] ? '⏳' : favorites.has(sp.id) ? '❤️' : '🤍'}
+            </button>
             <div className="h-20 rounded-2xl mb-3 bg-water-50 flex items-center justify-center">
-              <FishAvatar variant={(sp.variant as any) ?? slugToVariant(sp.name)} size={64} animated={false} />
+              <FishAvatar
+                variant={slugToVariant(sp.name)}
+                visualVariant={visualVariantObj ?? undefined}
+                size={64}
+                animated={false}
+              />
             </div>
             <h3 className="font-semibold text-water-600 text-lg">{sp.name}</h3>
             <p className="text-sm text-water-500 mt-1 line-clamp-2">{sp.description}</p>
             {visualVariantObj && (
               <div className="flex gap-1 mt-1.5 text-[10px] text-water-400">
-                <span className="bg-water-50 px-1.5 py-0.5 rounded">{visualVariantObj.color}</span>
-                <span className="bg-water-50 px-1.5 py-0.5 rounded">{visualVariantObj.pattern}</span>
-                <span className="bg-water-50 px-1.5 py-0.5 rounded">{visualVariantObj.body}</span>
+                <span className="bg-water-50 px-1.5 py-0.5 rounded">{tv(`color.${visualVariantObj.color}`)}</span>
+                <span className="bg-water-50 px-1.5 py-0.5 rounded">{tv(`pattern.${visualVariantObj.pattern}`)}</span>
+                <span className="bg-water-50 px-1.5 py-0.5 rounded">{tv(`body.${visualVariantObj.body}`)}</span>
               </div>
             )}
             <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
@@ -415,23 +457,23 @@ export default function SpeciesPage() {
 
             {addingStep === 2 && (
               <div className="space-y-3">
-                <p className="text-sm text-water-500">选择外观特征（{VISUAL_COLORS.length} × {VISUAL_PATTERNS.length} × {VISUAL_BODY_TYPES.length} = 27 种组合）</p>
+                <p className="text-sm text-water-500">选择外观特征（{VISUAL_COLORS.length} × {VISUAL_PATTERNS.length} × {VISUAL_BODY_TYPES.length} = 125 种组合）</p>
                 <div>
                   <label className="label">颜色 Color</label>
                   <select className="input" value={visualVariant.color} onChange={(e) => setVisualVariant({ ...visualVariant, color: e.target.value })}>
-                    {VISUAL_COLORS.map((c) => <option key={c} value={c}>{c}</option>)}
+                    {VISUAL_COLORS.map((c) => <option key={c} value={c}>{tv(`color.${c}`)}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="label">花纹 Pattern</label>
                   <select className="input" value={visualVariant.pattern} onChange={(e) => setVisualVariant({ ...visualVariant, pattern: e.target.value })}>
-                    {VISUAL_PATTERNS.map((p) => <option key={p} value={p}>{p === 'solid' ? '纯色 Solid' : p === 'spotted' ? '斑点 Spotted' : '条纹 Striped'}</option>)}
+                    {VISUAL_PATTERNS.map((p) => <option key={p} value={p}>{tv(`pattern.${p}`)}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="label">体型 Body</label>
                   <select className="input" value={visualVariant.body} onChange={(e) => setVisualVariant({ ...visualVariant, body: e.target.value })}>
-                    {VISUAL_BODY_TYPES.map((b) => <option key={b} value={b}>{b === 'slim' ? '细长 Slim' : b === 'round' ? '圆形 Round' : '延长 Elongated'}</option>)}
+                    {VISUAL_BODY_TYPES.map((b) => <option key={b} value={b}>{tv(`body.${b}`)}</option>)}
                   </select>
                 </div>
                 <div className="bg-water-50 rounded-lg p-3 text-xs text-water-500">

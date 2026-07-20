@@ -13,6 +13,7 @@ import { PreferencesModule } from './preferences/preferences.module';
 import { UserModule } from './user/user.module';
 import { TemperatureModule } from './temperature/temperature.module';
 import { TemperatureAdjustModule } from './temperature-adjust/temperature-adjust.module';
+import { CitiesModule } from './cities/cities.module';
 import { HealthController } from './health/health.controller';
 // (end of imports)
 
@@ -30,6 +31,7 @@ import { HealthController } from './health/health.controller';
     UserModule,
     TemperatureModule,
     TemperatureAdjustModule,
+    CitiesModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

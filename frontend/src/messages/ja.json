@@ -17,9 +17,18 @@
     "startButton": "育成を始める",
     "tankButton": "水槽を開く",
     "features": {
-      "species": { "title": "10 種類の魚", "desc": "金魚、錦鯉、グッピーなど" },
-      "weather": { "title": "天気に連動", "desc": "地域の天気に基づく餌やり提案" },
-      "reminders": { "title": "スマート通知", "desc": "餌やり・換水・掃除を忘れずに" }
+      "species": {
+        "title": "10 種類の魚",
+        "desc": "金魚、錦鯉、グッピーなど"
+      },
+      "weather": {
+        "title": "天気に連動",
+        "desc": "地域の天気に基づく餌やり提案"
+      },
+      "reminders": {
+        "title": "スマート通知",
+        "desc": "餌やり・換水・掃除を忘れずに"
+      }
     }
   },
   "tanks": {
@@ -131,7 +140,17 @@
     "citySet": "設定",
     "citySave": "保存",
     "cityCurrent": "現在",
-    "cityPlaceholder": "都市名を入力、例「東京」"
+    "cityPlaceholder": "都市名を入力、例「東京」",
+    "noFishYet": "まだ魚がいません",
+    "noFishHint": "魚種図鑑で最初の魚を選びましょう",
+    "browseSpecies": "魚種を見に行く",
+    "myFishStatus": "私の魚・状態",
+    "recentFish": "最近の魚",
+    "viewAll": "すべて見る",
+    "speciesDistribution": "魚種分布",
+    "sortCountDesc": "数量順",
+    "sortRecent": "最近追加",
+    "sortGrowth": "成長度"
   },
   "species": {
     "title": "魚種図鑑",
@@ -178,7 +197,8 @@
     "locationTitle": "現在地",
     "fallback": "デフォルト都市",
     "live": "リアルタイム",
-    "noFishHint": "先に魚缸に魚を追加してから、個別の提案を確認してください"
+    "noFishHint": "先に魚缸に魚を追加してから、個別の提案を確認してください",
+    "refresh": "更新"
   },
   "reminders": {
     "title": "通知センター",
@@ -223,5 +243,35 @@
     "fishFriendDescription": "基本5種すべてをアンロック",
     "dedication": "こだわりの養魚",
     "dedicationDescription": "累計100日間魚を育てる"
+  },
+  "visualVariant": {
+    "color": {
+      "red": "赤",
+      "orange": "橙",
+      "yellow": "黄",
+      "green": "緑",
+      "blue": "青"
+    },
+    "pattern": {
+      "solid": "無地",
+      "stripe": "縞",
+      "spots": "斑",
+      "gradient": "グラデーション",
+      "camouflage": "迷彩"
+    },
+    "body": {
+      "oval": "楕円",
+      "diamond": "菱形",
+      "streamlined": "流線型",
+      "disc": "円盤",
+      "elongated": "長細"
+    }
+  },
+  "errors": {
+    "tank_already_fresh": "この水槽は前回{items}時間前に水替えしました。あと{items}時間待ちましょう 🐟",
+    "not_enough_water": "水量不足で水替えできません",
+    "tank_not_found": "水槽が見つかりません。削除された可能性があります",
+    "permission_denied": "この水槽を操作する権限がありません",
+    "operation_failed": "操作に失敗しました。しばらくしてからもう一度お試しください"
   }
 }

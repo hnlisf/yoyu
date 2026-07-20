@@ -187,6 +187,7 @@ function TankStageInner({ fishList, onFishClick, weatherCode, feedRef }: TankSta
                 <span className={feedingClass || undefined}>
                   <FishAvatar
                     variant={variant}
+                    visualVariant={f.species?.visualVariant}
                     stage={f.stage}
                     size={64}
                     animated={false}

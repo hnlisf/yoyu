@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { api, FishTank, Fish, WeatherData } from '@/lib/api';
+import { api, FishTank, Fish, WeatherData, ApiError } from '@/lib/api';
 import { FishAvatar } from '@/components/fish';
 import { slugToVariant } from '@/components/fish/types';
 import { TankStage } from '@/components/Tank/TankStage';
@@ -15,6 +15,7 @@ import { Toast } from '@/components/ui/Toast';
 import { Icon } from '@/components/ui/Icon';
 import { HeaterSwitch } from '@/components/Tank/HeaterSwitch';
 import { useTranslateTankName } from '@/lib/i18n/tankName';
+import { getErrorSeverity } from '@/lib/errorMessages';
 import { BottomDrawer } from '@/components/BottomDrawer';
 import { CapacityBar } from '@/components/ui/CapacityBar';
 import { TempAlertBanner } from '@/components/Tank/TempAlertBanner';
@@ -38,6 +39,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
   const t = useTranslations('tankDetail');
   const tf = useTranslations('fish.stage');
   const tCommon = useTranslations('common');
+  const tErrors = useTranslations('errors');
   const tName = useTranslateTankName();
 
   const feedRef = useRef<((count?: number, fishIds?: string[]) => void) | null>(null);
@@ -47,6 +49,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'warning' | 'error' | undefined>(undefined);
 
   // v9.1 REQ-4: Rename state
   const [renamingFishId, setRenamingFishId] = useState<string | null>(null);
@@ -70,32 +73,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [heaterToggling, setHeaterToggling] = useState(false);
 
-  // v9.1 REQ-3 / v10.1.2 Item 3: Nickname privacy — hidden by default, click to reveal, auto-hide after 2.5s
-  const [visibleNicknameId, setVisibleNicknameId] = useState<string | null>(null);
-  const nicknameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const clearNicknameTimer = useCallback(() => {
-    if (nicknameTimerRef.current) { clearTimeout(nicknameTimerRef.current); nicknameTimerRef.current = null; }
-  }, []);
-  const revealNickname = useCallback((fishId: string) => {
-    clearNicknameTimer();
-    setVisibleNicknameId(fishId);
-    nicknameTimerRef.current = setTimeout(() => setVisibleNicknameId(null), 2500);
-  }, [clearNicknameTimer]);
-  // Cleanup timer on unmount, and global click-to-hide
-  useEffect(() => {
-    const handleDocClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('[data-nickname]')) {
-        clearNicknameTimer();
-        setVisibleNicknameId(null);
-      }
-    };
-    document.addEventListener('click', handleDocClick);
-    return () => {
-      clearNicknameTimer();
-      document.removeEventListener('click', handleDocClick);
-    };
-  }, [clearNicknameTimer]);
+  // §1 方案 A: 昵称默认直接展示，无任何隐藏机制（老板 2026-07-15 13:11 UTC 拍板）
 
   const load = async () => {
     try {
@@ -299,10 +277,38 @@ function TankPageContent({ tankId }: { tankId: string }) {
         { method: 'POST', body: JSON.stringify({ userId: USER_ID }) }
       );
       setToast(`换水完成！水温已重置为 ${result.temperature}°C`);
+      setToastType('success');
       setHeaterOn(false);
       await load();
     } catch (e: any) {
-      setToast('换水失败: ' + e.message);
+      // v10.1.3-w1: consume error_code + remainingHours from ApiError
+      if (e instanceof ApiError && e.data?.error_code) {
+        const ec = e.data.error_code;
+        const remaining = e.data.remainingHours ?? e.data.cooldownHours ?? 24;
+        let msg: string;
+        switch (ec) {
+          case 'tank_already_fresh':
+            msg = tErrors('tank_already_fresh', { hours: remaining });
+            break;
+          case 'not_enough_water':
+            msg = tErrors('not_enough_water');
+            break;
+          case 'tank_not_found':
+            msg = tErrors('tank_not_found');
+            break;
+          case 'permission_denied':
+            msg = tErrors('permission_denied');
+            break;
+          default:
+            msg = tErrors('operation_failed');
+        }
+        const severity = getErrorSeverity(e.data.error_code);
+        setToast(msg);
+        setToastType(severity as 'warning' | 'error');
+      } else {
+        setToast('换水失败: ' + (e.message || '未知错误'));
+        setToastType('error');
+      }
     } finally {
       setBusy(false);
     }
@@ -467,7 +473,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
         />
       </div>
 
-      <Toast message={toast} onDismiss={() => setToast(null)} />
+      <Toast message={toast} type={toastType} onDismiss={() => { setToast(null); setToastType(undefined); }} />
     </div>
   );
 
@@ -611,7 +617,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
                 return (
                   <div key={f.id} className="flex items-center gap-2 p-2 rounded-xl hover:bg-glass transition">
                     <Link href={`/growth/${f.id}`} className="flex items-center gap-2 flex-1 min-w-0">
-                      <FishAvatar variant={variant} stage={f.stage} size={40} animated={false} />
+                      <FishAvatar variant={variant} stage={f.stage} size={40} animated={false} visualVariant={f.species?.visualVariant} />
                       <div className="flex-1 min-w-0">
                         {isRenaming ? (
                           <div className="flex items-center gap-1">
@@ -629,15 +635,8 @@ function TankPageContent({ tankId }: { tankId: string }) {
                             <button onClick={() => setRenamingFishId(null)} className="text-xs text-text-secondary px-1">✕</button>
                           </div>
                         ) : (
-                          <p
-                            className="text-sm text-text-primary whitespace-normal break-words cursor-pointer"
-                            data-nickname="true"
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (f.name) revealNickname(f.id); }}
-                          >
-                            {f.name
-                              ? (visibleNicknameId === f.id ? f.name : '●●●●●')
-                              : tf(f.stage)
-                            } <span className="text-xs">{moodEmoji}</span>
+                          <p className="text-sm text-text-primary whitespace-normal break-words cursor-pointer">
+                            {f.name || tf(f.stage)} <span className="text-xs">{moodEmoji}</span>
                           </p>
                         )}
                         <p className="text-[10px] font-light text-text-secondary">
@@ -696,7 +695,7 @@ function TankPageContent({ tankId }: { tankId: string }) {
               return (
                 <div key={f.id} className="block p-2 rounded-xl hover:bg-glass transition">
                   <Link href={`/growth/${f.id}`} className="flex items-center gap-2 mb-1">
-                    <FishAvatar variant={variant} stage={f.stage} size={32} animated={false} />
+                    <FishAvatar variant={variant} stage={f.stage} size={32} animated={false} visualVariant={f.species?.visualVariant} />
                     <div className="min-w-0">
                       {isRenaming ? (
                         <div className="flex items-center gap-1">
@@ -714,15 +713,8 @@ function TankPageContent({ tankId }: { tankId: string }) {
                           <button onClick={() => setRenamingFishId(null)} className="text-[10px] text-text-secondary px-1">✕</button>
                         </div>
                       ) : (
-                        <p
-                          className="text-xs text-text-primary whitespace-normal break-words cursor-pointer"
-                          data-nickname="true"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (f.name) revealNickname(f.id); }}
-                        >
-                          {f.name
-                            ? (visibleNicknameId === f.id ? f.name : '●●●●●')
-                            : tf(f.stage)
-                          } <span>{moodEmoji}</span>
+                        <p className="text-xs text-text-primary whitespace-normal break-words">
+                          {f.name || tf(f.stage)} <span>{moodEmoji}</span>
                         </p>
                       )}
                       <p className="text-[9px] text-text-secondary">{tf(f.stage)}</p>
