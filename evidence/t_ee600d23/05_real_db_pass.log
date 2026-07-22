@@ -1,0 +1,7 @@
+
+> backend@0.0.1 test:i18n:db
+> node --import tsx ../scripts/i18n-db-compliance.ts
+
+dimension	value	count	suggestion	status
+summary	-	0	-	PASS
+D1.2.2 PASS: DB visualVariant values are 100% compliant

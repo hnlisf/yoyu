@@ -10,6 +10,8 @@
     "seed:run": "node --import tsx prisma/seed.ts",
     "db:reset": "rm -f prisma/dev.db && prisma migrate deploy && node --import tsx prisma/seed.ts",
     "db:seed": "node --import tsx prisma/seed.ts",
+    "test:i18n:db": "node --import tsx ../scripts/i18n-db-compliance.ts",
+    "migrate:visualvariant": "node --import tsx src/migrations/fix-visualvariant-legacy.ts",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",

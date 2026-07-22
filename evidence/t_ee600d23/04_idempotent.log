@@ -1,0 +1,7 @@
+
+> backend@0.0.1 migrate:visualvariant
+> node --import tsx src/migrations/fix-visualvariant-legacy.ts
+
+backup	/tmp/tmp.tHkMeeplXZ/legacy.db.before-visualvariant-2026-07-22T22-49-25-974Z.bak
+dimension	from	to	count
+summary	scanned=10	migrated=0	invalid=0	dryRun=false

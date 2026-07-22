@@ -1,0 +1,4 @@
+
+> backend@0.0.1 build
+> nest build && tsc prisma/seed.ts --outDir dist/prisma --rootDir prisma --module nodenext --moduleResolution nodenext --target ES2023 --esModuleInterop --resolvePackageJsonExports --skipLibCheck
+

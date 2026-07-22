@@ -1,0 +1,10 @@
+
+> backend@0.0.1 migrate:visualvariant
+> node --import tsx src/migrations/fix-visualvariant-legacy.ts
+
+backup	/tmp/tmp.tHkMeeplXZ/legacy.db.before-visualvariant-2026-07-22T22-49-25-005Z.bak
+dimension	from	to	count
+color	golden	yellow	1
+pattern	striped	stripe	1
+body	round	disc	1
+summary	scanned=10	migrated=1	invalid=0	dryRun=false

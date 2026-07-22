@@ -1,0 +1,9 @@
+
+> backend@0.0.1 test:i18n:db
+> node --import tsx ../scripts/i18n-db-compliance.ts
+
+dimension	value	count	suggestion	status
+color	golden	1	golden->yellow	FAIL
+pattern	striped	1	striped->stripe	FAIL
+body	round	1	round->disc	FAIL
+D1.2.2 FAIL: 3 violation group(s)
