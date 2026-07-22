@@ -43,6 +43,7 @@ export class FavoritesController {
   @ApiQuery({ name: 'userId', required: true })
   async list(@Query('userId') userId: string) {
     if (!userId) throw new BadRequestException('userId required');
+    // BUG-V10.1.4-2 fix: removed dead speciesId check (variable doesn't exist in this method)
     return this.service.getFavorites(userId);
   }
 
