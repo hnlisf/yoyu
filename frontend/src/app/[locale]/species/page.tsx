@@ -56,6 +56,19 @@ const VISUAL_COLORS = ['red', 'orange', 'yellow', 'green', 'blue'];
 const VISUAL_PATTERNS = ['solid', 'stripe', 'spots', 'gradient', 'camouflage'];
 const VISUAL_BODY_TYPES = ['oval', 'diamond', 'streamlined', 'disc', 'elongated'];
 
+// BUG-V10.1.4-4 fix: defensive validation for pre-v10.1.4 custom species
+// Old custom fish may have visualVariant in 3-value format (purple/scale/slim)
+// that CustomFishSVG can't handle, causing undefined→fallback→wrong rendering
+function isValidVisualVariant(vv: any): vv is { color: string; pattern: string; body: string } {
+  return (
+    vv != null &&
+    typeof vv === 'object' &&
+    typeof vv.color === 'string' && VISUAL_COLORS.includes(vv.color) &&
+    typeof vv.pattern === 'string' && VISUAL_PATTERNS.includes(vv.pattern) &&
+    typeof vv.body === 'string' && VISUAL_BODY_TYPES.includes(vv.body)
+  );
+}
+
 export default function SpeciesPage() {
   const t = useTranslations('species');
   const tf = useTranslations('fish');
@@ -300,8 +313,8 @@ export default function SpeciesPage() {
 
       <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
         {species?.map((sp) => {
-          // v10.1.3-w3b: use sp.visualVariant (parsed JSON from API), not sp.variant (species type)
-          const visualVariantObj = sp.visualVariant || null;
+          // BUG-V10.1.4-4 fix: only pass visualVariant to FishAvatar if it's a valid v10.1.4 structure
+          const visualVariantObj = isValidVisualVariant(sp.visualVariant) ? sp.visualVariant : null;
           return (
           <div key={sp.id} className="card hover:shadow-md transition relative">
             {/* v10.1.3-w4 §3: favorite toggle */}
