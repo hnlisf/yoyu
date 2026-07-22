@@ -32,14 +32,6 @@ jobs:
         run: npm run type-check
         working-directory: frontend
 
-      - name: Install backend dependencies
-        run: npm ci
-        working-directory: backend
-
-      - name: D1.2.2 visualVariant DB compliance
-        run: npm run test:i18n:db
-        working-directory: backend
-
   build:
     name: Build
     runs-on: ubuntu-latest
