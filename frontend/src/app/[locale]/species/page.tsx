@@ -316,7 +316,7 @@ export default function SpeciesPage() {
           // BUG-V10.1.4-4 fix: only pass visualVariant to FishAvatar if it's a valid v10.1.4 structure
           const visualVariantObj = isValidVisualVariant(sp.visualVariant) ? sp.visualVariant : null;
           return (
-          <div key={sp.id} className="card hover:shadow-md transition relative">
+          <div key={sp.id} className="card hover:shadow-md transition relative flex flex-col">
             {/* v10.1.3-w4 §3: favorite toggle */}
             <button
               onClick={(e) => { e.stopPropagation(); toggleFavorite(sp.id); }}
@@ -363,7 +363,7 @@ export default function SpeciesPage() {
                 </p>
               </div>
             </div>
-            <button onClick={() => startAddToTank(sp)} className="btn-primary w-full mt-4 text-sm">
+            <button onClick={() => startAddToTank(sp)} className="btn-primary w-full mt-auto text-sm">
               {t('selectButton')}
             </button>
           </div>
