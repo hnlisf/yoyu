@@ -241,7 +241,7 @@ export default function ProfilePage() {
                 </Link>
               ))}
             </div>
-            {fishSummary.bySpecies.length > 0 && (
+            {fishSummary.bySpecies?.length > 0 && (
               <div className="mt-3 pt-3 border-t border-glass-border">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[10px] text-text-secondary">{t('speciesDistribution')}</p>
@@ -256,7 +256,7 @@ export default function ProfilePage() {
                   </select>
                 </div>
                 <div className="flex gap-1.5 flex-wrap">
-                  {fishSummary.bySpecies.map((sp) => (
+                  {fishSummary.bySpecies?.map((sp) => (
                     <Link key={sp.speciesId} href={`/my-fish?species=${sp.speciesId}`}>
                       <Tag variant="neutral" className="text-[10px] cursor-pointer hover:opacity-80">
                         {sp.name} ×{sp.count}
