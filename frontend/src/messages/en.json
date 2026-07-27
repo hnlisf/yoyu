@@ -257,6 +257,13 @@
       "streamlined": "Streamlined",
       "disc": "Disc",
       "elongated": "Elongated"
+    },
+    "tail": {
+      "fan": "Fan Tail",
+      "forked": "Forked Tail",
+      "rounded": "Rounded Tail",
+      "pointed": "Pointed Tail",
+      "flowing": "Flowing Tail"
     }
   },
   "errors": {

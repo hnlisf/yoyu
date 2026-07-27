@@ -19,8 +19,9 @@ interface FishAvatarProps {
   stage?: FishStage;
   animated?: boolean;
   className?: string;
-  /** v10.1.3-w3b: visualVariant for custom species 5×5×5 rendering */
-  visualVariant?: { color: string; pattern: string; body: string };
+  /** v10.1.3-w3b: visualVariant for custom species 5×5×5 rendering
+   * v10.1.5: BUG-V10.1.4-4 — extended to include tail field (4-dimension) */
+  visualVariant?: { color: string; pattern: string; body: string; tail?: string };
   nickname?: string;
 }
 

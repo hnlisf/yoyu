@@ -37,7 +37,7 @@ export class FishSpeciesService {
     feedFreq: string;
     stages?: any;
     color?: string;
-    visualVariant?: { color: string; pattern: string; body: string }; // v10.1.3-w3b: 5×5×5 values
+    visualVariant?: { color: string; pattern: string; body: string; tail?: string }; // v10.1.3-w3b: 5×5×5 values; v10.1.5 BUG-V10.1.4-4: tail added
   }): Promise<FishSpecies> {
     // DB columns are String (we store JSON-encoded), so stringify if client sent objects
     const nameI18nStr =
@@ -70,6 +70,8 @@ export class FishSpeciesService {
       if (typeof vv.color !== 'string' || !vv.color) missing.push('color');
       if (typeof vv.pattern !== 'string' || !vv.pattern) missing.push('pattern');
       if (typeof vv.body !== 'string' || !vv.body) missing.push('body');
+      // tail is optional — default to 'fan' if not provided
+      if (vv.tail != null && typeof vv.tail !== 'string') missing.push('tail');
       if (missing.length > 0) {
         throw new BadRequestException(
           `visualVariant 缺少必填字段: ${missing.join(', ')}`,
@@ -91,6 +93,7 @@ export class FishSpeciesService {
         color: ['red', 'orange', 'yellow', 'green', 'blue'],
         pattern: ['solid', 'stripe', 'spots', 'gradient', 'camouflage'],
         body: ['oval', 'diamond', 'streamlined', 'disc', 'elongated'],
+        tail: ['fan', 'forked', 'rounded', 'pointed', 'flowing'],
       };
       if (!ALLOWED_VV.color.includes(vv.color)) {
         throw new BadRequestException(`visualVariant.color 不合法: ${vv.color}`);
@@ -100,6 +103,9 @@ export class FishSpeciesService {
       }
       if (!ALLOWED_VV.body.includes(vv.body)) {
         throw new BadRequestException(`visualVariant.body 不合法: ${vv.body}`);
+      }
+      if (vv.tail != null && !ALLOWED_VV.tail.includes(vv.tail)) {
+        throw new BadRequestException(`visualVariant.tail 不合法: ${vv.tail}`);
       }
       visualVariantStr = JSON.stringify(vv);
     }

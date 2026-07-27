@@ -265,6 +265,13 @@
       "streamlined": "流線型",
       "disc": "円盤",
       "elongated": "長細"
+    },
+    "tail": {
+      "fan": "扇形尾",
+      "forked": "叉形尾",
+      "rounded": "丸形尾",
+      "pointed": "尖形尾",
+      "flowing": "波紋尾"
     }
   },
   "errors": {

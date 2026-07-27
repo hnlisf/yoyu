@@ -5,8 +5,8 @@ import { useId } from 'react';
 interface CustomFishSVGProps {
   size?: number;
   className?: string;
-  /** visualVariant object: { color, pattern, body } — values are string names per Tomas §2.2 */
-  visualVariant: { color: string; pattern: string; body: string };
+  /** visualVariant object: { color, pattern, body, tail } — values are string names per Tomas §2.2 */
+  visualVariant: { color: string; pattern: string; body: string; tail?: string };
   /** user-assigned nickname (shown as label) */
   nickname?: string;
 }
@@ -73,6 +73,28 @@ const BODY_FALLBACK: Record<string, string> = {
   disc: 'disc',
 };
 
+// Tail fin types (v10.1.5: BUG-V10.1.4-4 — tail field added to visualVariant)
+// fan: 3-layer circular fan (default), forked: 2-prong fork, rounded: single oval lobe, pointed: 3-point crown, flowing: 3-layer wavy
+const TAIL_SHAPE: Record<string, string> = {
+  fan:      'fan',      // default — 3-layer circular fan
+  forked:   'forked',   // 2-prong V fork
+  rounded:  'rounded',  // single oval lobe
+  pointed:  'pointed',  // 3-point crown
+  flowing:  'flowing',  // 3-layer wavy
+};
+
+const TAIL_FALLBACK: Record<string, string> = {
+  fan: 'fan',
+  forked: 'forked',
+  rounded: 'rounded',
+  pointed: 'pointed',
+  flowing: 'flowing',
+  slim: 'fan',
+  round: 'fan',
+  normal: 'fan',
+  plump: 'fan',
+};
+
 // Pattern color derivations (lighter/darker variants of base color)
 function deriveColors(hex: string) {
   return {
@@ -107,6 +129,10 @@ export function CustomFishSVG({ size, className, visualVariant, nickname }: Cust
   const bodyKey = BODY_FALLBACK[rawBody] ?? rawBody;
   const bodyPath = BODY_SHAPE[bodyKey] ?? BODY_SHAPE.oval;
   const m = BODY_METRICS[bodyKey] ?? BODY_METRICS.oval;
+
+  // Resolve tail (v10.1.5: BUG-V10.1.4-4 — tail field now part of visualVariant)
+  const rawTail = visualVariant.tail?.toLowerCase() ?? 'fan';
+  const tailKey = TAIL_FALLBACK[rawTail] ?? rawTail;
 
   const bodyGrad = `cBody_${uid}`;
   const finGrad = `cFin_${uid}`;
@@ -185,10 +211,50 @@ export function CustomFishSVG({ size, className, visualVariant, nickname }: Cust
         </linearGradient>
       </defs>
 
-      {/* Tail fin (3-layer for depth) — positioned relative to body */}
-      <path d={`M ${110 - m.rx} 60 Q ${110 - m.rx - 30} 15 ${110 - m.rx - 50} 35 Q ${110 - m.rx - 55} 60 ${110 - m.rx - 50} 85 Q ${110 - m.rx - 30} 105 ${110 - m.rx} 60 Z`} fill={`url(#${finGrad})`} />
-      <path d={`M ${110 - m.rx} 60 Q ${110 - m.rx - 25} 25 ${110 - m.rx - 43} 45 Q ${110 - m.rx - 47} 60 ${110 - m.rx - 43} 75 Q ${110 - m.rx - 25} 95 ${110 - m.rx} 60 Z`} fill={`url(#${finGrad})`} opacity="0.7" />
-      <path d={`M ${110 - m.rx} 60 Q ${110 - m.rx - 20} 35 ${110 - m.rx - 37} 52 Q ${110 - m.rx - 40} 60 ${110 - m.rx - 37} 68 Q ${110 - m.rx - 20} 85 ${110 - m.rx} 60 Z`} fill={`url(#${finGrad})`} opacity="0.4" />
+      {/* Tail fin — rendered per tail type (v10.1.5: BUG-V10.1.4-4) */}
+      {tailKey === 'fan' && (
+        <>
+          {/* 3-layer fan tail — largest at outer, smallest at inner */}
+          <path d={`M ${110 - m.rx} 60 Q ${110 - m.rx - 30} 15 ${110 - m.rx - 50} 35 Q ${110 - m.rx - 55} 60 ${110 - m.rx - 50} 85 Q ${110 - m.rx - 30} 105 ${110 - m.rx} 60 Z`} fill={`url(#${finGrad})`} />
+          <path d={`M ${110 - m.rx} 60 Q ${110 - m.rx - 25} 25 ${110 - m.rx - 43} 45 Q ${110 - m.rx - 47} 60 ${110 - m.rx - 43} 75 Q ${110 - m.rx - 25} 95 ${110 - m.rx} 60 Z`} fill={`url(#${finGrad})`} opacity="0.7" />
+          <path d={`M ${110 - m.rx} 60 Q ${110 - m.rx - 20} 35 ${110 - m.rx - 37} 52 Q ${110 - m.rx - 40} 60 ${110 - m.rx - 37} 68 Q ${110 - m.rx - 20} 85 ${110 - m.rx} 60 Z`} fill={`url(#${finGrad})`} opacity="0.4" />
+        </>
+      )}
+      {tailKey === 'forked' && (
+        <>
+          {/* Forked tail — 2 distinct prongs */}
+          <path d={`M ${110 - m.rx} 60 L ${110 - m.rx - 50} 20 L ${110 - m.rx - 20} 60 Z`} fill={`url(#${finGrad})`} />
+          <path d={`M ${110 - m.rx} 60 L ${110 - m.rx - 50} 100 L ${110 - m.rx - 20} 60 Z`} fill={`url(#${finGrad})`} />
+          <path d={`M ${110 - m.rx} 60 L ${110 - m.rx - 35} 25 L ${110 - m.rx - 15} 60 Z`} fill={`url(#${finGrad})`} opacity="0.6" />
+          <path d={`M ${110 - m.rx} 60 L ${110 - m.rx - 35} 95 L ${110 - m.rx - 15} 60 Z`} fill={`url(#${finGrad})`} opacity="0.6" />
+        </>
+      )}
+      {tailKey === 'rounded' && (
+        <>
+          {/* Single rounded oval lobe */}
+          <ellipse cx={110 - m.rx - 28} cy={60} rx={28} ry={20} fill={`url(#${finGrad})`} />
+          <ellipse cx={110 - m.rx - 22} cy={60} rx={20} ry={14} fill={`url(#${finGrad})`} opacity="0.65" />
+          <ellipse cx={110 - m.rx - 16} cy={60} rx={12} ry={8} fill={`url(#${finGrad})`} opacity="0.35" />
+        </>
+      )}
+      {tailKey === 'pointed' && (
+        <>
+          {/* 3-point crown tail */}
+          <path d={`M ${110 - m.rx} 60 L ${110 - m.rx - 55} 20 L ${110 - m.rx - 20} 55 Z`} fill={`url(#${finGrad})`} />
+          <path d={`M ${110 - m.rx} 60 L ${110 - m.rx - 55} 100 L ${110 - m.rx - 20} 65 Z`} fill={`url(#${finGrad})`} />
+          <path d={`M ${110 - m.rx} 60 L ${110 - m.rx - 60} 60 L ${110 - m.rx - 20} 60 Z`} fill={`url(#${finGrad})`} opacity="0.8" />
+          <path d={`M ${110 - m.rx} 60 L ${110 - m.rx - 40} 28 L ${110 - m.rx - 15} 57 Z`} fill={`url(#${finGrad})`} opacity="0.5" />
+          <path d={`M ${110 - m.rx} 60 L ${110 - m.rx - 40} 92 L ${110 - m.rx - 15} 63 Z`} fill={`url(#${finGrad})`} opacity="0.5" />
+        </>
+      )}
+      {tailKey === 'flowing' && (
+        <>
+          {/* Flowing wavy tail — 3 layers with sinusoidal wave */}
+          <path d={`M ${110 - m.rx} 60 Q ${110 - m.rx - 20} 20 ${110 - m.rx - 40} 35 Q ${110 - m.rx - 55} 48 ${110 - m.rx - 45} 60 Q ${110 - m.rx - 55} 72 ${110 - m.rx - 40} 85 Q ${110 - m.rx - 20} 100 ${110 - m.rx} 60 Z`} fill={`url(#${finGrad})`} />
+          <path d={`M ${110 - m.rx} 60 Q ${110 - m.rx - 18} 30 ${110 - m.rx - 35} 42 Q ${110 - m.rx - 48} 54 ${110 - m.rx - 38} 60 Q ${110 - m.rx - 48} 66 ${110 - m.rx - 35} 78 Q ${110 - m.rx - 18} 90 ${110 - m.rx} 60 Z`} fill={`url(#${finGrad})`} opacity="0.7" />
+          <path d={`M ${110 - m.rx} 60 Q ${110 - m.rx - 15} 40 ${110 - m.rx - 28} 50 Q ${110 - m.rx - 40} 58 ${110 - m.rx - 30} 60 Q ${110 - m.rx - 40} 62 ${110 - m.rx - 28} 70 Q ${110 - m.rx - 15} 80 ${110 - m.rx} 60 Z`} fill={`url(#${finGrad})`} opacity="0.4" />
+        </>
+      )}
 
       {/* Main body — SVG path per Tomas §2.2 body shape */}
       <path d={bodyPath} fill={patternFill} stroke="#2C3E50" strokeWidth="0.5" />

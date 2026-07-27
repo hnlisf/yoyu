@@ -52,20 +52,24 @@ function classifyError(e: any, status?: number): ErrorCategory {
 
 // v10.1.3-w3b: Visual variant options — 5 colors × 5 patterns × 5 body types = 125 combinations
 // Aligned with Tomas §2.2 / backend ALLOWED_VV (v10.1.4)
+// v10.1.5 BUG-V10.1.4-4: tail added → 5×5×5×5 = 625 combinations
 const VISUAL_COLORS = ['red', 'orange', 'yellow', 'green', 'blue'];
 const VISUAL_PATTERNS = ['solid', 'stripe', 'spots', 'gradient', 'camouflage'];
 const VISUAL_BODY_TYPES = ['oval', 'diamond', 'streamlined', 'disc', 'elongated'];
+const VISUAL_TAIL_TYPES = ['fan', 'forked', 'rounded', 'pointed', 'flowing'];
 
 // BUG-V10.1.4-4 fix: defensive validation for pre-v10.1.4 custom species
 // Old custom fish may have visualVariant in 3-value format (purple/scale/slim)
 // that CustomFishSVG can't handle, causing undefined→fallback→wrong rendering
-function isValidVisualVariant(vv: any): vv is { color: string; pattern: string; body: string } {
+// v10.1.5: also accepts 4-value format with optional tail field
+function isValidVisualVariant(vv: any): vv is { color: string; pattern: string; body: string; tail?: string } {
   return (
     vv != null &&
     typeof vv === 'object' &&
     typeof vv.color === 'string' && VISUAL_COLORS.includes(vv.color) &&
     typeof vv.pattern === 'string' && VISUAL_PATTERNS.includes(vv.pattern) &&
-    typeof vv.body === 'string' && VISUAL_BODY_TYPES.includes(vv.body)
+    typeof vv.body === 'string' && VISUAL_BODY_TYPES.includes(vv.body) &&
+    (vv.tail == null || (typeof vv.tail === 'string' && VISUAL_TAIL_TYPES.includes(vv.tail)))
   );
 }
 
@@ -84,7 +88,7 @@ export default function SpeciesPage() {
   const [growthDays, setGrowthDays] = useState(60);
   const [feedFreq, setFeedFreq] = useState<'daily' | 'twice_daily' | 'every_2_days'>('twice_daily');
   const [color, setColor] = useState('#5BA9C7');
-  const [visualVariant, setVisualVariant] = useState({ color: 'red', pattern: 'solid', body: 'oval' });
+  const [visualVariant, setVisualVariant] = useState({ color: 'red', pattern: 'solid', body: 'oval', tail: 'fan' });
   const [busy, setBusy] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -337,10 +341,13 @@ export default function SpeciesPage() {
             <h3 className="font-semibold text-water-600 text-lg">{sp.name}</h3>
             <p className="text-sm text-water-500 mt-1 line-clamp-2">{sp.description}</p>
             {visualVariantObj && (
-              <div className="flex gap-1 mt-1.5 text-[10px] text-water-400">
+              <div className="flex gap-1 mt-1.5 text-[10px] text-water-400 flex-wrap">
                 <span className="bg-water-50 px-1.5 py-0.5 rounded">{tv(`color.${visualVariantObj.color}`)}</span>
                 <span className="bg-water-50 px-1.5 py-0.5 rounded">{tv(`pattern.${visualVariantObj.pattern}`)}</span>
                 <span className="bg-water-50 px-1.5 py-0.5 rounded">{tv(`body.${visualVariantObj.body}`)}</span>
+                {visualVariantObj.tail && (
+                  <span className="bg-water-50 px-1.5 py-0.5 rounded">{tv(`tail.${visualVariantObj.tail}`)}</span>
+                )}
               </div>
             )}
             <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
@@ -470,7 +477,7 @@ export default function SpeciesPage() {
 
             {addingStep === 2 && (
               <div className="space-y-3">
-                <p className="text-sm text-water-500">选择外观特征（{VISUAL_COLORS.length} × {VISUAL_PATTERNS.length} × {VISUAL_BODY_TYPES.length} = 125 种组合）</p>
+                <p className="text-sm text-water-500">选择外观特征（{VISUAL_COLORS.length} × {VISUAL_PATTERNS.length} × {VISUAL_BODY_TYPES.length} × {VISUAL_TAIL_TYPES.length} = {VISUAL_COLORS.length * VISUAL_PATTERNS.length * VISUAL_BODY_TYPES.length * VISUAL_TAIL_TYPES.length} 种组合）</p>
                 <div>
                   <label className="label">颜色 Color</label>
                   <select className="input" value={visualVariant.color} onChange={(e) => setVisualVariant({ ...visualVariant, color: e.target.value })}>
@@ -489,8 +496,15 @@ export default function SpeciesPage() {
                     {VISUAL_BODY_TYPES.map((b) => <option key={b} value={b}>{tv(`body.${b}`)}</option>)}
                   </select>
                 </div>
+                {/* v10.1.5 BUG-V10.1.4-4: tail selector added */}
+                <div>
+                  <label className="label">尾鳍 Tail</label>
+                  <select className="input" value={visualVariant.tail} onChange={(e) => setVisualVariant({ ...visualVariant, tail: e.target.value })}>
+                    {VISUAL_TAIL_TYPES.map((t) => <option key={t} value={t}>{tv(`tail.${t}`)}</option>)}
+                  </select>
+                </div>
                 <div className="bg-water-50 rounded-lg p-3 text-xs text-water-500">
-                  当前: {visualVariant.color} · {visualVariant.pattern} · {visualVariant.body}
+                  当前: {visualVariant.color} · {visualVariant.pattern} · {visualVariant.body} · {visualVariant.tail}
                 </div>
                 <div className="flex gap-2 pt-2">
                   <button onClick={() => setAddingStep(1)} className="btn-secondary flex-1">上一步</button>
