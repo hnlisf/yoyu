@@ -17,9 +17,18 @@
     "startButton": "Start raising",
     "tankButton": "Open my tank",
     "features": {
-      "species": { "title": "10 species", "desc": "Goldfish, Koi, Guppy and more" },
-      "weather": { "title": "Weather aware", "desc": "Personalized feeding advice" },
-      "reminder": { "title": "Smart reminders", "desc": "Never miss feeding, water change, or cleaning" }
+      "species": {
+        "title": "10 species",
+        "desc": "Goldfish, Koi, Guppy and more"
+      },
+      "weather": {
+        "title": "Weather aware",
+        "desc": "Personalized feeding advice"
+      },
+      "reminder": {
+        "title": "Smart reminders",
+        "desc": "Never miss feeding, water change, or cleaning"
+      }
     }
   },
   "tanks": {
@@ -107,7 +116,10 @@
     "weeklyChart": "Weekly Activity",
     "achievements": "Achievements",
     "unlocked": "Unlocked",
-    "locked": "Locked"
+    "locked": "Locked",
+    "loading": "Loading stats…",
+    "error": "Failed to load stats, please retry",
+    "retry": "retry"
   },
   "profile": {
     "myTanks": "My Tanks",

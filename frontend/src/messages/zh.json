@@ -17,9 +17,18 @@
     "startButton": "开始养成",
     "tankButton": "查看鱼缸",
     "features": {
-      "species": { "title": "10 种鱼可选", "desc": "金鱼、锦鲤、孔雀鱼等多种观赏鱼" },
-      "weather": { "title": "天气联动", "desc": "根据当地天气给出投喂建议" },
-      "reminder": { "title": "智能提醒", "desc": "换水、喂食、清理不再忘记" }
+      "species": {
+        "title": "10 种鱼可选",
+        "desc": "金鱼、锦鲤、孔雀鱼等多种观赏鱼"
+      },
+      "weather": {
+        "title": "天气联动",
+        "desc": "根据当地天气给出投喂建议"
+      },
+      "reminder": {
+        "title": "智能提醒",
+        "desc": "换水、喂食、清理不再忘记"
+      }
     }
   },
   "tanks": {
@@ -107,7 +116,10 @@
     "weeklyChart": "本周活动",
     "achievements": "成就徽章",
     "unlocked": "已达成",
-    "locked": "未达成"
+    "locked": "未达成",
+    "loading": "统计加载中…",
+    "error": "统计加载失败，请稍后重试",
+    "retry": "重试"
   },
   "profile": {
     "myTanks": "我的鱼缸",

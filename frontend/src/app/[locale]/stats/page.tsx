@@ -67,12 +67,30 @@ export default function StatsPage() {
   const { data: tanks } = useApi<FishTank[]>(`/api/fish-tanks?userId=${USER_ID}`);
 
   // Fetch real stats from the new backend aggregation endpoint
-  const { data: stats, error } = useApi<StatsResponse>('/api/stats?userId=' + USER_ID);
+  const { data: stats, error, refetch } = useApi<StatsResponse>('/api/stats?userId=' + USER_ID);
 
   const loading = !stats && !error;
 
   if (loading) {
-    return <p className="text-text-secondary text-sm font-light">…</p>;
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <p className="text-text-secondary text-sm font-light">{t('loading')}</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <p className="text-text-secondary text-sm font-light">{t('error')}</p>
+        <button
+          onClick={() => refetch?.()}
+          className="text-xs text-accent underline"
+        >
+          {t('retry')}
+        </button>
+      </div>
+    );
   }
 
   // Fallback: if backend /api/stats fails, show zeros

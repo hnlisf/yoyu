@@ -115,7 +115,10 @@
     "weeklyChart": "週間アクティビティ",
     "achievements": "実績",
     "unlocked": "解除済み",
-    "locked": "未解除"
+    "locked": "未解除",
+    "loading": "統計を読み込み中…",
+    "error": "統計の読み込みに失敗しました、再試行してください",
+    "retry": "再試行"
   },
   "profile": {
     "myTanks": "私の水槽",
