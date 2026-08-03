@@ -1,0 +1,61 @@
+{
+  "//": "根目录 package.json — YoYu Harness 工程入口。// 是 JSON 注释键惯例。",
+  "//_purpose": "定义 harness 相关 npm 脚本，集中暴露给开发者和 CI。",
+  "name": "yoyu",
+  "version": "0.0.0",
+  "private": true,
+  "description": "YoYu virtual fish pet game — monorepo root with harness engineering gates",
+  "//scripts_section": "================================================================",
+  "//scripts_intro": "所有 npm 脚本命名空间约定：harness:* 是 harness 工程本身；其它是各检查脚本的快捷方式。",
+  "scripts": {
+    "//harness_namespace": "─── harness 工程入口 ───",
+    "harness:check": "tsx scripts/harness.ts check",
+    "harness:check:fast": "tsx scripts/harness.ts check:fast",
+    "harness:check:full": "tsx scripts/harness.ts check:full",
+    "harness:report": "tsx scripts/harness.ts report",
+
+    "//check_namespace": "─── 单独跑某个检查脚本（编排器会自动跑所有，但调试时单跑更快）───",
+    "ref-check": "tsx scripts/ref-check.ts",
+    "i18n-check": "tsx scripts/i18n-check.ts",
+    "schema-check": "tsx scripts/schema-check.ts",
+    "auth-check": "tsx scripts/auth-check.ts",
+    "jsonb-strict-check": "tsx scripts/jsonb-strict-check.ts",
+    "env-schema-check": "tsx scripts/env-schema-check.ts",
+    "no-console-check": "tsx scripts/no-console-check.ts",
+    "security-scan": "bash scripts/security-scan.sh",
+
+    "//baseline_namespace": "─── universal baseline 检查（PR 2 新增，CI-only）───",
+    "dead-code": "bash scripts/ts-prune-check.sh",
+    "coverage": "bash scripts/coverage-check.sh",
+    "bundle-size": "bash scripts/bundle-size-check.sh",
+    "a11y-check": "bash scripts/pa11y-check.sh",
+
+    "//test_namespace": "─── 测试套件（被 harness:check:full 包含）───",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test",
+    "test:backend:coverage": "cd backend && npm test -- --coverage",
+    "test:frontend:coverage": "cd frontend && npm test -- --coverage",
+    "lint": "cd backend && npm run lint && cd ../frontend && npm run lint",
+    "type-check": "cd backend && npm run type-check && cd ../frontend && npm run type-check",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+
+    "//git_hooks": "─── Git 钩子（HUSKY=1 才装，避免破坏现有本地开发）───",
+    "prepare:husky": "husky install || true",
+    "prepare": "node -e \"if(process.env.HUSKY!=='0'){require('child_process').execSync('husky install',{stdio:'inherit'})};\""
+  },
+  "//devDeps_intro": "================================================================\ndevDependencies 集中在根目录，便于一个 npm install 装好 harness 工具链。\nbackend 和 frontend 各自有独立的 package.json，按需安装。\n\nPR 2 新增的 4 个 universal baseline 工具（ci_only，本地不强制安装）：\n- ts-prune    死代码检测\n- pa11y-ci    无障碍扫描\n- @lhci/cli  或 pa11y 都行（轻量选 pa11y）",
+  "devDependencies": {
+    "@types/node": "^20.16.5",
+    "@types/yaml": "^1.9.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.10",
+    "tsx": "^4.22.4",
+    "typescript": "^5.6.2",
+    "yaml": "^2.6.1"
+  },
+  "//optionalDeps_intro": "================================================================\noptionalDependencies：CI-only 工具，本地 npm install 不强装。\n设置 optional 是为了让 npm install 不报错（即使二进制平台不匹配）。",
+  "optionalDependencies": {
+    "ts-prune": "^0.10.3",
+    "pa11y-ci": "^3.0.1"
+  }
+}

@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+// P2 PR 11 新增 — i18n helper
+import { safeParse } from '../common/i18n';
 
 export interface UserPreferenceDto {
   userId: string;
@@ -48,7 +50,8 @@ export class PreferencesService {
   async getFavorites(userId: string): Promise<string[]> {
     const prefs = await this.get(userId);
     if (!prefs?.favorites) return [];
-    try { return JSON.parse(prefs.favorites); } catch { return []; }
+    // P2 PR 11: 用 safeParse 替换裸 JSON.parse
+    return safeParse<string[]>(prefs.favorites, []);
   }
 
   async addFavorite(userId: string, speciesId: string): Promise<string[]> {

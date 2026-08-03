@@ -7,6 +7,10 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FishSpecies } from '@prisma/client';
+// P2 PR 11 新增 — i18n JSON 字段统一解析
+import { safeParse } from '../common/i18n';
+// P3 §2.2 PR 15 新增 — visualVariant 映射单一来源
+import { canonicalize, isValidVV } from '../common/mappings/visual-variant';
 
 @Injectable()
 export class FishSpeciesService {
@@ -63,8 +67,9 @@ export class FishSpeciesService {
     let visualVariantStr: string | undefined;
     if (data.visualVariant) {
       // v10.1.3: Parse JSON string if client sends stringified (matching nameI18n/descI18n/stages pattern)
+      // P2 PR 11: 用 safeParse 替换裸 JSON.parse（项目策略禁止 i18n 字段外的 JSON.parse）
       const vv = typeof data.visualVariant === 'string'
-        ? JSON.parse(data.visualVariant)
+        ? safeParse(data.visualVariant, null)
         : data.visualVariant;
       const missing: string[] = [];
       if (typeof vv.color !== 'string' || !vv.color) missing.push('color');
@@ -75,30 +80,20 @@ export class FishSpeciesService {
           `visualVariant 缺少必填字段: ${missing.join(', ')}`,
         );
       }
-      // v10.1.3-w3b: whitelist validation — 5 colors × 5 patterns × 5 body types = 125 combinations
-      // v10.1.4: aligned with Tomas architecture §2.2 — 5×5×5=125 spec
-      // v10.1.4 FAIL-9: legacy visualVariant mapping — convert old 3-option values to new 5×5×5
-      const LEGACY_VV_MAPPING: Record<string, Record<string, string>> = {
-        color: { purple: 'blue' },   // purple→blue (indigo approximation)
-        pattern: { spotted: 'spots', striped: 'stripe' },
-        body: { slim: 'elongated', normal: 'oval', round: 'disc', plump: 'diamond' },
-      };
-      if (LEGACY_VV_MAPPING.color[vv.color]) vv.color = LEGACY_VV_MAPPING.color[vv.color];
-      if (LEGACY_VV_MAPPING.pattern[vv.pattern]) vv.pattern = LEGACY_VV_MAPPING.pattern[vv.pattern];
-      if (LEGACY_VV_MAPPING.body[vv.body]) vv.body = LEGACY_VV_MAPPING.body[vv.body];
+      // P3 §2.2 PR 15：visualVariant 映射改用 src/common/mappings/visual-variant.ts 单一来源
+      // —— 兼容 5 种 legacy 输入（purple / golden / spotted / striped / slim / normal / round / plump / scale）
+      vv.color = canonicalize('color', vv.color);
+      vv.pattern = canonicalize('pattern', vv.pattern);
+      vv.body = canonicalize('body', vv.body);
 
-      const ALLOWED_VV = {
-        color: ['red', 'orange', 'yellow', 'green', 'blue'],
-        pattern: ['solid', 'stripe', 'spots', 'gradient', 'camouflage'],
-        body: ['oval', 'diamond', 'streamlined', 'disc', 'elongated'],
-      };
-      if (!ALLOWED_VV.color.includes(vv.color)) {
+      // 白名单校验（5×5×5=125 组合）
+      if (!isValidVV('color', vv.color)) {
         throw new BadRequestException(`visualVariant.color 不合法: ${vv.color}`);
       }
-      if (!ALLOWED_VV.pattern.includes(vv.pattern)) {
+      if (!isValidVV('pattern', vv.pattern)) {
         throw new BadRequestException(`visualVariant.pattern 不合法: ${vv.pattern}`);
       }
-      if (!ALLOWED_VV.body.includes(vv.body)) {
+      if (!isValidVV('body', vv.body)) {
         throw new BadRequestException(`visualVariant.body 不合法: ${vv.body}`);
       }
       visualVariantStr = JSON.stringify(vv);
@@ -146,16 +141,14 @@ export class FishSpeciesService {
   }
 
   toI18n(s: FishSpecies, lang: string) {
-    let nameI18n: Record<string, string> = {};
-    let descI18n: Record<string, string> = {};
-    let stages: any[] = [];
-    try { nameI18n = JSON.parse(s.nameI18n); } catch {}
-    try { descI18n = JSON.parse(s.descI18n); } catch {}
-    try { stages = JSON.parse(s.stages); } catch {}
+    // P2 PR 11: 用 src/common/i18n.ts 的 safeParse 替换 4 处裸 JSON.parse
+    let nameI18n = safeParse<Record<string, string>>(s.nameI18n, {});
+    let descI18n = safeParse<Record<string, string>>(s.descI18n, {});
+    let stages = safeParse<any[]>(s.stages, []);
     // v9.1 item1: parse visualVariant from JSON field
     let visualVariant: any = undefined;
     if ((s as any).visualVariant) {
-      try { visualVariant = JSON.parse((s as any).visualVariant); } catch {}
+      visualVariant = safeParse((s as any).visualVariant, null);
     }
     const zhName = nameI18n['zh'] || '';
     return {

@@ -8,6 +8,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FishTank, Prisma } from '@prisma/client';
+// P2 PR 12 新增
+import { validateNickname } from '../common/validators/text';
 import { FishSpeciesService } from '../fish-species/fish-species.service';
 import { FishService } from '../fish/fish.service';
 import { WaterTemperatureService } from '../temperature/water-temperature.service';
@@ -55,15 +57,9 @@ export class FishTanksService {
     private temperatureAdjustService: TemperatureAdjustService,
     private userService: UserService,
   ) {
-    // Register flush callback: persist temperature to DB every ~30s
-    this.waterTemp.onFlush(async (tankId, temp) => {
-      try {
-        await this.prisma.fishTank.update({
-          where: { id: tankId },
-          data: { temp },
-        });
-      } catch { /* tank may have been deleted */ }
-    });
+    // P3 §3.3 PR 16：移除 flushCallback 接线
+    // —— 温度 DB 写入由 TemperatureAdjustService 统一负责
+    // —— WaterTemperatureService 只更新内存状态
   }
 
   async findAllByUser(userId: string, lang = 'zh'): Promise<any[]> {
@@ -91,12 +87,12 @@ export class FishTanksService {
         tank.heaterOn ?? false,
       );
     }
-    // v9.0: Include weatherSync and tempAlert in response
+    // P3 PR 17：删除 temperature 双列后，HTTP 响应仍保留同名字段（向后兼容）
     return {
       ...result,
       cityTemp: result.cityTemp ?? 0,
       heaterOn: result.heaterOn ?? false,
-      temperature: result.temperature ?? result.temp ?? 24,
+      temperature: result.temp,  // 仅用 temp（temperature 列已删）
       weatherSync: result.weatherSync ?? null,
       tempAlert: result.tempAlert ?? null,
       fishCount: result.fish?.length ?? 0,
@@ -196,7 +192,7 @@ export class FishTanksService {
       await tx.fishTank.update({
         where: { id: tankId },
         data: {
-          temperature: 24.0,
+          temp: 24.0,  // P3 PR 17：删 temperature 双列
           heaterOn: false,
           tempAlert: JSON.stringify({ isOverTemp: false, threshold: null, dismissedAt: new Date().toISOString() }),
         },
@@ -216,7 +212,7 @@ export class FishTanksService {
 
     return {
       id: tankId,
-      temperature: 24.0,
+      temperature: 24.0,  // P3 PR 17：响应字段保留同名（前端兼容），实际值从 temp 读
       heaterOn: false,
       cityTemp: tank.cityTemp ?? 24,
     };
@@ -247,18 +243,12 @@ export class FishTanksService {
     nickname: string,
     userId: string,
   ): Promise<any> {
-    // Validate nickname
-    if (!nickname || typeof nickname !== 'string') {
-      throw new BadRequestException('昵称不能为空');
+    // P2 PR 12: nickname 校验改用 src/common/validators/text.ts 单一来源
+    const result = validateNickname(nickname);
+    if (!result.ok) {
+      throw new BadRequestException(result.message);
     }
-    const trimmed = nickname.trim();
-    if (trimmed.length < 1 || trimmed.length > 20) {
-      throw new BadRequestException('昵称长度须在1-20个字符之间');
-    }
-    // No HTML tags
-    if (/<[^>]*>/.test(trimmed)) {
-      throw new BadRequestException('昵称不能包含HTML标签');
-    }
+    const trimmed = String(nickname).trim();
     // No emoji
     if (
       /[\uD800-\uDBFF][\uDC00-\uDFFF]/.test(trimmed) ||
@@ -268,6 +258,7 @@ export class FishTanksService {
     ) {
       throw new BadRequestException('昵称不能包含表情符号');
     }
+    // No emoji check 已迁到 validateNickname helper（P2 PR 12）
 
     // Check fish exists and belongs to the specified tank
     const fish = await this.prisma.fish.findUnique({
@@ -355,7 +346,6 @@ export class FishTanksService {
             size: data.size ?? 'medium',
             temp: initialWaterTemp,
             ph: data.ph ?? 7.0,
-            temperature: initialWaterTemp,
             location,
             lastWeatherFetchAt: new Date(),
             cityTemp,
@@ -478,8 +468,8 @@ export class FishTanksService {
           },
         });
 
-        // Create new temperature adjust job (from current temp to new city temp)
-        const currentTemp = tank.temp ?? tank.temperature ?? 24;
+        // P3 PR 17：tank.temp 是唯一温度源（已删 tank.temperature 双列）
+        const currentTemp = tank.temp ?? 24;
         if (Math.abs(currentTemp - cityTemp) > 0.1) {
           await this.temperatureAdjustService.createJob(id, currentTemp, cityTemp);
         }

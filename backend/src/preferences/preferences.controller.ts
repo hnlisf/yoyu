@@ -1,7 +1,12 @@
-import { BadRequestException, Body, Controller, Delete, Get, Post, Put, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { BadRequestException, Body, Controller, Delete, Get, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { PreferencesService } from './preferences.service';
+// PR 4 引入
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+// PR 4：用户偏好是私有数据 — 所有方法默认要 JWT 鉴权
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 @ApiTags('user')
 @Controller('api/user/preferences')
 export class PreferencesController {
@@ -33,6 +38,8 @@ export class PreferencesController {
 }
 
 // v10.1.3-w4 §3: standalone favorites endpoints
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 @ApiTags('favorites')
 @Controller('api/favorites')
 export class FavoritesController {

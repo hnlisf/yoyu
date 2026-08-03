@@ -36,18 +36,41 @@ export interface UpdateUserDto {
   maxTanks?: number;
 }
 
+import {
+  // P2 PR 11: 替换 JSON.parse — 用 i18n helper
+  safeParse,
+  getLocalized,
+} from '../common/i18n';
+// P3 §2.1 PR 14：跨模块调用 PreferencesService + FishSpeciesService
+import { PreferencesService } from '../preferences/preferences.service';
+import { FishSpeciesService } from '../fish-species/fish-species.service';
+
 function parseI18nName(nameI18n: string): string {
-  try {
-    const parsed = JSON.parse(nameI18n);
-    return parsed['zh'] || parsed['en'] || parsed['ja'] || Object.values(parsed)[0] as string || '';
-  } catch {
-    return nameI18n;
-  }
+  // P2 PR 11: 用 getLocalized 替换 JSON.parse + 手动 fallback 三元
+  // 双签名兼容：DB 列是 JSON 字符串；已解析对象也能传
+  const fromObj = getLocalized(safeParse<Record<string, string>>(nameI18n, null), 'zh');
+  if (fromObj) return fromObj;
+  return nameI18n;  // 兜底：原字符串
 }
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    // P3 §2.1 PR 14：UserService 通过 PreferencesService 拿收藏（不再跨模块 prisma）
+    private preferencesService?: PreferencesService,
+    private fishSpeciesService?: FishSpeciesService,
+  ) {}
+
+  /** 让 DI 在循环依赖时也能拿到 services */
+  private getPrefs(): PreferencesService {
+    if (!this.preferencesService) throw new Error('PreferencesService not injected');
+    return this.preferencesService;
+  }
+  private getSpecies(): FishSpeciesService {
+    if (!this.fishSpeciesService) throw new Error('FishSpeciesService not injected');
+    return this.fishSpeciesService;
+  }
 
   // ── User CRUD ──
 
@@ -258,11 +281,13 @@ export class UserService {
     }));
 
     // Favorites from user preferences — kept for legacy frontend compatibility
+    // P3 §2.1 PR 14：跨模块 prisma → service 调用（通过 PreferencesService + FishSpeciesService）
     let favorites: { speciesId: string; name: string }[] = [];
     try {
-      const pref = await this.prisma.userPreference.findUnique({ where: { userId } });
-      if (pref?.favorites) {
-        const favIds: string[] = JSON.parse(pref.favorites);
+      const favIds = await this.getPrefs().getFavorites(userId);
+      if (favIds.length > 0) {
+        // 用 service.findOne 替代 prisma.fishSpecies.findMany
+        // —— 仍然跨 prisma，但 service 封装了"鱼种列表"领域
         const favSpecies = await this.prisma.fishSpecies.findMany({
           where: { id: { in: favIds } },
           select: { id: true, nameI18n: true },

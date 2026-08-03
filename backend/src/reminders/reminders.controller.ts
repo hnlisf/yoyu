@@ -1,8 +1,13 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { RemindersService } from './reminders.service';
 import type { CreateReminderDto, UpdateReminderDto } from './reminders.service';
+// PR 4 引入
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+// PR 4：提醒是用户私有数据 — 所有方法默认要 JWT 鉴权
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 @ApiTags('reminders')
 @Controller('api/reminders')
 export class RemindersController {

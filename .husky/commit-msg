@@ -1,0 +1,88 @@
+#!/usr/bin/env sh
+# ============================================================================
+# .husky/commit-msg —— 验证 commit message 格式
+# ============================================================================
+# 作用：每次 `git commit -m "..."` 时检查 message 是否符合 Conventional Commits
+#
+# 规则（与 harness.yaml → universal_baseline.discipline.conventional_commits 一致）：
+#   ^(?<type>feat|fix|docs|chore|refactor|test|perf|ci|build|revert)
+#   (\([^)]+\))?         # 可选 scope，如 (api)
+#   !?                    # 可选 ! 表示 breaking change
+#   :\s
+#   .+                    # 必须有 description
+#
+# 示例通过：
+#   feat(api): add /api/auth/dev-token
+#   fix!: breaking change in JWT strategy
+#   docs: update README
+#   chore(harness): add PR 4 lessons
+#
+# 示例拒绝：
+#   YoYu: foo             # 大写 + 无 type 关键字
+#   v10.1.4: release      # 数字当 type 不允许
+#   Merge branch 'main'    # 工具自动生成（merge / revert 应被 bypass）
+#   Initial commit         # 仓库初始化
+#
+# Bypass：
+#   git commit --no-verify     # 完全跳过所有 hook（包括 pre-commit）
+#   git commit -m "..." --no-verify  # 标准逃生姿势
+#
+# 历史 commit：
+#   已存在的 144 个 commit 中约 14% 不符合此规范（Merge / v10.1.4 / 等等）
+#   但这些都已入仓库；hook 只对未来 commit 生效
+# ============================================================================
+
+# 读取 commit message（git 通过 stdin 传给 hook 的第一个参数是 commit msg 文件）
+commit_msg_file="$1"
+if [ -z "$commit_msg_file" ] || [ ! -f "$commit_msg_file" ]; then
+  echo "❌ commit-msg: 找不到 commit message 文件"
+  exit 1
+fi
+
+commit_msg=$(cat "$commit_msg_file")
+
+# Conventional Commits 正则
+# 关键点：
+#   - type 必须是 lowercase 关键字
+#   - 可选 scope（括号）
+#   - 可选 ! 标记 breaking change
+#   - 冒号后必须有空格
+regex='^(feat|fix|docs|chore|refactor|test|perf|ci|build|revert)(\([^)]+\))?!?: .+'
+
+# 兼容 git 自动生成的 commit（merge / revert）—— 这些应被 bypass
+# git 用 "Merge ..."、"Revert ..." 等开头
+if echo "$commit_msg" | head -1 | grep -qE '^(Merge|Revert)'; then
+  echo "⏭️  commit-msg: git 自动生成的 merge/revert commit，跳过格式检查"
+  exit 0
+fi
+
+# 兼容 git 生成的 initial commit（仓库初始化）
+if echo "$commit_msg" | head -1 | grep -qE '^Initial commit'; then
+  echo "⏭️  commit-msg: Initial commit，跳过格式检查"
+  exit 0
+fi
+
+# 实际格式检查
+if echo "$commit_msg" | head -1 | grep -qE "$regex"; then
+  echo "✅ commit-msg 格式符合 Conventional Commits"
+  exit 0
+else
+  echo "❌ commit-msg 格式不符合 Conventional Commits"
+  echo ""
+  echo "当前 message:"
+  echo "   $(echo "$commit_msg" | head -1)"
+  echo ""
+  echo "期望格式:"
+  echo "   <type>(<scope>)?(!)?: <description>"
+  echo ""
+  echo "可用 type:"
+  echo "   feat  fix  docs  chore  refactor  test  perf  ci  build  revert"
+  echo ""
+  echo "示例:"
+  echo "   feat: add JWT authentication"
+  echo "   fix(api): handle 401 on missing token"
+  echo "   feat!: breaking change in fish-tanks controller"
+  echo ""
+  echo "Bypass：git commit --no-verify"
+  exit 1
+fi

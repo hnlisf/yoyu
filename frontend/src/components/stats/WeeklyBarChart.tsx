@@ -1,7 +1,8 @@
 'use client';
 
 import { useId } from 'react';
-import type { WeeklyDatum } from '@/lib/api/mock';
+// P4 PR 21: 改用 SWR hook 返回的 WeeklyFeedingDatum（真实后端结构）
+import type { WeeklyFeedingDatum as WeeklyDatum } from '@/lib/swr/useStats';
 
 interface WeeklyBarChartProps {
   data: WeeklyDatum[];

@@ -1,0 +1,16 @@
+{
+  "//": "i18n baseline snapshot — PR 5 创建；P4 PR 20 全清空。",
+  "capturedAt": "2026-08-02",
+  "capturedBy": "P4 PR 20 (full i18n cleanup)",
+  "policyReference": "harness.yaml → policies.i18n.baseline_file",
+  "knownDrift": {},
+  "usePolicy": {
+    "mode": "zero-tolerance",
+    "script": "scripts/i18n-check.ts",
+    "behavior": "PR 5+ 任意 drift 立即阻断（baseline 已空）"
+  },
+  "owners": {
+    "clearance_date": "2026-08-02",
+    "fix_commit": "P4 PR 20 (tankNames.My Tank + {hours} + reminder/reminders 统一)"
+  }
+}

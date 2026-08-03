@@ -1,3 +1,14 @@
+// =============================================================================
+// YoYu 数据库 Schema（v10.2 整理版）
+// =============================================================================
+// 清理历程：
+//   - v10.2 / P2 PR 12 移除所有「// v<x>」「// v<x> item*」散落注释
+//   - 字段意图已迁移到 model 级 doc-comment + CHANGELOG.md
+//
+// 演进纪律由 harness.yaml → policies.prisma.forbid_version_comments 守护
+// （schema-check.ts PR 1 baseline 阶段报 14 处，P2 PR 12 修完后 0 处）
+// =============================================================================
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,12 +18,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// 用户——鱼缸和提醒的所有者
+/// - maxTanks 软上限默认 6（业务可调，harness 不知）
 model User {
   id             String    @id @default(uuid())
   name           String    @default("鱼友")
-  locale         String    @default("zh") // zh, en, ja
+  locale         String    @default("zh") // 客户端 locale（zh / en / ja）
   defaultTankId  String?   @map("default_tank_id")
-  maxTanks       Int       @default(6) @map("max_tanks") // v9.0: hard limit on tanks per user
+  maxTanks       Int       @default(6) @map("max_tanks") // 单用户鱼缸硬上限（防滥用）
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
@@ -23,22 +36,25 @@ model User {
   @@map("users")
 }
 
+/// 鱼种库——可被所有用户共享或自定义
+/// - nameI18n / descI18n / stages / visualVariant 是 i18n JSON 列（用 common/i18n.ts 解析）
+/// - visualVariant schema：在 P3 PR 15 统一在 src/common/mappings/visual-variant.ts
 model FishSpecies {
   id             String  @id @default(uuid())
-  nameI18n       String  @map("name_i18n") // JSONB: {"zh":"金鱼","en":"Goldfish","ja":"金魚"}
-  descI18n       String  @map("description_i18n") // JSONB
+  nameI18n       String  @map("name_i18n") // JSON: {"zh":"金鱼","en":"Goldfish","ja":"金魚"}
+  descI18n       String  @map("description_i18n") // JSON: 同结构
   tempMin        Float   @map("temp_min")
   tempMax        Float   @map("temp_max")
   phMin          Float   @map("ph_min")
   phMax          Float   @map("ph_max")
   growthDays     Int     @map("growth_days") // 成长周期（天）
   feedFreq       String  @map("feed_freq") // daily / twice_daily / every_2_days
-  stages         String  // JSONB: [{"name":"鱼苗","days":7},...]
+  stages         String  // JSON: [{"name":"鱼苗","days":7},...]
   feedRefuseHint String? @map("feed_refuse_hint") // 拒绝投喂时的温馨提醒模板
   color          String  @default("#5BA9C7")
   isDefault      Boolean @default(false) @map("is_default")
-  userCustomized Boolean @default(false) @map("user_customized") // v9.0: user-created species
-  visualVariant  String? @map("visual_variant") // v9.1 item1: JSON {"color","pattern","body"} — null for defaults
+  userCustomized Boolean @default(false) @map("user_customized") // 用户自定义（非内置鱼种）标记
+  visualVariant  String? @map("visual_variant") // JSON: {"color","pattern","body"} — null 即默认值
   createdAt      DateTime @default(now()) @map("created_at")
 
   fish           Fish[]
@@ -46,21 +62,24 @@ model FishSpecies {
   @@map("fish_species")
 }
 
+/// 鱼缸——用户的容器
+/// - temp 唯一温度字段（PR 17 删除 temperature 双列；之前 race condition 由 TemperatureState 统一）
+/// - weatherSync / tempAlert 用于前端 banner 提示
+/// - 注意：字段命名 / 校验 / 写入者约束见 refactor/SPEC.md §3
 model FishTank {
   id                String @id @default(uuid())
   userId            String @map("user_id")
   name              String @default("我的鱼缸")
   size              String @default("medium") // small/medium/large
-  temp              Float  @default(24.0)
+  temp              Float  @default(24.0) // 唯一温度字段（TemperatureAdjustService 唯一写者）
   cityTemp          Float  @default(24.0) @map("city_temp")
   heaterOn          Boolean @default(false) @map("heater_on")
-  temperature       Float? // v9.0: current water temperature (°C)
-  weatherSync       Json?  @map("weather_sync") // v9.0: {city, currentTemp, lastSyncAt}
-  tempAlert         Json?  @map("temp_alert") // v9.0: {isOverTemp, threshold, dismissedAt}
-  location          String @default("Beijing") @map("location") // v9.1 item6a: city code
-  lastWeatherFetchAt DateTime? @map("last_weather_fetch_at") // v9.1 item6a: last weather fetch
-  cleanliness       Float  @default(100.0) @map("cleanliness") // 0-100
-  oxygen            Float  @default(100.0) // 0-100
+  weatherSync       Json?  @map("weather_sync") // {city, currentTemp, lastSyncAt}
+  tempAlert         Json?  @map("temp_alert") // {isOverTemp, threshold, dismissedAt}
+  location          String @default("Beijing") @map("location") // 城市代码（cities.service）
+  lastWeatherFetchAt DateTime? @map("last_weather_fetch_at") // 最近一次 Open-Meteo 抓取时间
+  cleanliness       Float  @default(100.0) @map("cleanliness") // 0-100（declay by hour）
+  oxygen            Float  @default(100.0) // 0-100（declay by hour）
   ph                Float  @default(7.0)
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
@@ -75,16 +94,19 @@ model FishTank {
   @@map("fish_tanks")
 }
 
+/// 单条鱼——属于某个鱼缸
+/// - status 枚举: healthy | subhealthy | danger | hungry | dead
+/// - stage 枚举: fry | juvenile | subadult | adult
 model Fish {
   id          String @id @default(uuid())
   tankId      String @map("tank_id")
   speciesId   String @map("species_id")
-  name        String @default("") // v9.1: nickname (items 2-4)
-  instanceId  String? @map("instance_id") // v9.0: unique instance ID for "my fish" list
-  adoptedDays Int?    @map("adopted_days") // v9.0: computed days since adoption
-  status      String? // v9.0: healthy|subhealthy|danger|hungry|dead
+  name        String @default("") // 用户起的昵称（P2 PR 12 unified validator）
+  instanceId  String? @map("instance_id") // "我的鱼" 列表用的唯一实例 ID
+  adoptedDays Int?    @map("adopted_days") // 计算字段：从创建到现在天数
+  status      String? // 状态字符串枚举（service 层校验）
   birthday    DateTime @default(now())
-  stage       String @default("fry") // fry -> juvenile -> subadult -> adult
+  stage       String @default("fry")
   growth      Float  @default(0.0) // 0-100 成长度
   health      Float  @default(100.0) // 0-100
   nutrition   Float  @default(100.0) // 0-100
@@ -99,6 +121,7 @@ model Fish {
   @@map("fish")
 }
 
+/// 喂食记录——统计喂食频率用
 model FeedRecord {
   id        String   @id @default(uuid())
   fishId    String   @map("fish_id")
@@ -110,11 +133,12 @@ model FeedRecord {
   @@map("feed_records")
 }
 
+/// 提醒——按时间提醒用户喂食 / 换水 / 清理
 model Reminder {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
   type      String   // feed / water_change / clean
-  titleI18n String   @map("title_i18n") // JSONB
+  titleI18n String   @map("title_i18n") // JSON: {"zh":"喂食","en":"Feed",...}
   dueAt     DateTime @map("due_at")
   isDone    Boolean  @default(false) @map("is_done")
   createdAt DateTime @default(now()) @map("created_at")
@@ -124,30 +148,32 @@ model Reminder {
   @@map("reminders")
 }
 
+/// 天气缓存——按 (lat, lon) 30 分钟 TTL
 model WeatherCache {
   id        String   @id @default(uuid())
   lat       Float
   lon       Float
-  data      String   // JSONB 天气数据
+  data      String   // JSON 序列化 WeatherData（weather.service）
   cachedAt  DateTime @default(now()) @map("cached_at")
 
   @@index([lat, lon])
   @@map("weather_cache")
 }
 
+/// 用户偏好——城市、收藏、地理坐标
 model UserPreference {
   id        String   @id @default(uuid())
   userId    String   @unique @map("user_id")
   city      String?
   lat       Float?
   lng       Float?
-  favorites String?  // JSON array of species IDs (v10.1.3-w4 §3)
+  favorites String?  // JSON array of species IDs
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("user_preferences")
 }
 
-// v9.1 item7: Temperature adjustment job tracking
+/// 温度调节 Job——按 §3.3 限速线性收敛算法（P3 PR 16 重构）
 model TemperatureAdjustJob {
   id              String   @id @default(uuid())
   tankId          String   @map("tank_id")
@@ -167,7 +193,7 @@ model TemperatureAdjustJob {
   @@map("temperature_adjust_job")
 }
 
-// v9.1 item6b: Water change log
+/// 换水日志——v10.1.2 加（用于"24h 内不能重复换水"幂等检查）
 model WaterChangeLog {
   id          String   @id @default(uuid())
   tankId      String   @map("tank_id")

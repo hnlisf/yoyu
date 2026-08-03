@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { api, Fish } from '@/lib/api';
-import { mockGrowthHistory } from '@/lib/api/mock';
+// P4 PR 21: 改用 SWR + 真实后端 API（替代 mockGrowthHistory）
+import { useGrowthHistory } from '@/lib/swr/useGrowthHistory';
 import { FishAvatar } from '@/components/fish';
 import { slugToVariant } from '@/components/fish/types';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -22,9 +23,12 @@ export default function YoYuthPage({ params }: PageProps) {
   const t = useTranslations('growth');
   const tf = useTranslations('fish.stage');
   const [fish, setFish] = useState<Fish | null>(null);
-  const [history, setHistory] = useState<ReturnType<typeof mockGrowthHistory>>([]);
+  // P4 PR 21: 改用 SWR 取成长历史（自动 revalidate）
+  const { points: history, isLoading: historyLoading } = useGrowthHistory(fishId, 30);
   const [loading, setLoading] = useState(true);
 
+  // P4 PR 21：history 由 useGrowthHistory hook 提供（自动 fetch + revalidate）
+  // 这里只 fetch fish 详情
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -32,9 +36,6 @@ export default function YoYuthPage({ params }: PageProps) {
         const f = await api<Fish>(`/api/fish/${fishId}`);
         if (cancelled) return;
         setFish(f);
-        // MOCK: backend growth-history endpoint not implemented yet.
-        // When it lands, replace with: await api<GrowthRecord[]>(`/api/fish/${fishId}/growth-history`)
-        setHistory(mockGrowthHistory(fishId, 30));
       } catch (e: any) {
         // tolerate network error and show empty state
       } finally {

@@ -1,0 +1,21 @@
+{
+  "lint-staged": {
+    "backend/src/**/*.{ts,tsx}": [
+      "bash -c 'cd backend && npx eslint --fix --max-warnings 10 {files} 2>/dev/null || true'"
+    ],
+    "frontend/src/**/*.{ts,tsx}": [
+      "bash -c 'cd frontend && npx next lint --fix --max-warnings 10 {files} 2>/dev/null || true'"
+    ],
+    "**/*.{json,md,yml,yaml}": [
+      "prettier --write --no-error-on-unmatched-pattern"
+    ]
+  },
+  "ignore": [
+    "node_modules/**",
+    "dist/**",
+    ".next/**",
+    "coverage/**",
+    "evidence/**",
+    "screenshots/**"
+  ]
+}

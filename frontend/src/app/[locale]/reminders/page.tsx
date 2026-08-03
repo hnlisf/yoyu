@@ -3,17 +3,12 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useApi, api, Reminder } from '@/lib/api';
+// P4 PR 22：改用 src/lib/i18n/parseLocalized.ts 单一来源（消除内联 try/parse/fallback）
+import { parseLocalized } from '@/lib/i18n/parseLocalized';
 
 function getTitle(rem: Reminder, locale: string): string {
-  // backend may send titleI18n as parsed object OR a JSON string depending on version
-  const raw: any = rem.titleI18n;
-  let parsed: Record<string, string> | null = null;
-  if (raw && typeof raw === 'object') parsed = raw as any;
-  else if (typeof raw === 'string') {
-    try { parsed = JSON.parse(raw); } catch {}
-  }
-  if (parsed) return parsed[locale] || parsed.zh || JSON.stringify(parsed);
-  return typeof raw === 'string' ? raw : 'Reminder';
+  // P4 PR 22：用 parseLocalized 替代内联 JSON.parse + 三元 fallback
+  return parseLocalized(rem.titleI18n, locale, 'Reminder');
 }
 
 export default function RemindersPage() {

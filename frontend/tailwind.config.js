@@ -26,6 +26,25 @@ module.exports = {
         // States
         warning: '#fbbf24',
         success: '#4ade80',
+
+        // ── P5 PR-A/B/C: v3 类别名（一周期弃用窗口）──
+        // 旧 v3 鱼缸蓝色阶 → v4 accent 阶
+        water: {
+          50:  'rgba(125,211,252,0.08)',   // → accent/5
+          300: 'rgba(125,211,252,0.40)',   // → accent/40
+          400: 'rgba(125,211,252,0.65)',   // → accent/65
+          500: 'rgba(125,211,252,0.85)',   // → accent/85
+          600: '#7dd3fc',                  // → accent
+          700: '#5fa9d3',                  // → accent-dim（按需）
+          900: '#0f2a3d',                  // → card
+        },
+        sand: {
+          400: 'rgba(253,230,138,0.65)',   // → accent-gold/65
+          500: '#fde68a',                  // → accent-gold
+        },
+        coral: {
+          500: '#fb923c',                  // → accent-orange
+        },
       },
       fontFamily: {
         sans: [
@@ -76,5 +95,71 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+  // P5 PR-B/C：v3 组件类别名（一周期弃用窗口）
+  // —— 所有 v3 .card / .btn-* / .badge-* 都映射到 v4 token
+  // —— 老代码继续能渲染（不破坏视觉），新代码用 v4 组件
+  // —— 后续 P5+ 后会移除此 plugin
+  ({ addComponents }) => {
+    addComponents({
+      // === .card 别名 → GlassCard 视觉 ===
+      '.card': {
+        background: 'rgba(255,255,255,0.04)',
+        'border-radius': '1rem',
+        padding: '1rem',
+        border: '1px solid rgba(255,255,255,0.06)',
+      },
+      '.card:hover': {
+        'border-color': 'rgba(255,255,255,0.12)',
+      },
+
+      // === .label 别名 → Tag 视觉 ===
+      '.label': {
+        display: 'inline-block',
+        padding: '0.125rem 0.5rem',
+        'border-radius': '0.375rem',
+        'font-size': '0.75rem',
+      },
+
+      // === .btn-* 别名 → Button 组件视觉 ===
+      '.btn-primary': {
+        background: '#7dd3fc',
+        color: '#0a1f2e',
+        padding: '0.5rem 1rem',
+        'border-radius': '0.5rem',
+        'font-weight': '500',
+      },
+      '.btn-secondary': {
+        background: 'rgba(255,255,255,0.06)',
+        color: '#e0f2fe',
+        padding: '0.5rem 1rem',
+        'border-radius': '0.5rem',
+        'border': '1px solid rgba(255,255,255,0.10)',
+      },
+
+      // === .badge-* 别名 → Tag 组件视觉 ===
+      '.badge-ideal': {
+        background: 'rgba(74,222,128,0.15)',
+        color: '#4ade80',
+        padding: '0.125rem 0.5rem',
+        'border-radius': '0.375rem',
+        'font-size': '0.75rem',
+      },
+      '.badge-ok': {
+        background: 'rgba(251,191,36,0.15)',
+        color: '#fbbf24',
+        padding: '0.125rem 0.5rem',
+        'border-radius': '0.375rem',
+        'font-size': '0.75rem',
+      },
+      '.badge-poor': {
+        background: 'rgba(251,146,60,0.15)',
+        color: '#fb923c',
+        padding: '0.125rem 0.5rem',
+        'border-radius': '0.375rem',
+        'font-size': '0.75rem',
+      },
+    });
+  },
+],
 };

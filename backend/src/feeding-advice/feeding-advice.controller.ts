@@ -1,7 +1,12 @@
-import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { FeedingAdviceService } from './feeding-advice.service';
+// PR 4 引入
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+// PR 4：喂食建议依赖用户偏好 + 天气 + 鱼种 — 用户私有场景
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 @ApiTags('feeding-advice')
 @Controller('api/feeding-advice')
 export class FeedingAdviceController {

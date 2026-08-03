@@ -1,5 +1,18 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Public } from '../auth/public.decorator';
+
+// PR 4：城市数据是公开参考资源（天气、城市选择器等场景需要匿名访问）
+@Public()
+@ApiTags('cities')
+@Controller('api/cities')
+export class CitiesController {
+  @Get()
+  @ApiOperation({ summary: 'List all cities (zh/en/ja names + lat/lon)' })
+  list() {
+    return CITIES;
+  }
+}
 
 export interface CityItem {
   id: string;
@@ -71,13 +84,3 @@ const CITIES: CityItem[] = [
   { id: 'dubai', nameZh: '迪拜', nameEn: 'Dubai', nameJa: 'ドバイ', lat: 25.2048, lon: 55.2708, country: 'AE', continent: 'Asia' },
   { id: 'moscow', nameZh: '莫斯科', nameEn: 'Moscow', nameJa: 'モスクワ', lat: 55.7558, lon: 37.6173, country: 'RU', continent: 'Europe' },
 ];
-
-@ApiTags('cities')
-@Controller('api/cities')
-export class CitiesController {
-  @Get()
-  @ApiOperation({ summary: 'List supported cities for weather — v10.1.4: expanded to 50+ cities' })
-  list(): CityItem[] {
-    return CITIES;
-  }
-}

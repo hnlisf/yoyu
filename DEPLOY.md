@@ -1,87 +1,64 @@
-# FishGrow Deployment Guide
+# YoYu 部署指南（v10.2 更新版）
 
-Two free-tier services, no card required, total cost: $0/month.
+> **本文件是历史 v5.0 部署指南的"清理重置版"**。
+> - 旧 `DEPLOY.md` 引用了 `hnlisf/fishgrow`（重命名前的旧仓库名）和 Vercel/Railway free tier 方案
+> - 现在项目已重命名为 `hnlisf/yoyu`，主推 **WSL 本地开发** + 可选云部署
+> - 详细日常运行步骤见 [docs/OPERATIONS.md](docs/OPERATIONS.md)
+>
+> **维护说明**：本文件由 harness-driven 维护（PR 9）。任何部署相关变更必须同步更新本文件 + OPERATIONS.md。
+
+---
+
+## 推荐：WSL 本地开发（首选）
+
+参见 [docs/OPERATIONS.md](docs/OPERATIONS.md) 的 5 分钟上手。
+
+## 架构总览
 
 ```
 ┌──────────────────┐         ┌──────────────────────┐
-│  Vercel (Free)   │ ──API──▶│  Railway (Free)      │
-│  Next.js frontend│         │  NestJS backend      │
-│  fishgrow.vercel │         │  *.up.railway.app    │
-│  .app            │         │  + SQLite volume     │
+│  Next.js frontend│ ──API──▶│  NestJS backend      │
+│  localhost:3001  │         │  localhost:3000      │
+│  + SQLite (NeDB)  │         │  + Prisma + SQLite   │
 └──────────────────┘         └──────────────────────┘
 ```
 
-## 1. Backend on Railway
+- **frontend**：Next.js 14 App Router + next-intl + SWR + Zustand
+- **backend**：NestJS 11 + Prisma 6 + JWT + Throttler
+- **database**：SQLite（开发用 `prisma/dev.db`；生产建议 PostgreSQL）
+- **Harness 自动化**：`harness.yaml` + 8 个 check 脚本 + `.github/workflows/ci.yml`
 
-1. Go to https://railway.app → New Project → Deploy from GitHub repo → select `hnlisf/fishgrow`.
-2. Railway auto-detects Node. Configure:
+## 关键环境变量
 
-   | Setting | Value |
-   |---|---|
-   | Root Directory | `backend` |
-   | Build Command | `npm ci && npx prisma generate && npx prisma migrate deploy && npx prisma db seed && npm run build` |
-   | Start Command | `node --enable-source-maps dist/src/main.js` |
-   | Healthcheck Path | `/api/fish-species` |
+| 变量 | 默认 | 必填 | 说明 |
+|---|---|---|---|
+| `DATABASE_URL` | `file:./dev.db` | ✅ | Prisma 连接字符串（生产改 PostgreSQL） |
+| `PORT` | `3000` | ❌ | backend 端口 |
+| `JWT_SECRET` | `dev-only-...` | ✅ | JWT 签名密钥（生产 ≥32 字节强随机） |
+| `JWT_EXPIRES_IN` | `24h` | ❌ | Token 有效期（生产建议 1h + refresh） |
+| `DEV_TOKEN_USER_ID` | `demo-user` | ❌ | dev-token 默认 userId |
+| `ALLOWED_ORIGINS` | `http://localhost:3001` | ✅ | CORS 白名单（生产必须改） |
+| `NODE_ENV` | `development` | ❌ | dev-token 生产禁用（`production` 时返回 404） |
 
-3. Add a **Volume** mounted at `/app/backend/prisma` (this is where `dev.db` lives; without a volume the SQLite data is lost on every redeploy).
-4. Add an env var `DATABASE_URL=file:./prisma/dev.db`.
-5. Wait for first deploy. Note the public URL, e.g. `https://fishgrow-backend.up.railway.app`.
+## 生产部署（云端）— 已废弃
 
-**Verify**: open `https://fishgrow-backend.up.railway.app/api/docs` — Swagger should load.
+⚠️ **早期 Vercel + Railway free-tier 方案已废弃**（仓库 2026-06 改名 `hnlisf/fishgrow` → `hnlisf/yoyu` 之前规划）。
 
-## 2. Frontend on Vercel
+如确需云部署，建议：
+- **backend**：Dockerize → 任何支持 Node + SQLite volume 的 PaaS（Railway / Render / Fly.io）
+- **frontend**：Vercel（Next.js 一等公民）
+- **database**：生产改 PostgreSQL（Prisma 切 datasource 即可）
 
-1. Go to https://vercel.com → New Project → import `hnlisf/fishgrow`.
-2. Configure:
+具体配置见 [docs/OPERATIONS.md](docs/OPERATIONS.md) §3「生产部署」。
 
-   | Setting | Value |
-   |---|---|
-   | Root Directory | `frontend` |
-   | Build Command | `npm run build` (default) |
-   | Output Directory | `.next` (default) |
-   | Install Command | `npm ci` (default) |
+## CI/CD
 
-3. Add env var `NEXT_PUBLIC_API_URL=https://fishgrow-backend.up.railway.app` (the Railway URL from step 1).
-4. Deploy.
+`.github/workflows/`：
+- `ci.yml`：PR / push 触发，5 job（frontend / backend / harness-gate / universal-baseline / summary）
+- `security-nightly.yml`：每天凌晨 3 点跑，深度安全扫描（不阻断）
 
-**Verify**: open the Vercel URL → it should redirect to `/tank` → click "新建鱼缸" → "选鱼" → the dropdown should show 10 species in your locale.
+---
 
-## 3. Local dev (the fast feedback loop)
-
-```bash
-# Terminal 1 — backend
-cd backend
-npm install
-npx prisma migrate deploy
-npx prisma db seed
-npm run build
-node --enable-source-maps dist/src/main.js     # :3000
-
-# Terminal 2 — frontend
-cd frontend
-npm install
-npm run build
-npm run start                                 # :3001
-```
-
-Open http://localhost:3001/tank.
-
-## 4. Public LAN access (for the demo)
-
-If you want to access the app from a phone or another machine on the same network:
-
-1. Edit `frontend/.env.local`:
-   ```
-   NEXT_PUBLIC_API_URL=http://<server-lan-ip>:3000
-   ```
-2. Rebuild & restart the frontend: `cd frontend && npm run build && npm run start`.
-
-Without this, the frontend tries to call `http://localhost:3000` from the browser, which is the browser's localhost, not the server's.
-
-## 5. First-deploy gotchas
-
-- **Volume path matters.** Railway containers restart with a fresh filesystem. The SQLite file lives at `<workdir>/prisma/dev.db` (relative to where the start command runs). Mount the volume at that path or the database is wiped on every restart.
-- **Migrations run on every deploy.** `prisma migrate deploy` is idempotent; safe to run repeatedly. Don't run `prisma migrate dev` in prod — it requires a shadow DB.
-- **Seed is idempotent.** `prisma db seed` checks for existing species before inserting; safe to run on every deploy.
-- **CORS.** The backend has CORS enabled for `*` in dev. Tighten this in production by setting `CORS_ORIGIN` to your Vercel domain in the Railway env vars.
-- **Free tier sleeps.** Railway's free plan spins down after inactivity. First request after sleep takes ~30s. Vercel does NOT have this problem on the free tier.
+*文件路径：`DEPLOY.md`（根目录）*
+*关联：[docs/OPERATIONS.md](docs/OPERATIONS.md) + [.harness.yaml](harness.yaml)*
+*维护：PR 9*

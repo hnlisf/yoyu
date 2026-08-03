@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Reminder } from '@prisma/client';
+// P2 PR 11 新增 — i18n helper
+import { safeParse } from '../common/i18n';
 
 export interface CreateReminderDto {
   userId: string;
@@ -27,8 +29,8 @@ export class RemindersService {
   }
 
   toI18n(r: Reminder, lang: string) {
-    let titleI18n: Record<string, string> = {};
-    try { titleI18n = JSON.parse(r.titleI18n); } catch {}
+    // P2 PR 11: 用 safeParse 替换裸 JSON.parse
+    const titleI18n = safeParse<Record<string, string>>(r.titleI18n, {});
     return {
       ...r,
       title: titleI18n[lang] || titleI18n['zh'] || r.titleI18n,

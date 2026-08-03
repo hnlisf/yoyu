@@ -1,8 +1,13 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import type { CreateUserDto, UpdateUserDto } from './user.service';
+// PR 4 引入
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+// PR 4：用户 CRUD 是核心敏感数据 — 所有方法默认要 JWT 鉴权
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 @ApiTags('user')
 @Controller('api/user')
 export class UserController {

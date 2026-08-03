@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+// P2 PR 11 新增 — i18n helper
+import { safeParse } from '../common/i18n';
 
 export interface WeatherData {
   lat: number;
@@ -67,11 +69,12 @@ export class WeatherService {
     });
 
     if (cached) {
-      try {
-        const data = JSON.parse(cached.data) as WeatherData;
+      // P2 PR 11: 用 safeParse 替换裸 JSON.parse（类型收窄到 WeatherData）
+      const data = safeParse<WeatherData>(cached.data, null as unknown as WeatherData);
+      if (data) {
         return { ...data, source: 'cache' };
-      } catch {
-        // fall through to live fetch
+      }
+      // fall through to live fetch
       }
     }
 

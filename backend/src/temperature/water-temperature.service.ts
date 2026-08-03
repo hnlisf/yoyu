@@ -1,132 +1,106 @@
+/**
+ * ============================================================================
+ * 文件名：temperature/water-temperature.service.ts（水温物理引擎 v3 重构版）
+ * ============================================================================
+ * 作用：每秒计算真实物理温度，写入 TemperatureState（不再写 DB）
+ *
+ * P3 §3.3 重构后：
+ *   - 此服务**只**写 TemperatureState（内存）
+ *   - TemperatureAdjustService 才是唯一 DB 写者
+ *   - 消除之前 water+temperature-adjust 双写 race condition
+ *
+ * 物理模型（不变）：
+ *   - heater ON:  T(t+1) = T(t) + 0.5 - (T(t) - T_outdoor) * 0.15
+ *   - heater OFF: T(t+1) = T(t) - (T(t) - T_outdoor) * 0.15
+ *
+ * 设计取舍：
+ *   - 此服务依赖 TemperatureState（@Global），无 DB 依赖
+ *   - 不注入 PrismaService —— 物理模拟完全在内存中
+ *   - 持久化由 TemperatureAdjustService 在 30s 节奏统一做（业务上够用）
+ *
+ * @see ./temperature-state.ts  中央温度状态仓库
+ * @see ../temperature-adjust/temperature-adjust.service.ts  唯一 DB 写者
+ * ============================================================================
+ */
+
 import { Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
+import { TemperatureState, TankTemperatureState } from './temperature-state';
 
-interface WaterTempState {
-  tankId: string;
-  currentTemp: number;
-  heaterOn: boolean;
-  outdoorTemp: number;
-  lastTick: number;
-}
-
-/**
- * v7.0 Water Temperature Physics Engine (BUG-5)
- *
- * Models realistic heat transfer between fish tank water and outdoor air:
- *
- *   heater ON:  T(t+1) = T(t) + 0.5 - (T(t) - T_outdoor) * 0.15
- *   heater OFF: T(t+1) = T(t) - (T(t) - T_outdoor) * 0.15
- *
- * Parameters:
- *   - WARM_RATE = 0.5 °C/s (heater active contribution)
- *   - DECAY_COEFF = 0.15 (fraction of delta to outdoor equilibrating each tick)
- *   - T_MIN = 5°C, T_MAX = 35°C (hard clamps)
- *   - Tick interval = 1 second via @Interval
- *
- * The state is held in memory and periodically flushed to the DB.
- */
 @Injectable()
 export class WaterTemperatureService {
   private readonly logger = new Logger(WaterTemperatureService.name);
-  private states = new Map<string, WaterTempState>();
 
   private readonly WARM_RATE = 0.5;
   private readonly DECAY_COEFF = 0.15;
   private readonly T_MIN = 5;
   private readonly T_MAX = 35;
 
-  private flushCallback: ((tankId: string, temp: number) => Promise<void>) | null = null;
+  constructor(private readonly state: TemperatureState) {}
 
-  /** Register a callback that persists temperature to the database. */
-  onFlush(cb: (tankId: string, temp: number) => Promise<void>) {
-    this.flushCallback = cb;
-  }
-
-  /** Register a tank for temperature tracking. */
+  /** 注册鱼缸——首次出现时调用 */
   register(tankId: string, initialTemp: number, outdoorTemp: number, heaterOn = false) {
-    this.states.set(tankId, {
-      tankId,
-      currentTemp: initialTemp,
-      heaterOn,
-      outdoorTemp,
-      lastTick: Date.now(),
-    });
+    this.state.register(tankId, { currentTemp: initialTemp, outdoorTemp, heaterOn });
   }
 
-  /** Remove a tank from tracking. */
+  /** 移除鱼缸 */
   unregister(tankId: string) {
-    this.states.delete(tankId);
+    this.state.unregister(tankId);
   }
 
-  /** Update outdoor temperature (called when city/weather changes). */
+  /** 城市/天气切换时调用 */
   updateOutdoorTemp(tankId: string, outdoorTemp: number) {
-    const state = this.states.get(tankId);
-    if (state) {
-      state.outdoorTemp = outdoorTemp;
-      // Immediately recalculate once so the UI reflects the change
-      this.tickState(state);
-    }
+    this.state.updateOutdoorTemp(tankId, outdoorTemp);
+    // 立即重算一次（让 UI 立刻看到）
+    const s = this.state.readForAdjust(tankId);
+    if (s) this.tickState(s);
   }
 
-  /** Toggle the heater for a tank. */
+  /** 切换加热器 */
   setHeaterOn(tankId: string, on: boolean) {
-    const state = this.states.get(tankId);
-    if (state) {
-      state.heaterOn = on;
-    }
+    this.state.setHeaterOn(tankId, on);
   }
 
-  /** v9.0 REQ-7: Reset temperature (e.g. after water change). Sets temp + heater off. */
+  /** 换水后重置：设温度 + 关加热器 */
   reset(tankId: string, newTemp: number) {
-    const state = this.states.get(tankId);
-    if (state) {
-      state.currentTemp = newTemp;
-      state.heaterOn = false;
-    }
+    this.state.reset(tankId, newTemp);
   }
 
-  /** Get current temperature of a tank (or null if not tracked). */
+  /** 读当前温度（HTTP API 用） */
   getCurrentTemp(tankId: string): number | null {
-    return this.states.get(tankId)?.currentTemp ?? null;
+    return this.state.getCurrentTemp(tankId);
   }
 
-  /** Get current outdoor temp reference for a tank. */
+  /** 读室外参考温度 */
   getOutdoorTemp(tankId: string): number | null {
-    return this.states.get(tankId)?.outdoorTemp ?? null;
+    return this.state.getOutdoorTemp(tankId);
   }
 
   /**
-   * Tick all registered tanks every 1 second.
-   * Persists to DB every 30 ticks (~30 seconds) via flushCallback.
+   * 每秒 tick —— 对所有已注册鱼缸跑一次物理
+   * 写：TemperatureState.applyPhysicsTick()（内存）
+   * 不写：DB（由 TemperatureAdjustService 统一负责）
    */
   @Interval(1000)
   private tickAll() {
-    let flushCount = 0;
-    for (const state of this.states.values()) {
+    const tracked = this.state.listTracked();
+    for (const tankId of tracked) {
+      const state = this.state.readForAdjust(tankId);
+      if (!state) continue;
       this.tickState(state);
-      flushCount++;
-    }
-
-    // Flush to DB every 30 ticks
-    if (flushCount > 0 && this.flushCallback && Math.floor(Date.now() / 1000) % 30 === 0) {
-      for (const state of this.states.values()) {
-        this.flushCallback(state.tankId, state.currentTemp).catch((err) =>
-          this.logger.warn(`Flush failed for tank ${state.tankId}: ${err.message}`),
-        );
-      }
+      // 写回 state（applyPhysicsTick 内部处理 lastTick 时间戳）
+      this.state.applyPhysicsTick(tankId, state.currentTemp);
     }
   }
 
-  private tickState(state: WaterTempState) {
+  private tickState(state: TankTemperatureState) {
     const delta = state.outdoorTemp - state.currentTemp;
     if (state.heaterOn) {
-      // Active heating: warm + approach outdoor equilibrium
       state.currentTemp = Math.min(
         state.currentTemp + this.WARM_RATE + delta * this.DECAY_COEFF,
         this.T_MAX,
       );
     } else {
-      // Passive cooling/warming: approach outdoor equilibrium
       state.currentTemp = Math.max(
         state.currentTemp + delta * this.DECAY_COEFF,
         this.T_MIN,

@@ -191,5 +191,7 @@ fi
 info "All verifications passed"
 echo ""
 echo "────────────────────────────────────────────"
-echo -e "${GREEN}WSL ready: run 'bash yoyu/scripts/dev.sh'${NC}"
+echo -e "${GREEN}WSL ready: see docs/OPERATIONS.md for next steps${NC}"
+echo -e "${YELLOW}TL;DR: cd backend && cp .env.example .env && npm i && npx prisma migrate deploy && npm run db:seed && npm run start${NC}"
+echo -e "${YELLOW}      cd frontend && echo 'NEXT_PUBLIC_API_URL=http://localhost:3000' > .env.local && npm i && npm run dev${NC}"
 echo ""

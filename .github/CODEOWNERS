@@ -1,0 +1,85 @@
+# CODEOWNERS — GitHub 自动 review 分派规则
+# 文档：https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# 规则说明：
+#   - 越靠下的规则优先级越高
+#   - 最后匹配胜出
+#   - 用 `@username` 或 `@org/team-name`
+#   - 本文件用占位符 owner —— 部署到真实 repo 时替换为实际 GitHub user/team
+
+# ============================================================================
+# 默认：所有改动需 @harness-keeper review（harness 工程维护者）
+# ============================================================================
+*                                                  @harness-keeper
+
+# ============================================================================
+# 后端（NestJS）
+# ============================================================================
+/backend/                                           @backend-owner
+/backend/src/auth/                                 @backend-owner @security-reviewer
+/backend/src/prisma/                               @backend-owner @db-reviewer
+/backend/.env.example                              @backend-owner @security-reviewer
+
+# ============================================================================
+# 前端（Next.js）
+# ============================================================================
+/frontend/                                          @frontend-owner
+/frontend/messages/                                @frontend-owner @i18n-reviewer
+/frontend/lib/swr/                                 @frontend-owner
+/frontend/tailwind.config.js                       @frontend-owner
+
+# ============================================================================
+# Harness 自身（harness.yaml / scripts/ / .husky/）
+# ============================================================================
+/harness.yaml                                       @harness-keeper
+/scripts/                                           @harness-keeper
+/.husky/                                            @harness-keeper
+/.lintstagedrc.json                                @harness-keeper
+
+# ============================================================================
+# CI / DevOps（.github/）
+# ============================================================================
+/.github/                                           @devops-owner
+/.github/workflows/                                 @devops-owner
+/.github/CODEOWNERS                                @devops-owner @harness-keeper
+/.github/PULL_REQUEST_TEMPLATE.md                  @devops-owner @harness-keeper
+
+# ============================================================================
+# Refactor 元数据（仅 harness-driven PR 改）
+# ============================================================================
+/refactor/                                          @harness-keeper
+/refactor/SPEC.md                                  @harness-keeper
+/refactor/CHECKLIST.md                             @harness-keeper
+/refactor/i18n-baseline.json                       @harness-keeper
+
+# ============================================================================
+# CHANGELOG 由 release-please 自动管
+# ============================================================================
+/CHANGELOG.md                                      @release-bot
+
+# ============================================================================
+# 文档（docs/）—— 通用规则
+# ============================================================================
+/docs/                                             @docs-owner
+
+# ============================================================================
+# 安全敏感 —— 任何修改都需双重 review
+# ============================================================================
+/backend/src/main.ts                               @security-reviewer @backend-owner
+/harness.yaml                                       @security-reviewer @harness-keeper
+
+# ============================================================================
+# 占位符说明
+# ----------------------------------------------------------------------------
+# @backend-owner       后端 owner（NestJS 领域）
+# @frontend-owner      前端 owner（Next.js / React 领域）
+# @harness-keeper      harness 工程本身维护者
+# @devops-owner        CI / DevOps / 部署
+# @security-reviewer   安全 review（auth / cors / env）
+# @db-reviewer         数据库 / migration 专家
+# @i18n-reviewer       多语言 / 翻译 review（zh/en/ja）
+# @docs-owner          文档维护
+# @release-bot         release-please 自动 bot
+#
+# 部署时把上列 @xxx 替换为真实 GitHub username 或 team handle
+# ============================================================================

@@ -11,15 +11,13 @@
 import { copyFileSync, existsSync } from 'node:fs';
 import { isAbsolute, resolve } from 'node:path';
 import { PrismaClient } from '@prisma/client';
+// P2 PR 11 — i18n helper（项目策略禁止裸 JSON.parse）
+import { safeParse } from '../common/i18n';
+// P3 §2.2 PR 15：visualVariant 映射统一到 src/common/mappings/visual-variant.ts
+import { LEGACY_TO_CANONICAL, canonicalize } from '../common/mappings/visual-variant';
 
-const LEGACY = {
-  color: { golden: 'yellow' },
-  pattern: { striped: 'stripe' },
-  body: { round: 'disc' },
-} as const;
-
-type Dimension = keyof typeof LEGACY;
-const DIMENSIONS: Dimension[] = ['color', 'pattern', 'body'];
+const DIMENSIONS = ['color', 'pattern', 'body'] as const;
+type Dimension = (typeof DIMENSIONS)[number];
 
 function sqlitePath(): string | null {
   const url = process.env.DATABASE_URL || 'file:./dev.db';
@@ -52,10 +50,9 @@ async function main(): Promise<void> {
     scanned = rows.length;
 
     for (const row of rows) {
-      let value: Record<string, unknown>;
-      try {
-        value = JSON.parse(row.visualVariant!);
-      } catch {
+      // P2 PR 11: 用 safeParse 替换裸 JSON.parse（项目策略禁止）
+      const value = safeParse<Record<string, unknown>>(row.visualVariant!, null);
+      if (!value) {
         console.warn(`skip-invalid-json\t${row.id}`);
         skippedInvalid++;
         continue;
@@ -65,8 +62,9 @@ async function main(): Promise<void> {
       for (const dim of DIMENSIONS) {
         const oldValue = value[dim];
         if (typeof oldValue !== 'string') continue;
-        const newValue = LEGACY[dim][oldValue as keyof (typeof LEGACY)[typeof dim]] as string | undefined;
-        if (!newValue) continue;
+        // P3 §2.2 PR 15：改用共享映射函数（与 service 保持一致）
+        const newValue = canonicalize(dim as Dimension, oldValue);
+        if (newValue === oldValue) continue;  // 没变 = 已规范
         value[dim] = newValue;
         counts.set(`${dim}\t${oldValue}\t${newValue}`, (counts.get(`${dim}\t${oldValue}\t${newValue}`) || 0) + 1);
         changed = true;

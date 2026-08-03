@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WeatherService } from '../weather/weather.service';
+// P2 PR 11 新增
+import { getLocalized } from '../common/i18n';
 
 export interface FeedingAdvice {
   speciesId: string;
@@ -92,8 +94,8 @@ export class FeedingAdviceService {
 
   private advise(species: any, currentTemp: number, lang: string): FeedingAdvice {
     const L = (T as any)[lang] ?? T.zh;
-    let name = species.nameI18n;
-    try { name = JSON.parse(species.nameI18n)[lang] ?? JSON.parse(species.nameI18n).zh; } catch {}
+    // P2 PR 11: 用 getLocalized 替换双重 JSON.parse + 三元 fallback
+    let name = getLocalized(species.nameI18n, lang) ?? species.nameI18n;
     const { tempMin, tempMax } = species;
     const mid = (tempMin + tempMax) / 2;
     const tolerance = (tempMax - tempMin) / 2;

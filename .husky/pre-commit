@@ -1,0 +1,54 @@
+#!/usr/bin/env sh
+# ============================================================================
+# .husky/pre-commit —— 本地 commit 时自动运行
+# ============================================================================
+# 作用：每次 `git commit` 前自动跑 2 道关
+#   1. lint-staged —— 仅对 staged 文件跑 eslint/prettier（毫秒级）
+#   2. harness:check:fast —— ref-check / i18n-check / schema-check（~3 秒）
+#
+# 失败时 → 阻止 commit（exit 1）→ 用户看到终端输出改问题
+#
+# 为什么这么设计？
+#   - harness:check:fast 是项目特定 3 个最关键检查（在 refactor/i18n/schema）
+#   - lint-staged 只跑 staged 文件 → 极快 → 不拖累开发节奏
+#   - 不跑 harness:check:full（test 太慢）—— 测试留给 pre-push + CI
+#
+# Bypass（紧急逃生）：
+#   git commit --no-verify        # 完全跳过所有 hook
+#   git commit --no-verify -m "..."  # 常用形式
+#
+# 跨平台：
+#   - 用 /usr/bin/env sh shebang
+#   - Windows 用户用 Git Bash 即可（Git 自带）
+#   - WSL / macOS / Linux 原生支持
+#
+# 兼容性：husky 9+ 不需要旧版的 ` . "$(dirname "$0")/_/husky.sh"` 来源行
+# ============================================================================
+
+echo "🔍 pre-commit: harness:check:fast (ref/i18n/schema) + lint-staged..."
+
+# 切到 repo 根（hook 可能被 git 从任意 cwd 调用）
+cd "$(git rev-parse --show-toplevel)"
+
+# ── 1) lint-staged：仅检查 staged 文件（毫秒级）──
+# 配置文件见 .lintstagedrc.json
+npx --no-install lint-staged 2>&1 || {
+  # 如果 lint-staged 未装（首次 PR 还没 npm install），跳过不让阻断
+  if [ ! -d "node_modules/lint-staged" ]; then
+    echo "⚠️  lint-staged 未安装 — 跳过（npm install 后生效）"
+  else
+    echo "❌ lint-staged 失败（看上方输出）"
+    exit 1
+  fi
+}
+
+# ── 2) Harness fast check（~3 秒）──
+# 这是项目特定的"代码反模式 + i18n + Prisma schema"3 个核心检查
+npm run harness:check:fast 2>&1 || {
+  echo ""
+  echo "❌ harness:check:fast failed — 请看上方的违规报告"
+  echo "   💡 修复后再 commit，或紧急用 --no-verify 跳过"
+  exit 1
+}
+
+echo "✅ pre-commit 通过"

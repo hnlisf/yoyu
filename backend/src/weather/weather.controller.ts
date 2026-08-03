@@ -7,7 +7,10 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { WeatherService } from './weather.service';
+import { Public } from '../auth/public.decorator';
 
+// PR 4：天气数据是公开参考（Open-Meteo 本身公开），让首屏加载时无需 token
+@Public()
 @ApiTags('weather')
 @Controller('api/weather')
 export class WeatherController {

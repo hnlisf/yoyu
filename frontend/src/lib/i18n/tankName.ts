@@ -1,4 +1,5 @@
 import { useTranslations } from 'next-intl';
+import { parseLocalized } from './parseLocalized';
 
 /**
  * Known keys in the `tankNames` i18n namespace.
@@ -23,6 +24,8 @@ const KNOWN_KEYS: ReadonlySet<string> = new Set([
  * This prevents `next-intl` from falling back to the raw key with namespace
  * prefix when the key doesn't exist in the translation JSON.
  *
+ * P4 PR 22 改进：调用 parseLocalized 单一来源（消除内联 fallback 三元）
+ *
  * Usage: const tName = useTranslateTankName(); ... tName(tk.name)
  */
 export function useTranslateTankName() {
@@ -35,7 +38,7 @@ export function useTranslateTankName() {
         return name;
       }
     }
-    // Custom user-entered names are displayed as-is
-    return name;
+    // P4 PR 22：用 parseLocalized helper 替代内联 fallback
+    return parseLocalized(name, typeof window !== 'undefined' ? (document.documentElement.lang || 'zh') : 'zh', name);
   };
 }

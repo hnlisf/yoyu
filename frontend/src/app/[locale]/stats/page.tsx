@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { api, FishTank } from '@/lib/api';
+// P4 PR 21: 改用 SWR + 真实后端 API（替代 3 个 mock）
 import {
-  mockStatsSummary,
-  mockWeekly,
-  mockAchievements,
+  useStatsSummary,
+  useStatsWeekly,
+  useAchievements,
   type UserStatsSummary,
-  type WeeklyDatum,
   type Achievement,
-} from '@/lib/api/mock';
+} from '@/lib/swr/useStats';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { WeeklyBarChart } from '@/components/stats/WeeklyBarChart';
 import { AchievementBadge } from '@/components/AchievementBadge';
@@ -19,37 +19,11 @@ const USER_ID = 'demo-user';
 
 export default function StatsPage() {
   const t = useTranslations('stats');
-  const [summary, setSummary] = useState<UserStatsSummary | null>(null);
-  const [weekly, setWeekly] = useState<WeeklyDatum[]>([]);
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        // Fetch tank count for mock summary
-        const tanks = await api<FishTank[]>(`/api/fish-tanks?userId=${USER_ID}`);
-        const fishCount = tanks.reduce((s, t) => s + (t.fish?.length ?? 0), 0);
-        // MOCK: backend stats/achievements endpoints not implemented yet.
-        if (cancelled) return;
-        setSummary(mockStatsSummary(fishCount));
-        setWeekly(mockWeekly());
-        setAchievements(mockAchievements);
-      } catch {
-        if (cancelled) return;
-        // Even on error, show empty state.
-        setSummary(mockStatsSummary(0));
-        setWeekly(mockWeekly());
-        setAchievements(mockAchievements);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // P4 PR 21：用 SWR hooks 替代 useState + useEffect + mock
+  const { summary, isLoading: summaryLoading } = useStatsSummary(USER_ID);
+  const { weekly, isLoading: weeklyLoading } = useStatsWeekly(USER_ID, 12);
+  const { achievements, isLoading: achievementsLoading } = useAchievements(USER_ID);
+  const loading = summaryLoading || weeklyLoading || achievementsLoading;
 
   if (loading || !summary) {
     return <p className="text-text-secondary text-sm font-light">…</p>;

@@ -1,0 +1,282 @@
+# =============================================================================
+# YoYu Harness — 机器可读策略（PR 1 / P0）
+# =============================================================================
+# 这是整个 harness 工程的"宪法"。
+#
+# 任何想了解项目"什么能做、什么不能做"的人或 agent，第一件事就是读这个文件。
+#
+# 三层结构：
+#   1. universal_baseline（通用基线）— 任何项目都该有的工程纪律，不可关闭
+#   2. project_policies    （项目策略）— 针对 YoYu 项目 bug 的特定防护
+#   3. upgrade_triggers    （自我升级）— harness 自身如何演进
+#
+# 阅读顺序：先看 universal_baseline 了解规约大类，再看 project_policies 了解项目特定红线
+# 修改建议：每次改 harness.yaml 必须挂 lessons 链接（upgrade_triggers.harness_yaml_changed 强制）
+#
+# Plan 路径：C:\Users\tangx\.claude\plans\fizzy-growing-thimble.md
+# =============================================================================
+
+version: 1
+project: yoyu
+languages: [typescript, tsx]
+
+# 阶段标识：P0=搭骨架 / P1=清理 / P2=JSONB抽象 / P3=仓储+温度 / P4=i18n+mock切真实 / P5=v3类清理
+phases: [P0, P1, P2, P3, P4, P5]
+
+# ============================================================================
+# Layer 1: Universal Baseline（通用基线）
+# ----------------------------------------------------------------------------
+# 任何项目都该有的工程纪律。这 5 类不是 YoYu 特有的，是行业通用最佳实践。
+#
+# 5 类规约：
+#   - security         （安全：secrets/CORS/auth/rate-limit/dep 漏洞）
+#   - discipline       （纪律：commit 规范/分支保护/PR 模板/CODEOWNERS/CHANGELOG）
+#   - quality          （质量：any/dead code/覆盖率/bundle/a11y）
+#   - observability    （可观测：结构化日志/真健康检查/部署冒烟）
+#   - data_integrity   （数据完整：migration dry-run/JSONB 严解/env 校验）
+#
+# 每条规则的 ci_only=true 表示不进本地 commit（避免拖慢开发节奏），仅 CI 跑。
+# ============================================================================
+universal_baseline:
+  security:
+    secrets_scan:
+      tool: gitleaks
+      ci_only: true
+      fail_on: any
+      fallback_script: scripts/security-scan.sh       # gitleaks 不可用时的 grep 兜底
+    dep_audit:
+      tool: npm-audit
+      ci_only: true
+      level: high                                     # 只卡 high 及以上
+    cors_check:
+      forbid_wildcard: true
+      forbid_value: 'cors: true'
+      enforcement: scripts/security-scan.sh           # PR 6：合并到 security-scan.sh
+    auth_required:
+      policy: all_writes_guarded
+      enforcement: scripts/auth-check.ts
+    rate_limit:
+      enabled: true
+      default: 100/minute/ip
+      module: '@nestjs/throttler'                     # PR 6 引入
+
+  discipline:
+    conventional_commits:
+      enforce: true
+      hook: commit-msg
+      regex: '^(feat|fix|docs|chore|refactor|test|perf|ci|build|revert)(\([a-z0-9-]+\))?!?: .{1,72}$'
+    branch_protection:
+      main_requires_pr: true
+      required_reviewers: 1
+    pr_template:
+      path: .github/PULL_REQUEST_TEMPLATE.md
+      required_fields: [spec_link, evidence, risk, rollback]
+    codeowners:
+      path: .github/CODEOWNERS
+    changelog:
+      auto_generated: true
+      tool: release-please
+      path: CHANGELOG.md
+
+  quality:
+    no_any_count:
+      tool: eslint+ts-prune
+      ci_only: true
+      threshold: warn
+    dead_code:
+      tool: ts-prune
+      ci_only: true
+    coverage_threshold:
+      global_min: 70
+      ci_only: true
+    bundle_size_frontend:
+      max_kb: 500
+      ci_only: true
+    a11y_check:
+      tool: pa11y-ci
+      ci_only: true
+      pages: [/zh/tanks, /zh/stats, /zh/profile]
+
+  observability:
+    structured_logging:
+      required_lib: pino
+      forbid: ['console.log', 'console.info', 'console.warn']
+      enforcement: scripts/no-console-check.ts
+    health_check_real:
+      must_ping_db: true
+      must_check_schedule: true
+    post_deploy_smoke:
+      required: true
+
+  data_integrity:
+    migration_dry_run:
+      tool: prisma-migrate-diff
+      ci_only: true
+    jsonb_strict_parse:
+      forbid_silent_catch: true
+      enforcement: scripts/jsonb-strict-check.ts
+    env_schema_validation:
+      required_lib: zod
+      enforcement: scripts/env-schema-check.ts
+
+# ============================================================================
+# Layer 2: Project Policies（项目特定策略）
+# ----------------------------------------------------------------------------
+# 来自 Phase 1 探索发现的 YoYu 项目 5 类结构性问题，每条都有具体修复 PR。
+#
+#   - jsonb.forbid_parse_outside_helper   禁 JSON.parse 散落（13 个热点）
+#   - prisma.forbid_version_comments      禁 schema 注释带 // v9.0（14 处）
+#   - i18n.parity_required                三语 key 必须对齐
+#   - frontend.banned_classes             禁 v3 样式残留（23 处）
+#   - frontend.banned_imports             禁死代码 store / mock 导入
+# ============================================================================
+policies:
+  jsonb:
+    helper: backend/src/common/i18n.ts                # P2 PR 10 引入
+    function: getLocalized
+    forbid_parse_outside_helper: true
+    enforcement: scripts/ref-check.ts
+    known_hotspots: []                                # P2 PR 11 已全清空（13 → 0）
+  prisma:
+    forbid_version_comments: true                     # 禁 // v9.0 / // v9.1 标记
+    forbid_dual_columns: [FishTank.temp, FishTank.temperature]
+    enforcement: scripts/schema-check.ts
+    known_version_comments: []                        # P2 PR 12 已清空（14 → 0）
+  i18n:
+    locales: [zh, en, ja]
+    parity_required: true
+    baseline_file: refactor/i18n-baseline.json
+    enforcement: scripts/i18n-check.ts                # 复用 scripts/i18n-db-compliance.ts
+  frontend:
+    banned_classes:
+      - water-*
+      - sand-*
+      - coral-*
+      - badge-ideal|ok|poor
+      - btn-*
+      - '^\.card$'
+      - '^\.label$'
+    banned_imports:
+      - lib/stores/fishStore
+      - lib/stores/uiStore
+      - lib/api/mock                                 # P4 PR 21 删除 mock.ts 后 0 findings
+    enforcement: scripts/ref-check.ts
+    known_banned_imports: []                        # P4 PR 21：4 个全部清理（删了 mock.ts）
+
+# ============================================================================
+# Layer 3: Self-Upgrade Triggers（自我升级触发器）
+# ----------------------------------------------------------------------------
+# harness 自身如何演进。4 个触发器保证 harness 不会"原地踏步"或"被乱改"：
+#   - recurrence_count_2        同坑复发 2 次 → 强制加脚本
+#   - script_false_positive_10pct 脚本误报率 >10% → 强制 review
+#   - new_universal_principle   3+ 项目适用的规约 → 候选 universal_baseline
+#   - harness_yaml_changed      harness.yaml 改动 → commit message 必须挂 lessons 链接
+# ============================================================================
+upgrade_triggers:
+  recurrence_count_2:
+    action: require_script
+    description: "Same pitfall recurs 2+ times → MUST add enforcement script"
+  script_false_positive_10pct:
+    action: review_rule
+    description: "Script false-positive rate >10% → MUST review and adjust"
+  new_universal_principle:
+    action: candidate_universal_baseline
+    description: "Principle applies to 3+ projects → candidate for universal_baseline"
+  harness_yaml_changed:
+    action: require_lessons_link
+    description: "harness.yaml modified → commit message MUST include lessons link"
+
+# ============================================================================
+# Gates（执行时机 + 阻断策略）
+# ----------------------------------------------------------------------------
+# 5 个执行时机，每个配一组脚本 + 是否阻断。
+#   pre-commit   本地 commit 时（仅 fast subset）
+#   pre-push     本地 push 时（full set，含 test）
+#   pr           PR 合入时（full set + 视觉回归）
+#   ci           CI 流水线（full set + universal baseline 全套）
+#   ci_nightly   每天凌晨（仅报告，不阻断）
+#
+# PR 2 更新：
+#   - ci.baseline_scan 列出 6 个 universal baseline 检查（harness.ts 不调度，由 ci.yml 显式调）
+#   - ci_nightly 改 schedule + 加 workflow_dispatch 手动触发
+# ============================================================================
+gates:
+  pre-commit:
+    run: [lint-staged, harness:check:fast]
+    blocking: true
+    note: "fast subset 不跑 gitleaks/npm audit/pa11y"
+  pre-push:
+    run: [harness:check:full]
+    blocking: true
+  pr:
+    run: [harness:check:full, screenshot:compare]
+    blocking: true
+  ci:
+    # 主流程（harness orchestrator 调度）
+    run: [lint, type-check, test, build, harness:check:full]
+    # universal baseline 扫描（由 .github/workflows/ci.yml 显式调，不通过 orchestrator）
+    # 原因：这些是 ci_only，且需要各自的上下文（pa11y 需要 server、coverage 需要 lcov）
+    baseline_scan: [security-scan, dep-audit, dead-code, coverage, bundle-size, a11y-check]
+    blocking: true
+  ci_nightly:
+    schedule: '0 3 * * *'                            # 每天凌晨 3 点
+    workflow_dispatch:                                # 也支持手动触发
+    run: [security-scan, dep-audit, all-baseline]
+    blocking: false                                  # 只生成报告，不阻断
+
+# ============================================================================
+# Scripts（脚本路径映射）
+# ----------------------------------------------------------------------------
+# 所有检查脚本的"中央注册表"。harness:check:fast / :full 通过这里选要跑的脚本。
+#
+# 关键约束：脚本命令必须包含 `npx tsx` 前缀（Windows shell 不识别 shebang）
+#
+# PR 2 新增 3 个 universal baseline 脚本：
+#   - dead-code    ts-prune（外部工具，本项目自包装）
+#   - coverage     解析 lcov.info 强制 ≥70%
+#   - bundle-size  解析 .next/static 大小强制 <500KB
+#   - a11y-check   pa11y-ci（外部工具，CI-only；本地不跑）
+# ============================================================================
+scripts:
+  harness:check:fast: [ref-check, i18n-check, schema-check]
+  harness:check:full: [ref-check, i18n-check, schema-check, test:backend, test:frontend]
+  ref-check: npx tsx scripts/ref-check.ts
+  i18n-check: npx tsx scripts/i18n-check.ts                   # 包装 i18n-db-compliance.ts
+  schema-check: npx tsx scripts/schema-check.ts
+  auth-check: npx tsx scripts/auth-check.ts
+  jsonb-strict-check: npx tsx scripts/jsonb-strict-check.ts
+  env-schema-check: npx tsx scripts/env-schema-check.ts
+  no-console-check: npx tsx scripts/no-console-check.ts
+  # cors-check 在 PR 6 后并入 security-scan.sh（统一 grep CORS 配置）
+  # 不再保留单独的 cors-check.ts
+  security-scan: bash scripts/security-scan.sh
+
+  # ── PR 2 新增：universal baseline 检查（CI-only）──
+  dead-code: bash scripts/ts-prune-check.sh                   # 检测未使用的 export
+  coverage: bash scripts/coverage-check.sh                    # 强制 ≥70% 行覆盖
+  bundle-size: bash scripts/bundle-size-check.sh              # 强制 <500KB
+  a11y-check: bash scripts/pa11y-check.sh                     # 关键页 a11y（CI-only，运行时需 server）
+
+  # ── 测试 + 编译 + 视觉 ──
+  test:backend: cd backend && npm test
+  test:frontend: cd frontend && npm test
+  lint: cd backend && npm run lint && cd ../frontend && npm run lint
+  type-check: cd backend && npm run type-check && cd ../frontend && npm run type-check
+  build: cd backend && npm run build && cd ../frontend && npm run build
+  screenshot:compare: npx tsx scripts/screenshot-compare.ts
+
+# ============================================================================
+# PR 阶段状态
+# ----------------------------------------------------------------------------
+# blocking_in_pr1: false  → PR 1 阶段所有脚本失败时不阻断 commit/push，仅报告
+# 翻成 true 后，harness 编排器在子脚本失败时会 exit 1（PR 2 已开启）
+#
+# known_security_issues 列出当前 harness 已发现但暂不阻断的安全问题。
+# 格式：file:line:description — 在 PR 6 修 cors 前 security-scan 不会真正阻断。
+# 这是一个**显式的债**追踪 — 不掩盖问题，把债公开化。
+# ============================================================================
+pr1_status:
+  note: "PR 6 完成 — universal_baseline.security 5 类全部实施（secrets/dep-audit/cors/auth/rate-limit）。known_security_issues 已清空。"
+  blocking_in_pr1: false          # 历史值（PR 1 阶段）
+  blocking_in_pr2: true           # PR 2 起的硬阻断 — 编排器在子脚本失败时 exit 1
+  known_security_issues: []       # PR 6 清空 — universal_baseline.security 全闭环达成

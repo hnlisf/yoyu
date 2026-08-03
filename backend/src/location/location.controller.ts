@@ -1,7 +1,10 @@
 import { Controller, Get, Headers, Ip } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { LocationService } from './location.service';
+import { Public } from '../auth/public.decorator';
 
+// PR 4：IP 定位是匿名终端用户场景下用的（用户首次访问时确定城市），必须公开
+@Public()
 @ApiTags('location')
 @Controller('api/location')
 export class LocationController {

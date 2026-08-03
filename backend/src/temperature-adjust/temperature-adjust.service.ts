@@ -1,28 +1,44 @@
+/**
+ * ============================================================================
+ * 文件名：temperature-adjust/temperature-adjust.service.ts（温度调节 Job 服务 v3）
+ * ============================================================================
+ * 作用：限速线性温度调节（rate-limited linear），**唯一** DB 写入者
+ *
+ * P3 §3.3 重构后：
+ *   - 此服务**每 30 秒** tick 时读 TemperatureState 的最新温度
+ *   - 计算收敛步进（≤ 1°C/h rate limit）
+ *   - **唯一**写 FishTank.temp
+ *   - 不再与 WaterTemperatureService 竞争（后者只写内存）
+ *
+ * 算法（不变）：
+ *   - maxDeltaPerTick = 1 / 120 °C（30s tick 节奏，≡ ≤ 1°C/h）
+ *   - 收敛条件：|newTemp - toTemp| < 0.05 → completed
+ *
+ * 与 WaterTemperatureService 的角色分工：
+ *   - water（1Hz）→ 模拟物理 → 写 TemperatureState
+ *   - adjust（30s）→ 读 state → 收敛 → 写 DB（FishTank.temp）
+ *
+ * @see ../temperature/temperature-state.ts
+ * @see ../temperature/water-temperature.service.ts
+ * ============================================================================
+ */
+
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TemperatureState } from '../temperature/temperature-state';
 
-/**
- * v9.1 Item 7: Temperature Adjustment Service
- *
- * Implements rate-limited linear approximation for water temperature adjustment:
- *   Per-tick step: ±1/120°C per 30 seconds (≡ ≤1°C/hour rate limit)
- *   Converges to target via clamped approach — initially rate-limited, then exponential tail.
- *
- * Parameters:
- *   - τ = 20 minutes (time constant for the exponential tail)
- *   - Rate limit: ≤ 1°C/hour (≤ 1/120°C per 30s tick)
- *   - Convergence: |currentTemp - toTemp| < 0.05 → completed
- *   - One running job per tank (enforced)
- */
 @Injectable()
 export class TemperatureAdjustService implements OnModuleInit {
   private readonly logger = new Logger(TemperatureAdjustService.name);
   private tickTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private state: TemperatureState,
+  ) {}
 
   onModuleInit() {
-    // Start the 30-second tick loop
+    // 30s tick 循环 —— 与 WaterTemperatureService 的 1Hz 物理 tick 异步
     this.tickTimer = setInterval(() => {
       this.tickAll().catch((err) =>
         this.logger.warn(`Temperature tick failed: ${err.message}`),
@@ -30,17 +46,13 @@ export class TemperatureAdjustService implements OnModuleInit {
     }, 30_000);
   }
 
-  /**
-   * Create a new temperature adjustment job for a tank.
-   * Cancels any existing running job for the same tank first (ADR-004: 1 job per tank).
-   */
+  /** 创建调节 Job（取消同一鱼缸已有 running Job） */
   async createJob(
     tankId: string,
     fromTemp: number,
     toTemp: number,
     tauMinutes: number = 20,
   ): Promise<any> {
-    // Cancel any existing running job for this tank
     await this.prisma.temperatureAdjustJob.updateMany({
       where: { tankId, status: 'running' },
       data: { status: 'cancelled', completedAt: new Date() },
@@ -59,9 +71,7 @@ export class TemperatureAdjustService implements OnModuleInit {
     });
   }
 
-  /**
-   * Cancel all running jobs for a tank.
-   */
+  /** 取消所有 running Job */
   async cancelJobs(tankId: string): Promise<void> {
     await this.prisma.temperatureAdjustJob.updateMany({
       where: { tankId, status: 'running' },
@@ -69,9 +79,6 @@ export class TemperatureAdjustService implements OnModuleInit {
     });
   }
 
-  /**
-   * Get the current running job for a tank (or null if none).
-   */
   async getRunningJob(tankId: string): Promise<any> {
     return this.prisma.temperatureAdjustJob.findFirst({
       where: { tankId, status: 'running' },
@@ -79,89 +86,50 @@ export class TemperatureAdjustService implements OnModuleInit {
     });
   }
 
-  /**
-   * Get temperature adjustment progress with remaining time estimate.
-   */
   async getProgress(tankId: string): Promise<any> {
     const job = await this.getRunningJob(tankId);
     if (!job) return null;
 
-    const { fromTemp, toTemp, currentTemp, tauMinutes, startedAt, status } = job;
-
-    // Calculate remaining time using actual tick behavior:
-    // Each 30s tick moves ±1/120°C → per-second step = 1/3600°C
-    // remainingSeconds = |delta| / (1/3600) = |delta| × 3600
-    let remainingSeconds: number | null = null;
-    const delta = currentTemp - toTemp;
-    const initDelta = fromTemp - toTemp;
-
-    if (status === 'running' && Math.abs(delta) > 0.01 && Math.abs(initDelta) > 0.01) {
-      remainingSeconds = Math.ceil(Math.abs(delta) * 3600);
-    } else if (status === 'completed') {
-      remainingSeconds = 0;
-    }
-
-    // Current delta per minute
-    const deltaPerMinute = status === 'running'
-      ? parseFloat(((toTemp - currentTemp) / tauMinutes).toFixed(3))
-      : 0;
-
+    // 读最新温度（来自 TemperatureState，不是 DB）
+    const liveState = this.state.readForAdjust(tankId);
     return {
       jobId: job.id,
-      fromTemp,
-      toTemp,
-      currentTemp,
+      tankId: job.tankId,
+      fromTemp: job.fromTemp,
+      toTemp: job.toTemp,
+      currentTemp: liveState?.currentTemp ?? job.currentTemp,
       algorithm: job.algorithm,
-      tauMinutes,
-      startedAt: startedAt.toISOString(),
-      completedAt: job.completedAt?.toISOString() ?? null,
-      status,
-      remainingSeconds,
-      deltaPerMinute,
+      tauMinutes: job.tauMinutes,
+      startedAt: job.startedAt,
+      progress: Math.min(1, Math.abs((liveState?.currentTemp ?? job.currentTemp) - job.fromTemp) / Math.abs(job.toTemp - job.fromTemp)),
+      status: job.status,
     };
   }
 
-  /**
-   * Tick all running jobs every 30 seconds.
-   * Applies rate-limited linear adjustment with rate limit protection.
-   */
-  async tickAll() {
-    const activeJobs = await this.prisma.temperatureAdjustJob.findMany({
+  /** 每 30s tick：对所有 running Job 推进一步 */
+  async tickAll(): Promise<void> {
+    const jobs = await this.prisma.temperatureAdjustJob.findMany({
       where: { status: 'running' },
     });
 
-    if (activeJobs.length === 0) return;
-
-    for (const job of activeJobs) {
+    for (const job of jobs) {
       try {
         await this.tickJob(job);
       } catch (err: any) {
-        this.logger.warn(
-          `Temperature tick failed for tank ${job.tankId}: ${err.message}`,
-        );
+        this.logger.warn(`tickJob failed for ${job.id}: ${err.message}`);
       }
     }
   }
 
-  private async tickJob(job: any) {
-    const elapsedMinutes = (Date.now() - job.startedAt.getTime()) / 60000;
-    const deltaFromTarget = job.toTemp - job.currentTemp;
+  /** 单个 Job 推进一步 */
+  private async tickJob(job: any): Promise<void> {
+    // 关键：从 TemperatureState 读最新水温（1Hz 精度）
+    const liveState = this.state.readForAdjust(job.tankId);
+    const liveTemp = liveState?.currentTemp ?? job.currentTemp;
 
-    // Rate-limited linear: delta per minute = (toTemp - currentTemp) / τ
-    // Clamped to ±1/120°C per 30s tick (≤1°C/hour)
-    const rawDeltaPerMinute = deltaFromTarget / job.tauMinutes;
-
-    // Rate limit: ≤ 1°C/hour = 1/120°C per 30 seconds
-    const maxDeltaPerTick = 1 / 120;
-    const clampedDelta = Math.max(
-      -maxDeltaPerTick,
-      Math.min(maxDeltaPerTick, rawDeltaPerMinute * 0.5), // 30 sec = 0.5 min
-    );
-
-    const newTemp = parseFloat((job.currentTemp + clampedDelta).toFixed(1));
-
-    // Check convergence: |newTemp - toTemp| < 0.05
-    if (Math.abs(newTemp - job.toTemp) < 0.05) {
+    const delta = job.toTemp - liveTemp;
+    if (Math.abs(delta) < 0.05) {
+      // 已收敛
       await this.prisma.temperatureAdjustJob.update({
         where: { id: job.id },
         data: {
@@ -170,31 +138,39 @@ export class TemperatureAdjustService implements OnModuleInit {
           completedAt: new Date(),
         },
       });
-
-      // Update fish_tank.temperature to reflect final temp
+      // 唯一 DB 写入：FishTank.temp
       await this.prisma.fishTank.update({
         where: { id: job.tankId },
-        data: { temp: job.toTemp, temperature: job.toTemp },
+        data: { temp: job.toTemp },
       });
-
       this.logger.log(
-        `Temperature adjustment completed for tank ${job.tankId}: ${job.toTemp}°C`,
+        `Temperature adjust completed for tank ${job.tankId}: ${job.toTemp}°C`,
       );
-    } else {
-      await this.prisma.temperatureAdjustJob.update({
-        where: { id: job.id },
-        data: { currentTemp: newTemp },
-      });
+      return;
+    }
 
-      // Also update fish_tank.temperature so frontend sees real-time value
-      try {
-        await this.prisma.fishTank.update({
-          where: { id: job.tankId },
-          data: { temp: newTemp, temperature: newTemp },
-        });
-      } catch {
-        // Tank may have been deleted — ignore
-      }
+    // 限速步进（≤ 1/120 °C / 30s tick）
+    const rawDeltaPerMinute = delta / Math.max(1, job.tauMinutes);
+    const maxDeltaPerTick = 1 / 120;
+    const clampedDelta = Math.max(
+      -maxDeltaPerTick,
+      Math.min(maxDeltaPerTick, rawDeltaPerMinute * 0.5),
+    );
+    const newTemp = parseFloat((liveTemp + clampedDelta).toFixed(1));
+
+    await this.prisma.temperatureAdjustJob.update({
+      where: { id: job.id },
+      data: { currentTemp: newTemp },
+    });
+
+    // 唯一 DB 写入：FishTank.temp
+    try {
+      await this.prisma.fishTank.update({
+        where: { id: job.tankId },
+        data: { temp: newTemp },
+      });
+    } catch {
+      // 鱼缸可能被删除 —— 静默
     }
   }
 }

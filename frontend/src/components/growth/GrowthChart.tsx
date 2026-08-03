@@ -1,7 +1,8 @@
 'use client';
 
 import { useId } from 'react';
-import type { GrowthRecord } from '@/lib/api/mock';
+// P4 PR 21: 改用 SWR hook 返回的 GrowthPoint（真实后端结构）替代 mockGrowthRecord
+import type { GrowthPoint as GrowthRecord } from '@/lib/swr/useGrowthHistory';
 
 interface GrowthChartProps {
   records: GrowthRecord[];

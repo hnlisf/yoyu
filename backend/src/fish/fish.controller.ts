@@ -1,8 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { FishService } from './fish.service';
 import type { CreateFishDto, UpdateFishDto, FeedAmount } from './fish.service';
+// PR 4 引入
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+// PR 4：鱼只数据是用户私有的 — 所有方法默认要 JWT 鉴权
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 @ApiTags('fish')
 @Controller('api/fish')
 export class FishController {

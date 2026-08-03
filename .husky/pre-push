@@ -1,0 +1,50 @@
+#!/usr/bin/env sh
+# ============================================================================
+# .husky/pre-push —— 本地 push 时自动运行
+# ============================================================================
+# 作用：每次 `git push` 前自动跑 harness:check:full
+#   含：fast subset + backend 测试 + frontend 测试
+#
+# 范围比 pre-commit 大：
+#   - 跑全部 8 个项目特定检查（ref/i18n/schema/auth/jsonb/env/console + security-scan）
+#   - 跑 backend npm test（Jest 套件）
+#   - 跑 frontend npm test（组件测试）
+#
+# 失败时 → 阻止 push（exit 1）
+#
+# 为什么 pre-push 才跑测试？
+#   - 测试通常 30s-几分钟（远慢于 commit 节奏）
+#   - commit 应快速，过慢会让人 skip 掉 husky
+#   - push 前再确认一遍更合理（push 影响远端，不只本地）
+#
+# 注意：
+#   - CI 也会跑同一套 → 本地通过 = CI 大概率通过
+#   - 但 CI 还有 6 个 universal baseline 检查（ts-prune / pa11y / coverage 等）
+#   - 本地 pre-push 不跑这些重的 → 留给 CI 是合理分工
+#
+# Bypass：
+#   git push --no-verify         # 完全跳过
+#   git push --no-verify origin main
+#
+# ============================================================================
+
+echo "🚀 pre-push: harness:check:full (含测试)..."
+
+# 切到 repo 根
+cd "$(git rev-parse --show-toplevel)"
+
+# harness:check:full 已含 fast subset + test:backend + test:frontend
+# 注意：test 跑前需要 backend deps + frontend deps 装好
+#   - 这些在首次 clone 后 npm install 时装
+#   - 如果没装，harness:check:full 会 fail（这是好事 —— 明确告知）
+npm run harness:check:full 2>&1 || {
+  echo ""
+  echo "❌ harness:check:full failed"
+  echo "   可能原因："
+  echo "   - backend/frontend deps 未装 → 跑 npm install"
+  echo "   - 测试本身有问题 → 看上方输出"
+  echo "   - 紧急：git push --no-verify"
+  exit 1
+}
+
+echo "✅ pre-push 通过"

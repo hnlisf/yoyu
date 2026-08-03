@@ -2,6 +2,10 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { PrismaService } from '../prisma/prisma.service';
 import { Fish } from '@prisma/client';
 import { FishSpeciesService } from '../fish-species/fish-species.service';
+// P2 PR 11 新增 — i18n JSON 字段统一解析
+import { safeParse } from '../common/i18n';
+// P2 PR 12 新增 — nickname validator 单一来源
+import { validateNickname, NicknameErrorCode } from '../common/validators/text';
 
 export interface CreateFishDto {
   tankId?: string;
@@ -136,17 +140,14 @@ export class FishService {
     // v9.0: generate instanceId
     const instanceId = `inst_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
-    // v9.1 item2: nickname is now required, validate
-    const nickname = (data.name ?? '').trim();
-    if (!nickname) {
-      throw new BadRequestException('请给鱼起个昵称');
+    // P2 PR 12: nickname 校验改用 src/common/validators/text.ts 单一来源
+    const nicknameResult = validateNickname(data.name);
+    if (!nicknameResult.ok) {
+      throw new BadRequestException(nicknameResult.message);
     }
-    if (nickname.length > 20) {
-      throw new BadRequestException('昵称不能超过20个字符');
-    }
-    if (/<[^>]*>/.test(nickname)) {
-      throw new BadRequestException('昵称不能包含HTML标签');
-    }
+    const nickname = nicknameResult.code === NicknameErrorCode.OK
+      ? String(data.name).trim()
+      : '';
     // No emoji
     if (
       /[\uD800-\uDBFF][\uDC00-\uDFFF]/.test(nickname) ||
@@ -235,8 +236,8 @@ export class FishService {
   }
 
   computeStage(growth: number, stagesJson: string): string {
-    let stages: any[] = [];
-    try { stages = JSON.parse(stagesJson); } catch {}
+    // P2 PR 11: 用 safeParse 替换裸 JSON.parse（项目策略禁止 i18n 字段外的 JSON.parse）
+    const stages = safeParse<any[]>(stagesJson, []);
     if (!stages.length) return 'fry';
     const days = (growth / 100) * (stages[stages.length - 1]?.days ?? 1);
     let current = stages[0].name;
@@ -269,18 +270,12 @@ export class FishService {
     nickname: string,
     userId: string,
   ): Promise<Fish> {
-    // Validate nickname
-    if (!nickname || typeof nickname !== 'string') {
-      throw new BadRequestException('昵称不能为空');
+    // P2 PR 12: nickname 校验改用 src/common/validators/text.ts 单一来源
+    const result = validateNickname(nickname);
+    if (!result.ok) {
+      throw new BadRequestException(result.message);
     }
-    const trimmed = nickname.trim();
-    if (trimmed.length < 1 || trimmed.length > 20) {
-      throw new BadRequestException('昵称长度须在1-20个字符之间');
-    }
-    // No HTML tags
-    if (/<[^>]*>/.test(trimmed)) {
-      throw new BadRequestException('昵称不能包含HTML标签');
-    }
+    const trimmed = String(nickname).trim();
     // No emoji (detect characters outside BMP and common emoji ranges)
     if (
       /[\uD800-\uDBFF][\uDC00-\uDFFF]/.test(trimmed) ||
