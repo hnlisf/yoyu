@@ -41,7 +41,7 @@
 
     "//git_hooks": "─── Git 钩子（HUSKY=1 才装，避免破坏现有本地开发）───",
     "prepare:husky": "husky install || true",
-    "prepare": "node -e \"if(process.env.HUSKY!=='0'){require('child_process').execSync('husky install',{stdio:'inherit'})};\""
+    "prepare": "node -e \"if(process.env.HUSKY!=='0'){require('child_process').execSync('husky install',{stdio:'inherit'});}\" && node scripts/fix-husky-shims.js"
   },
   "//devDeps_intro": "================================================================\ndevDependencies 集中在根目录，便于一个 npm install 装好 harness 工具链。\nbackend 和 frontend 各自有独立的 package.json，按需安装。\n\nPR 2 新增的 4 个 universal baseline 工具（ci_only，本地不强制安装）：\n- ts-prune    死代码检测\n- pa11y-ci    无障碍扫描\n- @lhci/cli  或 pa11y 都行（轻量选 pa11y）",
   "devDependencies": {
