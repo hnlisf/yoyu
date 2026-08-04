@@ -29,35 +29,50 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { execSync } = require('node:child_process');
 
-const SHIM_DIR = path.join(__dirname, '..', '.husky', '_');
+const REPO_ROOT = path.join(__dirname, '..');
+const SHIM_DIR = path.join(REPO_ROOT, '.husky', '_');
 
-if (!fs.existsSync(SHIM_DIR)) {
-  // 没有 shim dir —— 可能 husky 还没装
-  process.exit(0);
-}
-
-const files = fs.readdirSync(SHIM_DIR);
-let fixed = 0;
-
-for (const file of files) {
-  const filePath = path.join(SHIM_DIR, file);
-  if (!fs.statSync(filePath).isFile()) continue;
-
-  const content = fs.readFileSync(filePath, 'utf8');
-  // 跳过 .gitignore 等非脚本文件
-  if (!content.startsWith('#!')) continue;
-
-  // 替换 `#!/usr/bin/env sh` → `#!/bin/sh`（跨平台兼容）
-  if (content.startsWith('#!/usr/bin/env sh')) {
-    const fixedContent = '#!/bin/sh\n' + content.slice('#!/usr/bin/env sh'.length);
-    fs.writeFileSync(filePath, fixedContent, { mode: 0o755 });
-    fixed++;
+// ── 修复 1：core.hooksPath 配置 ──
+//   之前 `.git/config` 里 `hooksPath = --version/_`（异常配置），
+//   让 git 把 `--version/_/pre-push` 当成 hook 路径，
+//   触发 `env: unknown option -- version/_/pre-push` 错误
+try {
+  const currentHooksPath = execSync('git config --get core.hooksPath', {
+    cwd: REPO_ROOT,
+    stdio: ['ignore', 'pipe', 'ignore'],
+  }).toString().trim();
+  if (currentHooksPath && currentHooksPath !== '.husky/_') {
+    console.log(`🔧 [fix-husky-shims] Resetting core.hooksPath: "${currentHooksPath}" → ".husky/_"`);
+    execSync('git config core.hooksPath .husky/_', { cwd: REPO_ROOT, stdio: 'inherit' });
   }
+} catch {
+  // git config --get 失败（无该 key）—— 无需修复
 }
 
-if (fixed > 0) {
-  console.log(`🔧 [fix-husky-shims] Fixed shebang in ${fixed} file(s) for Windows compat`);
-} else {
-  console.log(`✓ [fix-husky-shims] No shim fixes needed`);
+// ── 修复 2：shim 文件 shebang ──
+//   把 `#!/usr/bin/env sh` 改成 `#!/bin/sh`
+//   Git Bash 在 Windows 上对 `env --` 解释异常
+if (fs.existsSync(SHIM_DIR)) {
+  const files = fs.readdirSync(SHIM_DIR);
+  let fixed = 0;
+
+  for (const file of files) {
+    const filePath = path.join(SHIM_DIR, file);
+    if (!fs.statSync(filePath).isFile()) continue;
+
+    const content = fs.readFileSync(filePath, 'utf8');
+    if (!content.startsWith('#!')) continue;
+
+    if (content.startsWith('#!/usr/bin/env sh')) {
+      const fixedContent = '#!/bin/sh\n' + content.slice('#!/usr/bin/env sh'.length);
+      fs.writeFileSync(filePath, fixedContent, { mode: 0o755 });
+      fixed++;
+    }
+  }
+
+  if (fixed > 0) {
+    console.log(`🔧 [fix-husky-shims] Fixed shebang in ${fixed} shim file(s) for Windows compat`);
+  }
 }
