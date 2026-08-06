@@ -26,6 +26,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TemperatureState } from '../temperature/temperature-state';
+// P3 §3.3 类型：Prisma 生成的 TemperatureAdjustJob 强类型
+import { TemperatureAdjustJob } from '@prisma/client';
 
 @Injectable()
 export class TemperatureAdjustService implements OnModuleInit {
@@ -86,7 +88,7 @@ export class TemperatureAdjustService implements OnModuleInit {
     });
   }
 
-  async getProgress(tankId: string): Promise<any> {
+  async getProgress(tankId: string): Promise<Record<string, unknown> | null> {
     const job = await this.getRunningJob(tankId);
     if (!job) return null;
 
@@ -115,14 +117,14 @@ export class TemperatureAdjustService implements OnModuleInit {
     for (const job of jobs) {
       try {
         await this.tickJob(job);
-      } catch (err: any) {
+      } catch (err) {
         this.logger.warn(`tickJob failed for ${job.id}: ${err.message}`);
       }
     }
   }
 
   /** 单个 Job 推进一步 */
-  private async tickJob(job: any): Promise<void> {
+  private async tickJob(job: TemperatureAdjustJob): Promise<void> {
     // 关键：从 TemperatureState 读最新水温（1Hz 精度）
     const liveState = this.state.readForAdjust(job.tankId);
     const liveTemp = liveState?.currentTemp ?? job.currentTemp;

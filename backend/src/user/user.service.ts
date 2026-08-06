@@ -288,7 +288,11 @@ export class UserService {
       if (favIds.length > 0) {
         // 用 service.findOne 替代 prisma.fishSpecies.findMany
         // —— 仍然跨 prisma，但 service 封装了"鱼种列表"领域
-        const favSpecies = await this.prisma.fishSpecies.findMany({
+        interface FavSpeciesRow {
+          id: string;
+          nameI18n: string;
+        }
+        const favSpecies: FavSpeciesRow[] = await this.prisma.fishSpecies.findMany({
           where: { id: { in: favIds } },
           select: { id: true, nameI18n: true },
         });

@@ -16,6 +16,29 @@ export interface WeatherData {
   source: 'cache' | 'live';
 }
 
+/** Open-Meteo geocoding API 响应类型 */
+interface OpenMeteoGeocodeResponse {
+  results?: Array<{
+    latitude: number;
+    longitude: number;
+    name?: string;
+  }>;
+}
+
+/** Open-Meteo forecast current weather 字段（仅用到的子集） */
+interface OpenMeteoCurrent {
+  temperature_2m?: number;
+  apparent_temperature?: number;
+  relative_humidity_2m?: number;
+  weather_code?: number;
+  wind_speed_10m?: number;
+}
+
+/** Open-Meteo forecast API 响应类型 */
+interface OpenMeteoForecastResponse {
+  current?: OpenMeteoCurrent;
+}
+
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
 
 // w4+§1: static city coordinate whitelist (Open-Meteo geocoding unreliable for Chinese names)
@@ -48,8 +71,8 @@ export class WeatherService {
     try {
       const resp = await fetch(url);
       if (!resp.ok) return null;
-      const json: any = await resp.json();
-      const result = json.results?.[0];
+      const json = safeParse<OpenMeteoGeocodeResponse>(await resp.text(), { results: [] });
+      const result = json.results[0];
       if (!result) return null;
       return { lat: result.latitude, lon: result.longitude };
     } catch {
@@ -70,7 +93,7 @@ export class WeatherService {
 
     if (cached) {
       // P2 PR 11: 用 safeParse 替换裸 JSON.parse（类型收窄到 WeatherData）
-      const data = safeParse<WeatherData>(cached.data, null as unknown as WeatherData);
+      const data = safeParse<WeatherData>(cached.data, null);
       if (data) {
         return { ...data, source: 'cache' };
       }
@@ -102,8 +125,8 @@ export class WeatherService {
       this.logger.warn(`Open-Meteo returned ${resp.status} for ${lat},${lon}`);
       return this.fallback(lat, lon);
     }
-    const json: any = await resp.json();
-    const c = json.current ?? {};
+    const json = safeParse<OpenMeteoForecastResponse>(await resp.text(), { current: {} as OpenMeteoCurrent });
+    const c: OpenMeteoCurrent = json.current ?? ({} as OpenMeteoCurrent);
     return {
       lat,
       lon,
