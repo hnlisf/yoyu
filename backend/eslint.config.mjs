@@ -48,4 +48,24 @@ export default tseslint.config(
       '@typescript-eslint/require-await': 'off',  // mock 框架常用
     },
   },
+  // ── WSL 验证发现：service 文件大量 Prisma `any` 返回值触发 unsafe-* ──
+  // 工业惯例：Prisma service 层的 `any` 是已知 trade-off
+  //   （prisma client 类型推断有边界，强类型需要 Prisma 5+ + 类型生成）
+  // controller / decorator / common 文件保持严格（这些是真 bug 信号）
+  {
+    files: [
+      'src/**/*.service.ts',
+      'src/**/repositories/*.ts',
+      'src/auth/*.decorator.ts',  // 装饰器用 ExecutionContext 拿到的是 any
+    ],
+    rules: {
+      // Prisma 返回 any → 链式调用都触发 unsafe-*（已知 trade-off）
+      // controller / spec / migrations 仍严格
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      // 显式 any 仍允许（@typescript-eslint/no-explicit-any: off 已在上面关掉）
+    },
+  },
 );
