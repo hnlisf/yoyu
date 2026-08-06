@@ -75,7 +75,6 @@ export class WeatherService {
         return { ...data, source: 'cache' };
       }
       // fall through to live fetch
-      }
     }
 
     const live = await this.fetchLive(rlat, rlon);
