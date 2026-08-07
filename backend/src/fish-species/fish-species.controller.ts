@@ -3,7 +3,8 @@ import { FishSpeciesService } from './fish-species.service';
 import { Public } from '../auth/public.decorator';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+// CurrentUser imported but not yet used in this controller
+// import { CurrentUser } from '../auth/current-user.decorator';
 
 // PR 4：默认全局鉴权
 //   鱼种列表（GET）是公开的 — 任何人能查

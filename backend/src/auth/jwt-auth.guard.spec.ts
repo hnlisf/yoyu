@@ -17,11 +17,11 @@
 import { ExecutionContext, Reflector } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { IS_PUBLIC_KEY, Public } from './public.decorator';
+import { IS_PUBLIC_KEY } from './public.decorator';
 
 describe('JwtAuthGuard', () => {
   let guard: JwtAuthGuard;
-  let reflector: Reflector;
+  let _reflector: Reflector;  // prefix with _ to satisfy no-unused-vars
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({

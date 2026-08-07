@@ -66,7 +66,7 @@ export function safeParse<T>(raw: string | null | undefined, fallback: T): T {
   // 真正的字符串 — JSON.parse
   try {
     return JSON.parse(raw) as T;
-  } catch (e) {
+  } catch {
     // ⚠️ 关键：从"静默吞"升级到"结构化日志"
     // production 应配合 pino logger（PR 5+ 引入）
     // 这里用 console.warn 维持 PR 2 的最小依赖边界

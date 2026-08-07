@@ -14,10 +14,10 @@ import { PrismaClient } from '@prisma/client';
 // P2 PR 11 — i18n helper（项目策略禁止裸 JSON.parse）
 import { safeParse } from '../common/i18n';
 // P3 §2.2 PR 15：visualVariant 映射统一到 src/common/mappings/visual-variant.ts
-import { LEGACY_TO_CANONICAL, canonicalize } from '../common/mappings/visual-variant';
+// LEGACY_TO_CANONICAL 在 visual-variant.ts 中定义（已通过 canonicalize 间接使用）
+import { canonicalize } from '../common/mappings/visual-variant';
 
 const DIMENSIONS = ['color', 'pattern', 'body'] as const;
-type Dimension = (typeof DIMENSIONS)[number];
 
 function sqlitePath(): string | null {
   const url = process.env.DATABASE_URL || 'file:./dev.db';
