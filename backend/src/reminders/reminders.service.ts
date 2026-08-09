@@ -79,7 +79,7 @@ export class RemindersService {
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
     const created: Reminder[] = [];
-    for (const tank of tanks) {
+    for (const _ of tanks) {
       const items: CreateReminderDto[] = [
         {
           userId,
