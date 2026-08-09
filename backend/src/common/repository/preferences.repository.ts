@@ -10,10 +10,11 @@
 import { Injectable } from '@nestjs/common';
 import { UserPreference } from '@prisma/client';
 import { BaseRepository } from './base.repository';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class PreferencesRepository extends BaseRepository<UserPreference, { userId: string }> {
-  constructor(prisma: any) {
+  constructor(prisma: PrismaService) {
     super(prisma, prisma.userPreference);
   }
 

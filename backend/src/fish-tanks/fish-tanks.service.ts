@@ -7,7 +7,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { FishTank, Prisma } from '@prisma/client';
+import { FishTank, Prisma, WaterChangeLog } from '@prisma/client';
 // P2 PR 12 新增
 import { validateNickname } from '../common/validators/text';
 import { FishSpeciesService } from '../fish-species/fish-species.service';
@@ -62,7 +62,7 @@ export class FishTanksService {
     // —— WaterTemperatureService 只更新内存状态
   }
 
-  async findAllByUser(userId: string, lang = 'zh'): Promise<any[]> {
+  async findAllByUser(userId: string, lang = 'zh'): Promise<FishTank[]> {
     const tanks = await this.prisma.fishTank.findMany({
       where: { userId },
       include: { fish: { include: { species: true } } },
@@ -71,7 +71,7 @@ export class FishTanksService {
     return tanks.map((t) => this.attachI18n(t, lang));
   }
 
-  async findOne(id: string, lang = 'zh'): Promise<any> {
+  async findOne(id: string, lang = 'zh'): Promise<FishTank | null> {
     const tank = await this.prisma.fishTank.findUnique({
       where: { id },
       include: { fish: { include: { species: true } } },
@@ -221,7 +221,7 @@ export class FishTanksService {
   /**
    * v9.1 Item 6b: Get water change logs for a tank, ordered by most recent first.
    */
-  async getWaterChangeLogs(tankId: string, limit: number = 20): Promise<any[]> {
+  async getWaterChangeLogs(tankId: string, limit: number = 20): Promise<WaterChangeLog[]> {
     // Verify tank exists
     await this.ensureExists(tankId);
 
@@ -242,7 +242,7 @@ export class FishTanksService {
     fishId: string,
     nickname: string,
     userId: string,
-  ): Promise<any> {
+  ): Promise<FishTank> {
     // P2 PR 12: nickname 校验改用 src/common/validators/text.ts 单一来源
     const result = validateNickname(nickname);
     if (!result.ok) {
@@ -293,7 +293,7 @@ export class FishTanksService {
     return tank;
   }
 
-  async create(data: CreateFishTankDto): Promise<any> {
+  async create(data: CreateFishTankDto): Promise<FishTank> {
     const userId = data.userId
       ? await this.userService.ensureUser(data.userId)
       : await this.userService.createDemoUser();
@@ -404,7 +404,7 @@ export class FishTanksService {
     }
   }
 
-  async update(id: string, data: UpdateFishTankDto): Promise<any> {
+  async update(id: string, data: UpdateFishTankDto): Promise<FishTank> {
     await this.ensureExists(id);
 
     // v10.0 P0-1: Validate tank name (1-20 chars, trim)
@@ -495,7 +495,7 @@ export class FishTanksService {
     return this.prisma.fishTank.delete({ where: { id } });
   }
 
-  async tick(id: string, hoursDelta: number = 24): Promise<any> {
+  async tick(id: string, hoursDelta: number = 24): Promise<FishTank> {
     const tank = await this.prisma.fishTank.findUnique({
       where: { id },
       include: { fish: { include: { species: true } } },
@@ -505,7 +505,7 @@ export class FishTanksService {
     const decay = (hoursDelta / 24) * 5;
 
     const warnings: any[] = [];
-    const fishUpdates: Promise<any>[] = [];
+    const fishUpdates: Promise<FishTank>[] = [];
     for (const fish of tank.fish) {
       const species = fish.species;
       const currentTemp = tank.temp ?? tank.cityTemp ?? 24;
