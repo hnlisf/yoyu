@@ -18,7 +18,7 @@ process.env.DATABASE_URL = `file:${TEST_DB_PATH}`;
 // Force the test client to re-resolve after we mutated DATABASE_URL
 // (Prisma reads the env var at construction time).
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { execSync } = require('child_process');
+import { execSync } from 'child_process';
 execSync(`rm -f ${TEST_DB_PATH}`, { stdio: 'ignore' });
 
 describe('seed.ts idempotency', () => {

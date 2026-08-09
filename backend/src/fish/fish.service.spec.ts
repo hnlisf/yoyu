@@ -194,7 +194,7 @@ describe('FishService async methods', () => {
       prisma.$transaction.mockResolvedValue([{ id: 'f1' }]);
       await svc.feed('f1', 'large'); // +50, would be 130 → clamped to 100
       // The first arg to $transaction is an array of Prisma operation promises
-      const txArgs = prisma.$transaction.mock.calls[0][0];
+      const _txArgs = prisma.$transaction.mock.calls[0][0];
       // When using array form, $transaction awaits each entry; verify the fish update
       // by inspecting the prisma.fish.update mock that was passed in.
       const fishUpdateMock = prisma.fish.update;

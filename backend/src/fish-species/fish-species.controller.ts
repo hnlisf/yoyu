@@ -18,20 +18,20 @@ export class FishSpeciesController {
   @Public()
   @Get()
   async findAll(@Query('lang') lang = 'zh') {
-    return this.service.findAll(lang);
+    return this.service.findAll(lang) as unknown;
   }
 
   @Public()
   @Get(':id')
   async findOne(@Param('id') id: string, @Query('lang') lang = 'zh') {
-    return this.service.findOne(id, lang);
+    return this.service.findOne(id, lang) as unknown;
   }
 
   // ── 需要鉴权的写 ──
   @UseGuards(JwtAuthGuard)
   @Post('custom')
   async createCustom(@Body() body: any) {
-    return this.service.createCustom(body);
+    return this.service.createCustom(body) as unknown;
   }
 
   @UseGuards(JwtAuthGuard)
