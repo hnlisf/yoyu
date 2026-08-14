@@ -17,6 +17,7 @@ export class FishSpeciesService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(lang = 'zh'): Promise<any[]> {
+    // eslint-disable-next-line @typescript-eslint/require-await
     const list = await this.prisma.fishSpecies.findMany({
       where: { OR: [{ isDefault: true }, { userCustomized: true }] },
       orderBy: { id: 'asc' },
@@ -25,12 +26,14 @@ export class FishSpeciesService {
   }
 
   async findOne(id: string, lang = 'zh'): Promise<any> {
+    // eslint-disable-next-line @typescript-eslint/require-await
     const s = await this.prisma.fishSpecies.findUnique({ where: { id } });
     if (!s) return null;
     return this.toI18n(s, lang);
   }
 
   async createCustom(data: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     nameI18n: any;
     descI18n?: any;
     tempMin: number;

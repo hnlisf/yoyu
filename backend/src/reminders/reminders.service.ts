@@ -75,33 +75,33 @@ export class RemindersService {
     const existing = await this.prisma.reminder.count({ where: { userId } });
     if (existing > 0) return [];
 
-    const tanks = await this.prisma.fishTank.findMany({ where: { userId } });
+    await this.prisma.fishTank.findMany({ where: { userId } });
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
     const created: Reminder[] = [];
-    for (const _ of tanks) {
-      const items: CreateReminderDto[] = [
-        {
-          userId,
-          type: 'feed',
-          titleI18n: JSON.stringify({ zh: '投喂时间', en: 'Feeding time', ja: '餌やり' }),
-          dueAt: new Date(now + oneDay),
-        },
-        {
-          userId,
-          type: 'water_change',
-          titleI18n: JSON.stringify({ zh: '换水', en: 'Water change', ja: '水換え' }),
-          dueAt: new Date(now + 7 * oneDay),
-        },
-        {
-          userId,
-          type: 'clean',
-          titleI18n: JSON.stringify({ zh: '清理鱼便', en: 'Clean waste', ja: '掃除' }),
-          dueAt: new Date(now + 3 * oneDay),
-        },
-      ];
-      for (const it of items) {
-        created.push(await this.create(it));
+    // 与 tank 无关的默认提醒（每个用户一份）
+    const items: CreateReminderDto[] = [
+      {
+        userId,
+        type: 'feed',
+        titleI18n: JSON.stringify({ zh: '投喂时间', en: 'Feeding time', ja: '餌やり' }),
+        dueAt: new Date(now + oneDay),
+      },
+      {
+        userId,
+        type: 'water_change',
+        titleI18n: JSON.stringify({ zh: '换水', en: 'Water change', ja: '水換え' }),
+        dueAt: new Date(now + 7 * oneDay),
+      },
+      {
+        userId,
+        type: 'clean',
+        titleI18n: JSON.stringify({ zh: '清理鱼便', en: 'Clean waste', ja: '掃除' }),
+        dueAt: new Date(now + 3 * oneDay),
+      },
+    ];
+    for (const it of items) {
+      created.push(await this.create(it));
       }
     }
     return created;
