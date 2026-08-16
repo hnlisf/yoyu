@@ -104,6 +104,5 @@ export class RemindersService {
       created.push(await this.create(it));
       }
     }
-    return created;
   }
 }

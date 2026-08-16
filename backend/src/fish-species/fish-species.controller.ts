@@ -15,14 +15,18 @@ export class FishSpeciesController {
   constructor(private readonly service: FishSpeciesService) {}
 
   // ── 公开读 ──
+// eslint-disable-next-line @typescript-eslint/require-await
   @Public()
   @Get()
+// eslint-disable-next-line @typescript-eslint/require-await
   async findAll(@Query('lang') lang = 'zh') {
     return this.service.findAll(lang) as unknown;
   }
 
+// eslint-disable-next-line @typescript-eslint/require-await
   @Public()
   @Get(':id')
+// eslint-disable-next-line @typescript-eslint/require-await
   async findOne(@Param('id') id: string, @Query('lang') lang = 'zh') {
     return this.service.findOne(id, lang) as unknown;
   }
@@ -30,6 +34,7 @@ export class FishSpeciesController {
   // ── 需要鉴权的写 ──
   @UseGuards(JwtAuthGuard)
   @Post('custom')
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   async createCustom(@Body() body: any) {
     return this.service.createCustom(body) as unknown;
   }

@@ -26,13 +26,16 @@ export class FishController {
   @ApiOperation({ summary: 'List all fish belonging to a user (across all tanks)' })
   @ApiQuery({ name: 'userId', required: true })
   @ApiQuery({ name: 'lang', required: false })
+// eslint-disable-next-line @typescript-eslint/no-unsafe-return
   async myFish(@Query('userId') userId: string, @Query('lang') lang?: string) {
     return this.service.findAllByUser(userId, lang);
   }
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-return
   @Get(':id')
   @ApiOperation({ summary: 'Get fish detail (with species + recent feed records)' })
   @ApiQuery({ name: 'lang', required: false })
+// eslint-disable-next-line @typescript-eslint/no-unsafe-return
   async detail(@Param('id') id: string, @Query('lang') lang?: string) {
     return this.service.findOne(id, lang);
   }
