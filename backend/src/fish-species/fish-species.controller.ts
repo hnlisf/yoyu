@@ -34,7 +34,7 @@ export class FishSpeciesController {
   // ── 需要鉴权的写 ──
   @UseGuards(JwtAuthGuard)
   @Post('custom')
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/require-await
   async createCustom(@Body() body: any) {
     return this.service.createCustom(body) as unknown;
   }

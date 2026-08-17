@@ -102,7 +102,6 @@ export class RemindersService {
     ];
     for (const it of items) {
       created.push(await this.create(it));
-      }
     }
   }
 }
