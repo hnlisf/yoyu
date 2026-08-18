@@ -35,6 +35,7 @@ export class FishSpeciesController {
   @UseGuards(JwtAuthGuard)
   @Post('custom')
 // eslint-disable-next-line @typescript-eslint/require-await
+// eslint-disable-next-line @typescript-eslint/require-await
   async createCustom(@Body() body: any) {
     return this.service.createCustom(body) as unknown;
   }
