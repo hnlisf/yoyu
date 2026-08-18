@@ -48,7 +48,7 @@ import { FishSpeciesService } from '../fish-species/fish-species.service';
 function parseI18nName(nameI18n: string): string {
   // P2 PR 11: 用 getLocalized 替换 JSON.parse + 手动 fallback 三元
   // 双签名兼容：DB 列是 JSON 字符串；已解析对象也能传
-  const fromObj = getLocalized(safeParse<Record<string, string>>(nameI18n, null), 'zh');
+  const fromObj = getLocalized(safeParse<Record<string, string>>(nameI18n, null as any), 'zh');
   if (fromObj) return fromObj;
   return nameI18n;  // 兜底：原字符串
 }

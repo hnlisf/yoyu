@@ -29,7 +29,7 @@
  * ============================================================================
  */
 
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 /**
  * BaseRepository — 通用 CRUD 包装基类

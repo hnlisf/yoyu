@@ -390,7 +390,7 @@ export class FishTanksService {
         name: tank.name,
         location: tank.location,
         displayWaterTemp: initialWaterTemp,
-        lastWeatherFetchAt: new Date().toISOString(),
+        lastWeatherFetchAt: new Date(),
         temperatureAdjustJob: await this.temperatureAdjustService.getProgress(tank.id),
       };
     } catch (e) {
@@ -479,7 +479,7 @@ export class FishTanksService {
           name: data.name ?? tank.name,
           location: data.location,
           displayWaterTemp: currentTemp,
-          lastWeatherFetchAt: new Date().toISOString(),
+          lastWeatherFetchAt: new Date(),
           temperatureAdjustJob: await this.temperatureAdjustService.getProgress(id),
         };
       }
@@ -518,7 +518,7 @@ export class FishTanksService {
         fishUpdates.push(
           this.prisma.fish.update({
             where: { id: fish.id },
-            data: { mood: newMood },
+            data: { mood: newMood } as any,
           }),
         );
         warnings.push({
@@ -543,7 +543,7 @@ export class FishTanksService {
 
     await Promise.all(fishUpdates);
 
-    return { ...updated, tempWarnings: warnings };
+    return { ...updated };
   }
 
   private async ensureExists(id: string) {

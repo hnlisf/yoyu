@@ -49,7 +49,7 @@ import { AuthController } from './auth.controller';
         return {
           secret,
           signOptions: {
-            expiresIn: config.get<string>('JWT_EXPIRES_IN', '24h'),
+            expiresIn: config.get<string>('JWT_EXPIRES_IN', '24h') as any,
           },
         };
       },

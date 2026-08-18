@@ -72,7 +72,7 @@ export class WeatherService {
       const resp = await fetch(url);
       if (!resp.ok) return null;
       const json = safeParse<OpenMeteoGeocodeResponse>(await resp.text(), { results: [] });
-      const result = json.results[0];
+      const result = json.results?.[0];
       if (!result) return null;
       return { lat: result.latitude, lon: result.longitude };
     } catch {
@@ -93,7 +93,7 @@ export class WeatherService {
 
     if (cached) {
       // P2 PR 11: 用 safeParse 替换裸 JSON.parse（类型收窄到 WeatherData）
-      const data = safeParse<WeatherData>(cached.data, null);
+      const data = safeParse<WeatherData>(cached.data, null as any);
       if (data) {
         return { ...data, source: 'cache' };
       }
