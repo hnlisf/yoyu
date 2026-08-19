@@ -164,7 +164,7 @@ export function getLocalized(
   if (typeof field === 'string') {
     // 可能是 JSON 字符串，也可能是已解析的字面量
     // 用 safeParse 试一下；如果 parse 失败说明就是字面量
-    const parsed = safeParse<string | Record<string, string>>(field, null);
+    const parsed = safeParse<string | Record<string, string>>(field, null as any);
     if (parsed === null) {
       // 不是 JSON — 当作 plain string 返回
       return field;

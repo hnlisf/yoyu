@@ -75,8 +75,8 @@ export class AuthController {
 
     const expiresIn = this.config.get<string>('JWT_EXPIRES_IN', '24h');
     const accessToken = await this.jwt.signAsync(
-      { sub: userId },        // JWT 标准 subject 字段
-      { expiresIn },          // 来自环境配置
+      ({ sub: userId } as any),
+      ({ expiresIn } as any),
     );
 
     // 简单解析 expiresIn 返回给客户端（方便排查）
