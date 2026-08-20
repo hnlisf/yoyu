@@ -72,12 +72,12 @@ export class FishSpeciesService {
       // v10.1.3: Parse JSON string if client sends stringified (matching nameI18n/descI18n/stages pattern)
       // P2 PR 11: 用 safeParse 替换裸 JSON.parse（项目策略禁止 i18n 字段外的 JSON.parse）
       const vv = typeof data.visualVariant === 'string'
-        ? safeParse(data.visualVariant, null)
+        ? safeParse(data.visualVariant, null as any)
         : data.visualVariant;
       const missing: string[] = [];
-      if (typeof vv.color !== 'string' || !vv.color) missing.push('color');
-      if (typeof vv.pattern !== 'string' || !vv.pattern) missing.push('pattern');
-      if (typeof vv.body !== 'string' || !vv.body) missing.push('body');
+      if (typeof (vv as any).color !== 'string' || !(vv as any).color) missing.push('color');
+      if (typeof (vv as any).pattern !== 'string' || !(vv as any).pattern) missing.push('pattern');
+      if (typeof (vv as any).body !== 'string' || !(vv as any).body) missing.push('body');
       if (missing.length > 0) {
         throw new BadRequestException(
           `visualVariant 缺少必填字段: ${missing.join(', ')}`,
@@ -85,19 +85,19 @@ export class FishSpeciesService {
       }
       // P3 §2.2 PR 15：visualVariant 映射改用 src/common/mappings/visual-variant.ts 单一来源
       // —— 兼容 5 种 legacy 输入（purple / golden / spotted / striped / slim / normal / round / plump / scale）
-      vv.color = canonicalize('color', vv.color);
-      vv.pattern = canonicalize('pattern', vv.pattern);
-      vv.body = canonicalize('body', vv.body);
+      (vv as any).color = canonicalize('color', (vv as any).color);
+      (vv as any).pattern = canonicalize('pattern', (vv as any).pattern);
+      (vv as any).body = canonicalize('body', (vv as any).body);
 
       // 白名单校验（5×5×5=125 组合）
-      if (!isValidVV('color', vv.color)) {
-        throw new BadRequestException(`visualVariant.color 不合法: ${vv.color}`);
+      if (!isValidVV('color', (vv as any).color)) {
+        throw new BadRequestException(`visualVariant.color 不合法: ${(vv as any).color}`);
       }
-      if (!isValidVV('pattern', vv.pattern)) {
-        throw new BadRequestException(`visualVariant.pattern 不合法: ${vv.pattern}`);
+      if (!isValidVV('pattern', (vv as any).pattern)) {
+        throw new BadRequestException(`visualVariant.pattern 不合法: ${(vv as any).pattern}`);
       }
-      if (!isValidVV('body', vv.body)) {
-        throw new BadRequestException(`visualVariant.body 不合法: ${vv.body}`);
+      if (!isValidVV('body', (vv as any).body)) {
+        throw new BadRequestException(`visualVariant.body 不合法: ${(vv as any).body}`);
       }
       visualVariantStr = JSON.stringify(vv);
     }

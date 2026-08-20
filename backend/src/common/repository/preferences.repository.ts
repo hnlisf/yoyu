@@ -15,7 +15,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 @Injectable()
 export class PreferencesRepository extends BaseRepository<UserPreference, { userId: string }> {
   constructor(prisma: PrismaService) {
-    super(prisma, prisma.userPreference);
+    super(prisma, prisma.userPreference as any);
   }
 
   /**
