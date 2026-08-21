@@ -279,7 +279,7 @@ export class FishTanksService {
 
     return this.prisma.fish.update({
       where: { id: fishId },
-      data: { name: trimmed },
+      data: { name: trimmed } as any,
     });
   }
 
@@ -389,7 +389,7 @@ export class FishTanksService {
         id: tank.id,
         name: tank.name,
         location: tank.location,
-        displayWaterTemp: initialWaterTemp,
+        temp: initialWaterTemp,
         lastWeatherFetchAt: new Date(),
         temperatureAdjustJob: await this.temperatureAdjustService.getProgress(tank.id),
       };
@@ -478,7 +478,7 @@ export class FishTanksService {
           id,
           name: data.name ?? tank.name,
           location: data.location,
-          displayWaterTemp: currentTemp,
+          temp: currentTemp,
           lastWeatherFetchAt: new Date(),
           temperatureAdjustJob: await this.temperatureAdjustService.getProgress(id),
         };
