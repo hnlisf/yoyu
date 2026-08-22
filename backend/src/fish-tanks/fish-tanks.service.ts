@@ -242,7 +242,7 @@ export class FishTanksService {
     fishId: string,
     nickname: string,
     userId: string,
-  ): Promise<FishTank> {
+  ): Promise<Fish> {
     // P2 PR 12: nickname 校验改用 src/common/validators/text.ts 单一来源
     const result = validateNickname(nickname);
     if (!result.ok) {
@@ -391,7 +391,6 @@ export class FishTanksService {
         location: tank.location,
         temp: initialWaterTemp,
         lastWeatherFetchAt: new Date(),
-        temperatureAdjustJob: await this.temperatureAdjustService.getProgress(tank.id),
       };
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
@@ -480,7 +479,6 @@ export class FishTanksService {
           location: data.location,
           temp: currentTemp,
           lastWeatherFetchAt: new Date(),
-          temperatureAdjustJob: await this.temperatureAdjustService.getProgress(id),
         };
       }
     }
@@ -490,12 +488,12 @@ export class FishTanksService {
     return updated;
   }
 
-  async remove(id: string): Promise<FishTank> {
+  async remove(id: string): Promise<Fish> {
     await this.ensureExists(id);
     return this.prisma.fishTank.delete({ where: { id } });
   }
 
-  async tick(id: string, hoursDelta: number = 24): Promise<FishTank> {
+  async tick(id: string, hoursDelta: number = 24): Promise<Fish> {
     const tank = await this.prisma.fishTank.findUnique({
       where: { id },
       include: { fish: { include: { species: true } } },
